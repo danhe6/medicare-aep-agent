@@ -6,6 +6,7 @@
 # data (CMS files are large; re-download via scripts)
 data/raw/*
 data/processed/*
+data/releases/*
 !data/**/.gitkeep
 *.duckdb
 *.duckdb.wal

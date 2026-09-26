@@ -2,7 +2,7 @@
  "name": "p04_diabetes_brands",
  "desc": "2 negotiated diabetes brands + metformin",
  "zip": "33125",
- "county": "Miami-Dade, FL",
+ "county": "Miami-Dade",
  "pharmacy": "preferred_retail",
  "medicaid": false,
  "chronic_conditions": [],
@@ -470,5 +470,6 @@
     "82804019560"
    ]
   }
- ]
+ ],
+ "state": "Florida"
 }

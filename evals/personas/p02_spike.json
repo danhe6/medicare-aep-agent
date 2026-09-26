@@ -2,7 +2,7 @@
  "name": "p02_spike",
  "desc": "generic + Eliquis (spike persona)",
  "zip": "33125",
- "county": "Miami-Dade, FL",
+ "county": "Miami-Dade",
  "pharmacy": "preferred_retail",
  "medicaid": false,
  "chronic_conditions": [],
@@ -439,5 +439,6 @@
     "82804008531"
    ]
   }
- ]
+ ],
+ "state": "Florida"
 }

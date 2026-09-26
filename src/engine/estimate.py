@@ -38,7 +38,8 @@ def estimate_plan(con, plan, drugs: list[dict], pharmacy: str = "preferred_retai
             fills.append(DrugFill(d["name"], None, d["qty_per_30d"], False, uncovered_unit_cost=mkt))
             detail.append({"drug": d["name"], "covered": False,
                            "monthly_full_price": round((mkt or 0) * d["qty_per_30d"], 2),
-                           "note": "not on formulary: you pay full price, and it does not count toward the cap"})
+                           "note": ("not on formulary: you pay full price, and it does not count toward the cap"
+                                    if mkt else "not on formulary and no public price found: cost unknown")})
             continue
         unit, price_src = data.unit_cost(con, plan, fe.representative_ndc, d["ndcs"])
         cs = data.cost_share(con, plan, fe.tier, pharmacy)
@@ -58,8 +59,11 @@ def estimate_plan(con, plan, drugs: list[dict], pharmacy: str = "preferred_retai
         "hit_cap_month": r.hit_cap_month, "not_covered": r.not_covered, "drugs": detail,
     }
 
-def estimate(person: dict, year: int = 2026, con=None) -> dict:
+def estimate(person: dict, year: int | None = None, con=None) -> dict:
     con = con or data.connect()
+    data.load_market(con, person.get("state", "Florida"), person.get("county", "Miami-Dade"))
+    m = data.manifest()
+    year = year or int(m["benefit_year"])
     pharmacy = person.get("pharmacy", "preferred_retail")
     drugs = []
     for d in person["drugs"]:
@@ -74,8 +78,15 @@ def estimate(person: dict, year: int = 2026, con=None) -> dict:
             continue
         results.append(estimate_plan(con, plan, drugs, pharmacy, year))
     results.sort(key=lambda x: (len(x["not_covered"]), x["total"]))
+    assumptions_extra = []
+    if str(m.get("price_year")) != str(m.get("benefit_year")):
+        assumptions_extra.append(f"Drug prices are {m['price_year']} negotiated prices applied to "
+                                 f"{m['benefit_year']} plan benefits (CMS has not yet published {m['benefit_year']} prices)")
     return {
-        "year": year, "pharmacy": pharmacy, "plans_ranked": len(results),
+        "year": year, "market": {"state": person.get("state", "Florida"), "county": person.get("county", "Miami-Dade")},
+        "data_as_of": {"coverage": m["sources"]["monthly"]["release"], "prices": m["sources"]["quarterly"]["release"],
+                       "release_id": m["release_id"]},
+        "pharmacy": pharmacy, "plans_ranked": len(results),
         "plans_excluded_by_snp_eligibility": {str(k): v for k, v in skipped.items()},
         "assumptions": [
             "One 30-day fill per drug per month at the chosen pharmacy type",
@@ -85,7 +96,7 @@ def estimate(person: dict, year: int = 2026, con=None) -> dict:
             "and do not count toward the annual out-of-pocket cap",
             "Pharmacy dispensing fees not included; brand drugs may cost $0-30 more per month "
             "on plans with a deductible or coinsurance",
-        ],
+        ] + assumptions_extra,
         "results": results,
     }
 
@@ -93,11 +104,12 @@ def estimate(person: dict, year: int = 2026, con=None) -> dict:
 def main() -> None:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     person = json.loads(Path(args[0]).read_text())
-    year = int(sys.argv[sys.argv.index("--year") + 1]) if "--year" in sys.argv else 2026
+    year = int(sys.argv[sys.argv.index("--year") + 1]) if "--year" in sys.argv else None
     out = estimate(person, year)
     if "--json" in sys.argv:
         print(json.dumps(out, indent=1))
         return
+    print(f"{out['market']['county']}, {out['market']['state']} | plan year {out['year']} | data as of {out['data_as_of']}")
     print(f"{out['plans_ranked']} plans ranked; excluded by SNP eligibility: {out['plans_excluded_by_snp_eligibility']}")
     for r in out["results"][:10]:
         nc = f"  NOT COVERED: {', '.join(r['not_covered'])}" if r["not_covered"] else ""

@@ -2,7 +2,7 @@
  "name": "p03_insulin",
  "desc": "insulin pen + metformin (tests $35 insulin cap)",
  "zip": "33125",
- "county": "Miami-Dade, FL",
+ "county": "Miami-Dade",
  "pharmacy": "preferred_retail",
  "medicaid": false,
  "chronic_conditions": [],
@@ -432,5 +432,6 @@
     "82804019560"
    ]
   }
- ]
+ ],
+ "state": "Florida"
 }

@@ -2,7 +2,7 @@
  "name": "p08_polypharmacy",
  "desc": "8 generics",
  "zip": "33125",
- "county": "Miami-Dade, FL",
+ "county": "Miami-Dade",
  "pharmacy": "preferred_retail",
  "medicaid": false,
  "chronic_conditions": [],
@@ -3272,5 +3272,6 @@
     "87441003501"
    ]
   }
- ]
+ ],
+ "state": "Florida"
 }
