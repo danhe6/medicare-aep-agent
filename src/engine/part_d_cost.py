@@ -24,7 +24,7 @@ class DrugFill:
     quantity: float              # units per 30-day fill
     on_formulary: bool
     tier: int | None = None
-    cost_type: str | None = None  # "copay" | "coinsurance"
+    cost_type: str | None = None  # "copay" | "coinsurance" | "coinsurance_capped" (insulin)
     cost_amount: float | None = None  # dollars for copay; fraction (0.25) for coinsurance
     deductible_applies: bool = True
     flags: list[str] = field(default_factory=list)  # e.g. ["PA", "ST", "QL"]
@@ -49,6 +49,10 @@ def _cost_share(fill: DrugFill, amount: float) -> float:
     """Member cost share on `amount` of drug cost during initial coverage."""
     if fill.cost_type == "copay":
         return min(fill.cost_amount or 0.0, amount)
+    if fill.cost_type == "coinsurance_capped":  # insulin: coinsurance, but never above $35/month
+        rate = fill.cost_amount or 0.0
+        rate = rate / 100 if rate > 1 else rate
+        return min(rate * amount, 35.0)
     if fill.cost_type == "coinsurance":
         rate = fill.cost_amount or 0.0
         if rate > 1:  # tolerate 25 meaning 25%

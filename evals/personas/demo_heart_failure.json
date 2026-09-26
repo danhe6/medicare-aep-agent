@@ -1,0 +1,12 @@
+{
+ "name": "demo_heart_failure",
+ "desc": "Rosa-style demo: brand heart-failure drugs where generics now exist",
+ "state": "Florida", "county": "Miami-Dade", "pharmacy": "preferred_retail",
+ "medicaid": false, "chronic_conditions": [], "institutional": false,
+ "drugs": [
+  {"name": "sacubitril 24 MG / valsartan 26 MG Oral Tablet [Entresto]", "qty_per_30d": 60},
+  {"name": "dapagliflozin 10 MG Oral Tablet [Farxiga]", "qty_per_30d": 30},
+  {"name": "carvedilol 12.5 MG Oral Tablet", "qty_per_30d": 60},
+  {"name": "insulin glargine 100 UNT/ML Pen Injector [Lantus]", "qty_per_30d": 15}
+ ]
+}

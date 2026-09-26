@@ -117,6 +117,9 @@ def load_market(con, state: str, county: str) -> int:
     con.execute("""CREATE OR REPLACE TEMP TABLE market_bene_cost AS
         SELECT b.* FROM bene_cost b JOIN (SELECT DISTINCT contract_id, plan_id, segment_id FROM market_plans) m
         USING (contract_id, plan_id, segment_id)""")
+    con.execute("""CREATE OR REPLACE TEMP TABLE market_insulin_cost AS
+        SELECT i.* FROM insulin_cost i JOIN (SELECT DISTINCT contract_id, plan_id, segment_id FROM market_plans) m
+        USING (contract_id, plan_id, segment_id)""")
     con.execute("""CREATE OR REPLACE TEMP TABLE market_pricing AS
         SELECT pr.* FROM pricing pr JOIN (SELECT DISTINCT contract_id, plan_id FROM market_plans) m
         USING (contract_id, plan_id)
@@ -135,11 +138,14 @@ def plans(con) -> list[Plan]:
     return [Plan(c, p, s, n, f, prem, ded, SNP_TYPES.get(snp)) for c, p, s, n, f, prem, ded, snp in rows]
 
 
-def formulary_entry(con, formulary_id: str, rxcui: str) -> FormularyEntry | None:
+def formulary_entry(con, formulary_id: str, rxcuis: str | list[str]) -> FormularyEntry | None:
+    """First formulary row matching any of the given RXCUIs (the drug and its equivalent forms)."""
+    ids = [rxcuis] if isinstance(rxcuis, str) else [r for r in rxcuis if r]
     row = con.execute("""
         SELECT try_cast(tier_level_value AS INT), ndc, prior_authorization_yn, step_therapy_yn, quantity_limit_yn
-        FROM market_formulary WHERE formulary_id = ? AND rxcui = ? ORDER BY 1 LIMIT 1
-    """, [formulary_id, rxcui]).fetchone()
+        FROM market_formulary WHERE formulary_id = ? AND rxcui IN (SELECT unnest(?::VARCHAR[]))
+        ORDER BY 1 LIMIT 1
+    """, [formulary_id, ids]).fetchone()
     if not row:
         return None
     tier, ndc, pa, st, ql = row
@@ -195,3 +201,28 @@ def cost_share(con, plan: Plan, tier: int, pharmacy: str = "preferred_retail") -
         if row and str(row[0]) in COST_TYPES:
             return CostShare(COST_TYPES[str(row[0])], row[1], (row[2] or "Y").upper() == "Y", ph)
     return CostShare(None, None, True, None)
+
+
+INSULIN_CAP = 35.0  # IRA: covered insulin costs at most $35 per month's supply, no deductible
+INSULIN_COLUMNS = {
+    "preferred_retail": ("copay_amt_pref_insln", "coin_amt_pref_insln"),
+    "standard_retail": ("copay_amt_nonpref_insln", "coin_amt_nonpref_insln"),
+    "preferred_mail": ("copay_amt_mail_pref_insln", "coin_amt_mail_pref_insln"),
+    "standard_mail": ("copay_amt_mail_nonpref_insln", "coin_amt_mail_nonpref_insln"),
+}
+
+
+def insulin_cost_share(con, plan: Plan, tier: int, pharmacy: str = "preferred_retail") -> CostShare:
+    """Plan's insulin-specific cost sharing; the $35/month cap is applied by the engine."""
+    for ph in PHARMACY_FALLBACK[pharmacy]:
+        ccol, icol = INSULIN_COLUMNS[ph]
+        row = con.execute(f"""
+            SELECT try_cast(trim({ccol}) AS DOUBLE), try_cast(trim({icol}) AS DOUBLE) FROM market_insulin_cost
+            WHERE contract_id = ? AND plan_id = ? AND segment_id = ?
+              AND try_cast(tier AS INT) = ? AND days_supply = '1' LIMIT 1
+        """, [plan.contract_id, plan.plan_id, plan.segment_id, tier]).fetchone()
+        if row and row[0] is not None:
+            return CostShare("copay", min(row[0], INSULIN_CAP), False, ph)
+        if row and row[1] is not None:
+            return CostShare("coinsurance_capped", row[1], False, ph)
+    return CostShare("copay", INSULIN_CAP, False, None)  # conservative: the legal maximum

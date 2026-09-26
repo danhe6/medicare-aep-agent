@@ -37,6 +37,12 @@ class PartDCostTest(unittest.TestCase):
         self.assertEqual(r.uncovered_cost, 10800.0)
         self.assertEqual(r.drug_oop, 12900.0)
 
+    def test_insulin_coinsurance_capped_at_35(self):
+        lantus = DrugFill("lantus", 30.0, 15, True, 3, "coinsurance_capped", 0.25, False)  # $450 gross
+        r = annual_cost("k", 0, 615, [lantus], 2026)
+        self.assertEqual(r.monthly_oop[0], 35.0)   # 25% would be $112.50; capped, no deductible
+        self.assertEqual(r.drug_oop, 420.0)
+
     def test_2027_cap(self):
         d = DrugFill("specialty", 100, 30, True, 5, "coinsurance", 0.33, True)
         self.assertEqual(annual_cost("k", 0, 700, [d], 2027).drug_oop, 2400.0)
