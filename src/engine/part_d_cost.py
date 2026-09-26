@@ -4,7 +4,7 @@ Models the post-2025 Part D design: deductible -> initial coverage -> annual OOP
 Simplifications (documented so the agent can disclose them):
   * one 30-day fill per drug per month, preferred retail pharmacy by default
   * gross drug cost = plan unit cost x quantity (dispensing fees ignored)
-  * drugs not on formulary are reported, not priced (their cost does not count toward the cap)
+  * drugs not on the formulary are paid at full market price and do NOT count toward the cap
 """
 from __future__ import annotations
 
@@ -28,18 +28,21 @@ class DrugFill:
     cost_amount: float | None = None  # dollars for copay; fraction (0.25) for coinsurance
     deductible_applies: bool = True
     flags: list[str] = field(default_factory=list)  # e.g. ["PA", "ST", "QL"]
+    uncovered_unit_cost: float | None = None  # market price used when the drug is NOT on the formulary
 
 
 @dataclass
 class PlanResult:
     plan_key: str
     annual_premium: float
-    drug_oop: float
+    drug_oop: float          # everything the member pays for drugs (covered OOP + uncovered drugs)
     total: float
     monthly_oop: list[float]
     not_covered: list[str]
     flags: dict[str, list[str]]
     hit_cap_month: int | None
+    covered_oop: float = 0.0     # counts toward the annual cap
+    uncovered_cost: float = 0.0  # full price of non-formulary drugs; does NOT count toward the cap
 
 
 def _cost_share(fill: DrugFill, amount: float) -> float:
@@ -62,10 +65,15 @@ def annual_cost(plan_key: str, monthly_premium: float, plan_deductible: float,
     monthly: list[float] = []
     hit_cap_month = None
     not_covered = [f.name for f in fills if not f.on_formulary or f.unit_cost is None]
+    uncovered = 0.0
     for m in range(1, months + 1):
         month_pay = 0.0
         for f in fills:
             if not f.on_formulary or f.unit_cost is None:
+                if f.uncovered_unit_cost:
+                    cost = f.uncovered_unit_cost * f.quantity
+                    uncovered += cost
+                    month_pay += cost
                 continue
             gross = f.unit_cost * f.quantity
             if oop >= cap:
@@ -87,5 +95,7 @@ def annual_cost(plan_key: str, monthly_premium: float, plan_deductible: float,
             hit_cap_month = m
         monthly.append(round(month_pay, 2))
     premium = monthly_premium * months
-    return PlanResult(plan_key, round(premium, 2), round(oop, 2), round(premium + oop, 2),
-                      monthly, not_covered, {f.name: f.flags for f in fills if f.flags}, hit_cap_month)
+    paid = oop + uncovered
+    return PlanResult(plan_key, round(premium, 2), round(paid, 2), round(premium + paid, 2),
+                      monthly, not_covered, {f.name: f.flags for f in fills if f.flags}, hit_cap_month,
+                      round(oop, 2), round(uncovered, 2))

@@ -29,6 +29,14 @@ class PartDCostTest(unittest.TestCase):
         self.assertEqual(r.not_covered, ["x"])
         self.assertEqual(r.drug_oop, 0.0)
 
+    def test_uncovered_drug_paid_in_full_outside_cap(self):
+        covered = DrugFill("spec", 100, 30, True, 5, "coinsurance", 0.33, True)   # hits the cap
+        uncovered = DrugFill("entresto", None, 60, False, uncovered_unit_cost=15.0)  # $900/month
+        r = annual_cost("k", 0, 615, [covered, uncovered], 2026)
+        self.assertEqual(r.covered_oop, 2100.0)
+        self.assertEqual(r.uncovered_cost, 10800.0)
+        self.assertEqual(r.drug_oop, 12900.0)
+
     def test_2027_cap(self):
         d = DrugFill("specialty", 100, 30, True, 5, "coinsurance", 0.33, True)
         self.assertEqual(annual_cost("k", 0, 700, [d], 2027).drug_oop, 2400.0)

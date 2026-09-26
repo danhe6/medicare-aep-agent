@@ -115,6 +115,18 @@ def unit_cost(con, plan: Plan, representative_ndc: str | None, all_ndcs: list[st
     return None, "not_priced"
 
 
+def market_unit_cost(con, representative_ndc: str | None, all_ndcs: list[str]) -> float | None:
+    """Typical negotiated unit price across all loaded plans; used for drugs a plan does not cover."""
+    ndcs = [representative_ndc] if representative_ndc else all_ndcs
+    row = con.execute("""
+        SELECT median(try_cast(unit_cost AS DOUBLE)) FROM pricing
+        WHERE days_supply IN ('30', '030', '1') AND ndc IN (SELECT unnest(?::VARCHAR[]))
+    """, [ndcs]).fetchone()
+    if (not row or row[0] is None) and representative_ndc:
+        return market_unit_cost(con, None, all_ndcs)
+    return row[0] if row else None
+
+
 def cost_share(con, plan: Plan, tier: int, pharmacy: str = "preferred_retail") -> CostShare:
     for ph in PHARMACY_FALLBACK[pharmacy]:
         tcol, acol = PHARMACY_COLUMNS[ph]

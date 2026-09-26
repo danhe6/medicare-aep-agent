@@ -27,3 +27,4 @@ dist/
 
 # os
 .DS_Store
+*.new
