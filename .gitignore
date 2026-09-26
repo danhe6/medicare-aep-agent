@@ -1,0 +1,29 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# data (CMS files are large; re-download via scripts)
+data/raw/*
+data/processed/*
+!data/**/.gitkeep
+*.duckdb
+*.duckdb.wal
+
+# interviews may contain personal info
+docs/interviews/*
+!docs/interviews/.gitkeep
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# node
+node_modules/
+dist/
+.next/
+
+# os
+.DS_Store
