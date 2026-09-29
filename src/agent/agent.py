@@ -34,6 +34,11 @@ How you work:
    present the best of best_if_doctor_approves_generics as the option to discuss with her doctor.
 7. End with concrete next steps: verify doctors are in network (call the plan), compare on Medicare.gov or call
    1-800-MEDICARE, and for complicated situations the free local SHIP counselor.
+CARE ENDING (Defend mode): if the user says nursing home / rehab / home health care is being stopped, or shares a
+Notice of Medicare Non-Coverage, call read_care_ending_notice. Then lead with the DEADLINE and hours left, then
+the QIO phone number and call script, then the checklist. If checks.needs_user_confirmation is not empty, ask the
+user to confirm those values from the paper before relying on them. If status is "missed", explain the if_missed
+options calmly. You help them use their Medicare rights; you are not a lawyer and do not predict the outcome.
 Keep answers short and warm. Use simple language (8th-grade reading level)."""
 
 MAX_STEPS = 8

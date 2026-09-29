@@ -5,8 +5,18 @@ import json
 
 from engine import data, rxnorm
 from engine.estimate import estimate
+from defend.notice import analyze as analyze_notice
 
 SCHEMAS = [
+    {"type": "function", "function": {
+        "name": "read_care_ending_notice",
+        "description": "Use when the user has a notice saying Medicare coverage of nursing home (SNF), home health, "
+                       "hospice or rehab care is ending (Notice of Medicare Non-Coverage). Reads the photo/PDF, "
+                       "computes the appeal deadline and returns the call script and checklist.",
+        "parameters": {"type": "object", "properties": {
+            "file_path": {"type": "string", "description": "Path to the photo or PDF of the notice"},
+            "medicare_advantage": {"type": "boolean", "description": "true if in a Medicare Advantage plan, if known"}},
+            "required": ["file_path"]}}},
     {"type": "function", "function": {
         "name": "find_drug",
         "description": "REQUIRED for every medication before compare_plans. Look up a medication the user mentioned "
@@ -114,7 +124,11 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
             "assumptions": out["assumptions"]}
 
 
-IMPL = {"find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
+def read_care_ending_notice(file_path: str, medicare_advantage: bool | None = None) -> dict:
+    return analyze_notice(file_path, medicare_advantage=medicare_advantage)
+
+
+IMPL = {"read_care_ending_notice": read_care_ending_notice, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
 
 
 def call(name: str, args_json: str) -> str:
