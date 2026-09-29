@@ -10,6 +10,9 @@ GET  /api/meta               -> data release info
 from __future__ import annotations
 
 import json
+import os
+import threading
+import time
 import uuid
 from pathlib import Path
 
@@ -21,6 +24,7 @@ from pydantic import BaseModel
 from agent.agent import SYSTEM, run_turn_events
 from agent.llm import client
 from engine import data, datasync, rxnorm
+from engine.estimate import friendly_name
 
 ROOT = Path(__file__).resolve().parents[2]
 UPLOADS = ROOT / "uploads"
@@ -32,6 +36,19 @@ SESSIONS: dict[str, list[dict]] = {}
 LLM = None
 
 
+REFRESH_HOURS = float(os.environ.get("DATA_REFRESH_HOURS", "6"))
+
+
+def _refresh_loop() -> None:
+    """Pick up new weekly data releases while the server keeps running (demo stays live through judging)."""
+    while True:
+        time.sleep(REFRESH_HOURS * 3600)
+        try:
+            datasync.ensure_current()
+        except Exception as e:
+            print("datasync:", e)
+
+
 @app.on_event("startup")
 def startup() -> None:
     global LLM
@@ -40,6 +57,7 @@ def startup() -> None:
     except Exception as e:  # keep serving local data if GitHub is unreachable
         print("datasync:", e)
     LLM = client()
+    threading.Thread(target=_refresh_loop, daemon=True).start()
 
 
 class ChatIn(BaseModel):
@@ -77,7 +95,7 @@ def counties(state: str) -> list[str]:
 
 
 @app.get("/api/check")
-def check(drug: str, state: str, county: str) -> dict:
+def check(drug: str, state: str, county: str, lang: str = "en") -> dict:
     """Landing-page quick check: how many regular plans in the county cover this medicine (and its generic)."""
     matches = rxnorm.search(drug[:80], limit=1)
     if not matches:
@@ -94,14 +112,14 @@ def check(drug: str, state: str, county: str) -> dict:
         ids = [concept["rxcui"], *concept.get("equivalents", [])]
         return sum(1 for p in regular if data.formulary_entry(con, p.formulary_id, ids))
 
-    out = {"drug": info["name"], "plans_total": len(regular), "covered": count(info), "generic": None,
+    out = {"drug": friendly_name(info["name"], lang), "plans_total": len(regular), "covered": count(info), "generic": None,
            "data_as_of": data.manifest()["sources"]["monthly"]["release"]}
     g = info.get("generic")
     # Only report a generic that is actually sold here (priced under generic NDCs), not a brand listed under
     # the generic's code (e.g. apixaban before any generic launch).
     if g and g["ndcs"] and con.execute("SELECT count(*) FROM market_pricing WHERE ndc IN (SELECT unnest(?::VARCHAR[]))",
                                        [g["ndcs"]]).fetchone()[0]:
-        out["generic"] = {"name": g["name"], "covered": count(g)}
+        out["generic"] = {"name": friendly_name(g["name"], lang), "covered": count(g)}
     return out
 
 

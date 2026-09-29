@@ -32,5 +32,11 @@ class DefendRulesTest(unittest.TestCase):
         self.assertTrue(p.notice_was_late)
 
 
+    def test_spanish(self):
+        p = plan_appeal(date(2026, 10, 9), datetime(2026, 10, 7, 9, 0, tzinfo=NY), lang="es")
+        self.assertIn("jueves, 8 de octubre de 2026 a las 12:00 del mediodía", p.deadline_local)
+        self.assertEqual(p.hours_left, 27.0)                     # same numbers in every language
+        self.assertIn("Aviso de No Cobertura de Medicare", p.call_script[0])
+
 if __name__ == "__main__":
     unittest.main()

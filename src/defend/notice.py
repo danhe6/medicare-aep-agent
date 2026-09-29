@@ -137,6 +137,21 @@ def _digits(s: str | None) -> str:
     return re.sub(r"\D", "", s or "")[-10:]
 
 
+# Medicare has two BFCC-QIOs nationwide; OCR often garbles their names ("Acenta", "Liventa").
+KNOWN_QIOS = ["Acentra Health", "Livanta"]
+
+
+def normalize_qio(name: str | None) -> str | None:
+    if not name:
+        return name
+    import difflib
+    first = name.split()[0].lower()
+    for q in KNOWN_QIOS:
+        if difflib.SequenceMatcher(None, first, q.split()[0].lower()).ratio() >= 0.75:
+            return q
+    return name
+
+
 def verify(fields: dict, text: str) -> dict:
     """Every critical value must be traceable to the transcribed text; otherwise ask the user to confirm."""
     checks = {}
@@ -151,11 +166,14 @@ def verify(fields: dict, text: str) -> dict:
 
 
 def analyze(path: str, now: datetime | None = None, tz: str = "America/New_York",
-            medicare_advantage: bool | None = None, llm=None) -> dict:
+            medicare_advantage: bool | None = None, llm=None, lang: str = "en") -> dict:
     llm = llm or client()
     text = transcribe(Path(path), llm)
     fields = extract(text, llm)
+    fields["qio_name"] = normalize_qio(fields.get("qio_name"))
     checks = verify(fields, text)
+    if fields.get("provider_name"):   # names can't be checked against a list: ask the user to glance at it
+        checks["needs_user_confirmation"].append("provider_name")
     eff = _parse_date(fields.get("effective_date"))
     out = {"fields": fields, "checks": checks, "transcript_chars": len(text)}
     if fields.get("notice_type") not in (None, "NOMNC"):
@@ -168,7 +186,7 @@ def analyze(path: str, now: datetime | None = None, tz: str = "America/New_York"
         eff, now or datetime.now(ZoneInfo(tz)), service=fields.get("service") or "snf", medicare_advantage=ma,
         notice_received=_parse_date(fields.get("notice_date")), qio_name=fields.get("qio_name"),
         qio_phone=fields.get("qio_phone"), provider=fields.get("provider_name"),
-        patient_first_name=fields.get("patient_first_name"), tz=tz).to_dict()
+        patient_first_name=fields.get("patient_first_name"), tz=tz, lang=lang).to_dict()
     return out
 
 

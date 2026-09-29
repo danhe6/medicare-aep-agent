@@ -1,7 +1,9 @@
 """Tools the agent can call. Every number comes from the deterministic engine, never from the LLM."""
 from __future__ import annotations
 
+import inspect
 import json
+import os
 from pathlib import Path
 
 from engine import data, rxnorm
@@ -132,7 +134,7 @@ def find_county(state: str, contains: str | None = None) -> dict:
 
 def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str | None = None,
                   medicaid: bool = False, chronic_conditions: list[str] | None = None, top_n: int = 5,
-                  hospital_stay_last_year: bool | None = None, pharmacy: str = "preferred_retail") -> dict:
+                  hospital_stay_last_year: bool | None = None, pharmacy: str = "preferred_retail", lang: str = "en") -> dict:
     bad = [d["rxnorm_name"] for d in drugs if not rxnorm.exact_rxcui(d["rxnorm_name"])]
     if bad:
         return {"error": "These are not exact RxNorm names: " + "; ".join(bad) +
@@ -145,7 +147,7 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
     person = {"state": state, "county": county, "medicaid": medicaid, "pharmacy": pharmacy,
               "chronic_conditions": chronic_conditions or [], "health_usage": health_usage,
               "drugs": [{"name": d["rxnorm_name"], "qty_per_30d": d["qty_per_30d"]} for d in drugs]}
-    out = estimate(person)
+    out = estimate(person, lang=lang)
     keep = ("plan_key", "plan_name", "type", "organization", "star_overall", "moop", "annual_premium",
             "drug_oop", "drug_oop_is_lower_bound", "total", "bad_year_total", "not_covered", "with_generics",
             "generic_alerts", "snp_type", "needs_snp_verification", "medical_note")
@@ -162,9 +164,13 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
     ranking_notes = []
     for a, b in zip(regular, regular[1:]):
         if a["total"] > b["total"] and a.get("moop") is not None and b.get("moop") is not None and a["moop"] < b["moop"]:
-            ranking_notes.append(f"{a['plan_name']} is listed above {b['plan_name']} even though its typical year costs "
-                                 f"${a['total'] - b['total']:,.0f} more, because its medical out-of-pocket max is lower "
-                                 f"(${a['moop']:,.0f} vs ${b['moop']:,.0f}) - safer if she has a bad health year.")
+            ranking_notes.append(
+                (f"{a['plan_name']} aparece antes que {b['plan_name']} aunque cuesta ${a['total'] - b['total']:,.0f} más en "
+                 f"un año típico, porque su límite de gastos médicos es más bajo (${a['moop']:,.0f} frente a "
+                 f"${b['moop']:,.0f}): la protege mejor si tiene un año de salud difícil.") if lang == "es" else
+                (f"{a['plan_name']} is listed above {b['plan_name']} even though its typical year costs "
+                 f"${a['total'] - b['total']:,.0f} more, because its medical out-of-pocket max is lower "
+                 f"(${a['moop']:,.0f} vs ${b['moop']:,.0f}) - safer if she has a bad health year."))
     snp = [slim(r) for r in out["results"] if r.get("snp_type")][:2]
     everything_covered = any(not r["not_covered"] for r in out["results"] if not r.get("snp_type"))
 
@@ -205,11 +211,14 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
 ALLOWED_DIRS = [ROOT / "uploads", ROOT / "evals" / "fixtures"]
 
 
-def read_care_ending_notice(file_path: str, medicare_advantage: bool | None = None) -> dict:
+def read_care_ending_notice(file_path: str, medicare_advantage: bool | None = None, lang: str = "en") -> dict:
     p = (ROOT / file_path).resolve() if not Path(file_path).is_absolute() else Path(file_path).resolve()
     if not any(str(p).startswith(str(d.resolve())) for d in ALLOWED_DIRS) or not p.exists():
         return {"error": "File not found. Ask the user to upload a photo of the notice."}
-    return analyze_notice(str(p), medicare_advantage=medicare_advantage)
+    try:
+        return analyze_notice(str(p), medicare_advantage=medicare_advantage, lang=lang)
+    finally:
+        _discard(p)
 
 
 def _safe_path(file_path: str) -> Path | None:
@@ -217,19 +226,31 @@ def _safe_path(file_path: str) -> Path | None:
     return p if any(str(p).startswith(str(d.resolve())) for d in ALLOWED_DIRS) and p.exists() else None
 
 
-def read_medicine_label(file_path: str) -> dict:
+def _discard(p: Path) -> None:
+    """Production: photos of labels/notices are deleted as soon as they are read (TRACE_LOG=0)."""
+    if os.environ.get("TRACE_LOG", "1") == "0" and str(p).startswith(str((ROOT / "uploads").resolve())):
+        p.unlink(missing_ok=True)
+
+
+def read_medicine_label(file_path: str, lang: str = "en") -> dict:
     p = _safe_path(file_path)
     if not p:
         return {"error": "File not found. Ask the user to take a photo of the label."}
-    return analyze_label(str(p))
+    try:
+        out = analyze_label(str(p))
+        for m in out.get("rxnorm_matches", []):
+            m["display_name"] = friendly_name(m["rxnorm_name"], lang)
+        return out
+    finally:
+        _discard(p)
 
 
-def update_profile(person: str, **fields) -> dict:
+def update_profile(person: str, lang: str = "en", **fields) -> dict:
     """No server storage: the patch is streamed to the user's device, which keeps the profile."""
     for m in fields.get("add_medicines") or []:
         if not rxnorm.exact_rxcui(m["rxnorm_name"]):
             return {"error": f"'{m['rxnorm_name']}' is not an exact RxNorm name. Call find_drug first."}
-        m["display_name"] = friendly_name(m["rxnorm_name"])
+        m["display_name"] = friendly_name(m["rxnorm_name"], lang)
     patch = {"person": person, **{k: v for k, v in fields.items() if v not in (None, [], "")}}
     return {"saved_on_device": True, "patch": patch}
 
@@ -251,9 +272,14 @@ IMPL = {"screen_extra_help": screen_extra_help, "check_doctor_network": check_do
         "update_profile": update_profile, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
 
 
-def call(name: str, args_json: str) -> str:
+def call(name: str, args_json: str, lang: str = "en") -> str:
+    """Run a tool. The UI language is passed to tools that produce user-facing text (never chosen by the LLM)."""
     try:
         args = json.loads(args_json or "{}")
-        return json.dumps(IMPL[name](**args), default=str)
+        args.pop("lang", None)
+        fn = IMPL[name]
+        if "lang" in inspect.signature(fn).parameters:
+            args["lang"] = lang
+        return json.dumps(fn(**args), default=str)
     except Exception as e:  # tool errors go back to the model so it can recover
         return json.dumps({"error": f"{type(e).__name__}: {e}"})

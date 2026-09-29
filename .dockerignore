@@ -1,0 +1,11 @@
+.git
+.env
+data/
+logs/
+uploads/
+notebooks/
+evals/oracle/
+web/node_modules
+web/dist
+**/__pycache__
+*.duckdb

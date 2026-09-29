@@ -29,7 +29,14 @@ _UNITS = {"MG": "mg", "MCG": "mcg", "ML": "mL", "UNT": "units", "MG/ML": "mg/mL"
           "%": "%", "MG/HR": "mg/hr", "MEQ": "mEq"}
 
 
-def friendly_name(rx: str) -> str:
+FORMS_ES = {"tablet": "tableta", "capsule": "cápsula", "pen": "pluma", "liquid": "líquido", "syringe": "jeringa",
+            "injection": "inyección", "eye drops": "gotas para los ojos", "nasal spray": "aerosol nasal",
+            "inhaler": "inhalador", "cream": "crema", "patch": "parche", "tablet under the tongue": "tableta sublingual",
+            "delayed-release capsule": "cápsula de liberación retardada", "delayed-release tablet": "tableta de liberación retardada",
+            "extended-release tablet": "tableta de liberación prolongada", "extended-release capsule": "cápsula de liberación prolongada"}
+
+
+def friendly_name(rx: str, lang: str = "en") -> str:
     """'0.5 ML dulaglutide 1.5 MG/ML Auto-Injector [Trulicity]' -> 'Trulicity 1.5 mg/mL pen';
     'icosapent ethyl 1000 MG Oral Capsule' -> 'generic icosapent ethyl 1000 mg capsule'."""
     if not rx:
@@ -53,7 +60,11 @@ def friendly_name(rx: str) -> str:
         strength = " / ".join(_fmt(n, u) for n, u in
                               _re.findall(r"(\d[\d.,]*)\s*(MG/ML|UNT/ML|MCG/ML|MG/HR|MG|MCG|UNT|MEQ|%)", base))
         ingredient = base[: sm.start()].strip()
-    words = [brand or f"generic {ingredient}", strength, form]
+    if lang == "es":
+        form = FORMS_ES.get(form, form)
+        words = [brand or f"{ingredient} genérico", strength, form]
+    else:
+        words = [brand or f"generic {ingredient}", strength, form]
     return " ".join(w for w in words if w).strip()
 
 
@@ -137,41 +148,75 @@ UNCOVERED_RANK_MULTIPLIER = 3.0
 PART_B_PREMIUM = {2026: 202.90}
 
 
-def plain_summary(r: dict) -> str:
-    """Deterministic one-paragraph summary so the LLM never has to assemble facts itself."""
-    lb = " (at least - a drug is not covered)" if r.get("drug_oop_is_lower_bound") else ""
-    parts = [f"{r['plan_name']}: about ${r['total']:,.0f} in a typical year{lb} "
-             f"(premium ${r['annual_premium']:,.0f} + drugs ${r['drug_oop']:,.0f})."]
+SUMMARY = {
+    "en": {"typical": "{name}: about ${total} in a typical year{lb} (premium ${prem} + drugs ${drugs}).",
+           "lb": " (at least - a drug is not covered)",
+           "bad": "In a very bad health year, at most about ${bad} (medical out-of-pocket max ${moop}).",
+           "stars": "Medicare star rating {stars} of 5.",
+           "nc": "NOT covered: {drug} - she would pay the pharmacy cash price, which does not count toward any cap.",
+           "pa": "The doctor must get the plan's approval first (prior authorization) for: {drugs}.",
+           "st": "The plan may ask her to try another drug first (step therapy) for: {drugs}.",
+           "ql": "Limit on how much per fill (quantity limit) for: {drugs}.",
+           "wg": "If her doctor approves the generic(s), this plan would cost about ${total}{lb} in a typical year, {cov}.",
+           "wg_lb": " (at least)", "all": "with every drug covered", "still": "still not covering {drugs}",
+           "snp": "Special needs plan - {why}.",
+           "alert": "Ask the doctor whether {generic} can replace {brand}: at least ${save}/year less on this plan."},
+    "es": {"typical": "{name}: unos ${total} en un año típico{lb} (prima ${prem} + medicinas ${drugs}).",
+           "lb": " (como mínimo: una medicina no está cubierta)",
+           "bad": "En un año de salud muy malo, como máximo unos ${bad} (límite de gastos médicos ${moop}).",
+           "stars": "Calificación de estrellas de Medicare: {stars} de 5.",
+           "nc": "NO cubierta: {drug}. Pagaría el precio en efectivo de la farmacia, que no cuenta para ningún límite.",
+           "pa": "El médico debe obtener primero la aprobación del plan (autorización previa) para: {drugs}.",
+           "st": "El plan puede pedirle que pruebe otra medicina primero (terapia escalonada) para: {drugs}.",
+           "ql": "Límite de cantidad por surtido para: {drugs}.",
+           "wg": "Si su médico aprueba el/los genérico(s), este plan costaría unos ${total}{lb} en un año típico, {cov}.",
+           "wg_lb": " (como mínimo)", "all": "con todas las medicinas cubiertas", "still": "sin cubrir todavía {drugs}",
+           "snp": "Plan de necesidades especiales: {why}.",
+           "alert": "Pregunte al médico si {generic} puede reemplazar a {brand}: al menos ${save} menos al año en este plan."},
+}
+
+
+def _m(v) -> str:
+    return f"{v:,.0f}"
+
+
+def plain_summary(r: dict, lang: str = "en") -> str:
+    """Deterministic one-paragraph summary so the LLM never has to assemble facts itself. Numbers are the same in
+    every language; only the sentence templates change."""
+    T = SUMMARY.get(lang, SUMMARY["en"])
+    fn = lambda d: friendly_name(d, lang)  # noqa: E731
+    parts = [T["typical"].format(name=r["plan_name"], total=_m(r["total"]), lb=T["lb"] if r.get("drug_oop_is_lower_bound") else "",
+                                 prem=_m(r["annual_premium"]), drugs=_m(r["drug_oop"]))]
     if r.get("bad_year_total") is not None:
-        parts.append(f"In a very bad health year, at most about ${r['bad_year_total']:,.0f} "
-                     f"(medical out-of-pocket max ${r['moop']:,.0f}).")
+        parts.append(T["bad"].format(bad=_m(r["bad_year_total"]), moop=_m(r["moop"])))
     elif r.get("medical_note"):
         parts.append(r["medical_note"] + ".")
     if r.get("star_overall"):
-        parts.append(f"Medicare star rating {r['star_overall']:.1f} of 5.")
+        parts.append(T["stars"].format(stars=f"{r['star_overall']:.1f}"))
     for d in r.get("not_covered", []):
-        parts.append(f"NOT covered: {friendly_name(d)} - she would pay the pharmacy cash price, which does not count toward any cap.")
+        parts.append(T["nc"].format(drug=fn(d)))
     for a in r.get("generic_alerts", []):
-        parts.append(a["message"])
+        parts.append(generic_alert_text(a, lang))
     flagged = [d for d in r.get("drugs", []) if d.get("flags")]
-    pa = [friendly_name(d["drug"]) for d in flagged if "PA" in d["flags"]]
-    st = [friendly_name(d["drug"]) for d in flagged if "ST" in d["flags"]]
-    ql = [friendly_name(d["drug"]) for d in flagged if "QL" in d["flags"]]
-    if pa:
-        parts.append("The doctor must get the plan's approval first (prior authorization) for: " + ", ".join(pa) + ".")
-    if st:
-        parts.append("The plan may ask her to try another drug first (step therapy) for: " + ", ".join(st) + ".")
-    if ql:
-        parts.append("Limit on how much per fill (quantity limit) for: " + ", ".join(ql) + ".")
+    for flag, key in (("PA", "pa"), ("ST", "st"), ("QL", "ql")):
+        names = [fn(d["drug"]) for d in flagged if flag in d["flags"]]
+        if names:
+            parts.append(T[key].format(drugs=", ".join(names)))
     wg = r.get("with_generics")
     if wg:
-        lbg = " (at least)" if wg["drug_oop_is_lower_bound"] else ""
-        cov = "with every drug covered" if not wg["not_covered"] else "still not covering " + ", ".join(friendly_name(x) for x in wg["not_covered"])
-        parts.append(f"If her doctor approves the generic(s), this plan would cost about ${wg['total']:,.0f}{lbg} "
-                     f"in a typical year, {cov}.")
+        cov = T["all"] if not wg["not_covered"] else T["still"].format(drugs=", ".join(fn(x) for x in wg["not_covered"]))
+        parts.append(T["wg"].format(total=_m(wg["total"]), lb=T["wg_lb"] if wg["drug_oop_is_lower_bound"] else "", cov=cov))
     if r.get("snp_eligibility"):
-        parts.append("Special needs plan - " + r["snp_eligibility"] + ".")
+        parts.append(T["snp"].format(why=r["snp_eligibility"]))
     return " ".join(parts)
+
+
+def generic_alert_text(a: dict, lang: str = "en") -> str:
+    T = SUMMARY.get(lang, SUMMARY["en"])
+    return T["alert"].format(generic=friendly_name(a["generic"], lang), brand=friendly_name(a["brand"], lang),
+                             save=_m(a["annual_savings"]))
+
+
 # Heuristic chance of a "bad health year" that reaches the medical out-of-pocket max (disclosed to user).
 BAD_YEAR_RISK = {"low": 0.05, "medium": 0.15, "high": 0.50}
 
@@ -214,12 +259,12 @@ def generic_alerts(con, plan, drugs: list[dict], pharmacy: str, year: int, base_
                            "generic_covered": gd["covered"], "generic_tier": gd.get("tier"),
                            "savings_is_lower_bound": base_oop > 0 and any(
                                not x["covered"] for x in estimate_plan(con, plan, [d], pharmacy, year)["drugs"]),
-                           "message": f"Ask the doctor whether the generic ({friendly_name(g['name'])}) can replace "
-                                      f"{friendly_name(d['name'])}: at least ${saving:,.0f}/year less on this plan."})
+                           "message": ""})
+            alerts[-1]["message"] = generic_alert_text(alerts[-1])
     return alerts
 
 
-def estimate(person: dict, year: int | None = None, con=None) -> dict:
+def estimate(person: dict, year: int | None = None, con=None, lang: str = "en") -> dict:
     con = con or data.connect()
     data.load_market(con, person.get("state", "Florida"), person.get("county", "Miami-Dade"))
     m = data.manifest()
@@ -245,14 +290,15 @@ def estimate(person: dict, year: int | None = None, con=None) -> dict:
             swap = {a["brand"]: a["_generic_drug"] for a in r["generic_alerts"]}
             alt = estimate_plan(con, plan, [swap.get(d["name"], d) for d in drugs], pharmacy, year)
             add_medical(alt, person)
-            r["with_generics"] = {"switched": [f"{friendly_name(b)} -> {friendly_name(g['name'])}" for b, g in swap.items()],
+            r["with_generics"] = {"switched": [f"{friendly_name(b, lang)} -> {friendly_name(g['name'], lang)}" for b, g in swap.items()],
                                   "total": alt["total"], "drug_oop": alt["drug_oop"],
                                   "bad_year_total": alt.get("bad_year_total"), "not_covered": alt["not_covered"],
                                   "drug_oop_is_lower_bound": alt["drug_oop_is_lower_bound"],
                                   "rank_score": alt["expected_total"] + (UNCOVERED_RANK_MULTIPLIER - 1) * alt["uncovered_cost"]}
         r["rank_score"] = r["expected_total"] + (UNCOVERED_RANK_MULTIPLIER - 1) * r["uncovered_cost"]
-        r["plain_summary"] = plain_summary(r)
-        r["plain_summary"] = plain_summary(r)
+        for a in r["generic_alerts"]:
+            a["message"] = generic_alert_text(a, lang)
+        r["plain_summary"] = plain_summary(r, lang)
         results.append(r)
     results.sort(key=lambda x: (len(x["not_covered"]), x["rank_score"], -(x.get("star_overall") or 0)))
     assumptions_extra = []

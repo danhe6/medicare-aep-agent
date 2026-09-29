@@ -29,10 +29,10 @@ export default function AppealCard({ data, receivedAt, t }) {
             {left >= 24 ? t.daysLeft(Math.floor(left / 24), Math.floor(left % 24)) : t.hoursLeft(Math.floor(left))}
           </div>
         )}
-        <div className="mt-2 text-base text-muted">{t.careEnds}: {a.effective_date}</div>
+        <div className="mt-2 text-base text-muted">{t.careEnds}: {new Date(a.effective_date + "T12:00:00").toLocaleDateString(document.documentElement.lang === "es" ? "es-US" : "en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</div>
       </div>
 
-      {need.length > 0 && <div className="rounded-2xl border-2 border-warn bg-card p-4 text-base"><b>{t.confirm}</b> {need.join(", ")}</div>}
+      {need.length > 0 && <div className="rounded-2xl border-2 border-warn bg-card p-4 text-base"><b>{t.confirm}</b> {need.map((k) => t.confirmFields[k] || k).join(", ")}</div>}
 
       {tel && !missed && (
         <a href={`tel:${tel}`} className="flex min-h-20 w-full items-center justify-center gap-3 rounded-full bg-brand px-6 text-xl font-bold text-white no-underline hover:bg-brand-dark">

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -88,6 +89,8 @@ TRACE = Path(__file__).resolve().parents[2] / "logs" / "agent_trace.jsonl"
 
 
 def trace(event: dict) -> None:
+    if os.environ.get("TRACE_LOG", "1") == "0":   # production: never write conversations to disk
+        return
     TRACE.parent.mkdir(exist_ok=True)
     with open(TRACE, "a") as f:
         f.write(json.dumps({"t": time.strftime("%H:%M:%S"), **event}, default=str) + "\n")
@@ -147,7 +150,7 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
             except json.JSONDecodeError:
                 args = {}
             yield {"type": "tool_start", "id": tc.id, "name": tc.function.name, "args": args}
-            result = tools.call(tc.function.name, tc.function.arguments)
+            result = tools.call(tc.function.name, tc.function.arguments, lang=lang)
             trace({"tool": tc.function.name, "args": tc.function.arguments, "result": result[:200000]})
             tool_msg = {"role": "tool", "tool_call_id": tc.id, "content": result}
             messages.append(tool_msg)

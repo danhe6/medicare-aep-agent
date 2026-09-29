@@ -29,7 +29,7 @@ export function CheckTool({ t }) {
     if (!drug.trim()) return;
     setBusy(true); setErr(""); setRes(null);
     try {
-      const r = await fetch(`/api/check?drug=${encodeURIComponent(drug)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}`);
+      const r = await fetch(`/api/check?drug=${encodeURIComponent(drug)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}&lang=${document.documentElement.lang === "es" ? "es" : "en"}`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.detail || "Something went wrong");
       setRes(j);
