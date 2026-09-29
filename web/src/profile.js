@@ -19,7 +19,7 @@ export function applyPatch(profile, patch) {
   let i = people.findIndex((x) => norm(x.name) === norm(patch.person));
   if (i < 0) { people.push({ id: crypto.randomUUID?.() || String(Date.now()), name: patch.person || "Me", medicines: [], conditions: [] }); i = people.length - 1; }
   const p = { ...people[i] };
-  for (const k of ["state", "county", "medicaid", "hospital_stay_last_year", "current_plan"]) if (patch[k] !== undefined) p[k] = patch[k];
+  for (const k of ["state", "county", "medicaid", "hospital_stay_last_year", "current_plan", "current_plan_name"]) if (patch[k] !== undefined) p[k] = patch[k];
   if (patch.conditions) p.conditions = [...new Set([...(p.conditions || []), ...patch.conditions])];
   let meds = [...(p.medicines || [])];
   for (const s of patch.stop_medicines || []) meds = meds.filter((m) => m.rxnorm_name !== s);
@@ -61,4 +61,12 @@ export function whoIsThis(profile, args, activeId) {
   }
   if (people.some((p) => p.id === activeId)) return activeId;
   return people.length === 1 ? people[0].id : null;
+}
+
+const SELF = /^(me|myself|i|yo|mí|mi)$/i;
+/** Senior mode is the person talking about themself: only their own saved record is used and shown.
+ *  Family mode sees everyone they help. */
+export function forMode(profile, mode) {
+  if (mode !== "senior") return profile;
+  return { ...profile, people: (profile.people || []).filter((p) => SELF.test((p.name || "").trim())) };
 }

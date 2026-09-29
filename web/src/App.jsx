@@ -8,7 +8,7 @@ import PlanResults from "./components/PlanResults.jsx";
 import AppealCard from "./components/AppealCard.jsx";
 import ProfilePanel from "./components/ProfilePanel.jsx";
 import { LabelCard, SavedCard } from "./components/SavedCard.jsx";
-import { applyPatch, clearProfile, loadProfile, markStatus, removeMedicine, removePerson, saveProfile, setAppeal, whoIsThis } from "./profile.js";
+import { applyPatch, clearProfile, forMode, loadProfile, markStatus, removeMedicine, removePerson, saveProfile, setAppeal, whoIsThis } from "./profile.js";
 import Dashboard from "./components/Dashboard.jsx";
 import { Camera, Compass, Pill, Send, Shield, Speaker, User } from "./icons.jsx";
 import NextSteps from "./components/NextSteps.jsx";
@@ -60,10 +60,11 @@ export default function App() {
   const [other, setOther] = useState(false);     // "Something else" on the home page shows the generic start options
   const [photoFor, setPhotoFor] = useState(null);
   // Remember what was done for whom (dates only), so the home page can show a checklist.
-  const mark = (args, key) => { const id = whoIsThis(profileRef.current, args, activeRef.current); if (id) setProfile(markStatus(profileRef.current, id, key)); };
+  const markDone = (args, key) => { const id = whoIsThis(forMode(profileRef.current, mode), args, activeRef.current); if (id) setProfile(markStatus(profileRef.current, id, key)); };
   const bottom = useRef(null);
   const fileRef = useRef(null);
-  const t = STRINGS[lang];
+  const base = STRINGS[lang];
+  const t = mode === "senior" && base.senior ? { ...base, ...base.senior } : base;
 
   useEffect(() => { newSession().then(setSid); getMeta().then(setMeta); }, []);
   const started_ = useRef(false);
@@ -116,6 +117,8 @@ export default function App() {
     setItems((xs) => [...xs, { kind: "user", text }, { kind: "steps", key: stepsKey, steps: [] }]);
     const updSteps = (fn) => setItems((xs) => xs.map((x) => (x.key === stepsKey ? { ...x, steps: fn(x.steps) } : x)));
     const argsById = {};
+    const marks = [];  // applied at the end of the turn, after any profile save that creates the person
+    const mark = (args, key) => marks.push([args, key]);
     try {
       await chat(sid, text, lang, (ev) => {
         if (ev.type === "tool_start") { argsById[ev.id] = ev.args; argsById[ev.name] = ev.args; }
@@ -124,7 +127,7 @@ export default function App() {
         if (ev.type === "current_plan") mark(argsById.check_current_plan, "current_plan_checked");
         if (ev.type === "doctor") mark(argsById.check_doctor_network, "doctor_checked");
         if (ev.type === "appeal" && ev.data?.appeal) {
-          const id = whoIsThis(profileRef.current, null, activeRef.current), a = ev.data.appeal;
+          const id = whoIsThis(forMode(profileRef.current, mode), null, activeRef.current), a = ev.data.appeal;
           if (id) setProfile(setAppeal(profileRef.current, id, { deadline_at: Date.now() + a.hours_left * 3600000, deadline_local: a.deadline_local, effective_date: a.effective_date }));
         }
         if (ev.type === "tool_start") updSteps((s) => [...s, { id: ev.id, name: ev.name, args: ev.args, status: "run" }]);
@@ -140,7 +143,7 @@ export default function App() {
         }
         if (ev.type === "message") { setItems((xs) => [...xs, { kind: "assistant", text: ev.text }]); if (voice) speak(ev.text, lang); }
         if (ev.type === "error") setItems((xs) => [...xs, { kind: "assistant", text: ev.text }]);
-      }, profileRef.current, mode);
+      }, forMode(profileRef.current, mode), mode);
     } catch (e) {
       if (e.status === 404) {  // server restarted: sessions live in memory, so start a fresh one
         newSession().then(setSid);
@@ -149,6 +152,7 @@ export default function App() {
         setItems((xs) => [...xs, { kind: "assistant", text: t.netError }]);
       }
     } finally {
+      for (const [args, key] of marks) markDone(args, key);
       setItems((xs) => xs.filter((x) => x.kind !== "steps" || x.steps.length > 0));
       setBusy(false);
     }
@@ -173,7 +177,7 @@ export default function App() {
 
   const started = items.length > 0;
   function reset() { window.speechSynthesis?.cancel(); setItems([]); setOther(false); follow.current = false; window.scrollTo(0, 0); newSession().then(setSid); }
-  const people = profile.people || [];
+  const people = forMode(profile, mode).people || [];
   const active = people.find((p) => p.id === activeId) || people[0];
   const showDash = !started && mode && people.length > 0 && !other;
 
@@ -233,7 +237,7 @@ export default function App() {
           </div>
         )}
         {showDash && (
-          <Dashboard profile={profile} activeId={active?.id} onPick={setActiveId} onSend={send} t={t} lang={lang} big={big}
+          <Dashboard profile={forMode(profile, mode)} activeId={active?.id} onPick={setActiveId} onSend={send} t={t} lang={lang} big={big}
             onPhoto={() => { setPhotoFor(active?.name || null); fileRef.current?.click(); }} onOther={() => setOther(true)} />
         )}
         {!started && mode && !showDash && (
@@ -265,7 +269,7 @@ export default function App() {
         {!busy && items.some((x) => x.kind === "plans") && items[items.length - 1]?.kind === "assistant" && (
           <NextSteps t={t} onPick={send} />
         )}
-        {!busy && mode === "senior" && items[items.length - 1]?.kind === "assistant" && /\?\s*$/.test(items[items.length - 1].text) && (
+        {!busy && mode === "senior" && items[items.length - 1]?.kind === "assistant" && /\?\s*(\([^)]*\)\s*)?$/.test(items[items.length - 1].text) && (
           <div className="my-4 grid grid-cols-2 gap-3">
             <button onClick={() => send(t.yes)} className="min-h-20 rounded-3xl bg-brand text-2xl font-bold text-white">{t.yes}</button>
             <button onClick={() => send(t.no)} className="min-h-20 rounded-3xl border-[3px] border-brand bg-card text-2xl font-bold text-brand">{t.no}</button>

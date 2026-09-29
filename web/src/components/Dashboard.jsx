@@ -80,7 +80,7 @@ export default function Dashboard({ profile, activeId, onPick, onSend, onPhoto, 
 
         <section className={card}>
           <h2 className="flex items-center gap-2 text-2xl"><Shield className="h-7 w-7 text-brand" />{t.dashPlan}</h2>
-          <p className={`mt-3 text-xl ${p.current_plan ? "font-bold" : "text-muted"}`}>{p.current_plan || t.dashNoPlan}</p>
+          <p className={`mt-3 text-xl ${p.current_plan ? "font-bold" : "text-muted"}`}>{p.current_plan ? (p.current_plan_name ? `${p.current_plan_name} · ${p.current_plan.replace(/-000$/, "")}` : p.current_plan.replace(/-000$/, "")) : t.dashNoPlan}</p>
           <button onClick={() => onSend(p.current_plan ? t.msgCurrent(p.name, p.current_plan) : t.msgTellPlan(p.name))}
             className="mt-4 min-h-12 w-full rounded-2xl bg-brand px-4 text-lg font-bold text-white">
             {p.current_plan ? t.dashCheckNext : t.dashTellPlan}</button>

@@ -127,6 +127,7 @@ SCHEMAS = [
             "conditions": {"type": "array", "items": {"type": "string"}},
             "hospital_stay_last_year": {"type": "boolean"},
             "current_plan": {"type": "string", "description": "plan_key of the plan she is in now, e.g. H1019-057-000"},
+            "current_plan_name": {"type": "string", "description": "That plan's name as shown in the results"},
             "add_medicines": {"type": "array", "items": {"type": "object", "properties": {
                 "rxnorm_name": {"type": "string"}, "qty_per_30d": {"type": "number"},
                 "directions": {"type": "string"}}, "required": ["rxnorm_name", "qty_per_30d"]}},

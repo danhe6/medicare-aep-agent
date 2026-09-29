@@ -60,7 +60,7 @@ of compare_plans (it already includes the best alternative); call compare_plans 
 with the verdict in one sentence (stay / worth switching and the typical-year savings), then next year's published
 changes (premium, out-of-pocket max; say plainly if the plan is not continuing), then any of her drugs the insurer
 dropped last year. If needs_clarification, show the candidates and ask which one. Once identified, save it with
-update_profile (current_plan = the plan_key) so she never has to say it again.
+update_profile (current_plan = the plan_key, current_plan_name = its name) so she never has to say it again.
 EXTRA HELP: if someone may have limited income, or asks, offer the Extra Help check (screen_extra_help). Explain
 the result plainly ("you may qualify" - Social Security decides), the rough drug cost with Extra Help if given, and
 how to apply (online or phone from the tool). Plan comparisons do not yet include Extra Help pricing - don't
@@ -81,7 +81,9 @@ HOW TO ASK QUESTIONS (the reader may be 80 years old, on a phone, or listening t
 - Don't ask for what you can look up or reasonably assume: strength shown on the name, insulin pens usually come 5 per box
   (say what you assumed and let them correct it). Fill in common defaults and say so, rather than asking.
 - Never re-ask or ask to confirm something the user already told you (e.g. "5 pens a month"). If they gave a
-  number, use it and go straight to the tools.
+  number, use it and go straight to the tools. "Twice a day" / "once a day" / "at night" is a count: one pill each
+  time (twice a day = 60 a month) unless they said otherwise; don't ask again.
+- Never show internal plan keys like "H1036-054-000"; say the plan name and its ID "H1036-054".
 - Briefly confirm what you already know in one sentence before asking, e.g. "Got it: Tampa, no Medicaid." """
 
 BRIEF_AFTER_CARDS = (
@@ -112,7 +114,7 @@ LANG_NOTE = {"en": "Reply in English.",
 MODE_NOTE = {
     "senior": "The user is the older adult, possibly reading large text or listening. Ask exactly ONE question per "
               "message, in one short sentence, ideally answerable with yes or no. Use 'you', short sentences, "
-              "no lists unless giving a phone number or steps.",
+              "no lists unless giving a phone number or steps. When saving their details, use person 'me'.",
     "family": "The user is a family member or helper managing someone else's Medicare (say 'she'/'your mom' as they "
               "do). They can handle a bit more detail; up to 2 questions per message.",
 }
@@ -126,12 +128,37 @@ def profile_note(profile: dict | None) -> str | None:
             + json.dumps(profile, default=str)[:6000])
 
 
+def _self_patch(seen: dict, profile: dict | None, lang: str) -> dict | None:
+    """Senior mode: the person is talking about themself, so what the engine just used (county, medicines, current
+    plan) is saved to THEIR device as 'me', even if the model forgot to call update_profile. Only if it changed."""
+    me = next((p for p in (profile or {}).get("people", [])
+               if str(p.get("name", "")).strip().lower() in ("me", "myself", "i", "yo", "mí", "mi")), {})
+    fields = {}
+    if seen.get("state") and seen.get("county") and \
+            (str(me.get("county", "")).lower(), str(me.get("state", "")).upper()) != (seen["county"].lower(), seen["state"].upper()):
+        fields.update(state=seen["state"], county=seen["county"])
+    if seen.get("current_plan") and me.get("current_plan") != seen["current_plan"]:
+        fields["current_plan"] = seen["current_plan"]
+        if seen.get("current_plan_name"):
+            fields["current_plan_name"] = seen["current_plan_name"]
+    have = {(m.get("rxnorm_name"), m.get("qty_per_30d")) for m in me.get("medicines", [])}
+    new = [{"rxnorm_name": d["rxnorm_name"], "qty_per_30d": d["qty_per_30d"]} for d in seen.get("drugs") or []
+           if d.get("rxnorm_name") and d.get("qty_per_30d") and (d["rxnorm_name"], d["qty_per_30d"]) not in have]
+    if new:
+        fields["add_medicines"] = new
+    if not fields:
+        return None
+    out = tools.update_profile("me", lang=lang, **fields)
+    return out.get("patch")
+
+
 def run_turn_events(messages: list[dict], llm=None, model: str | None = None, lang: str = "en",
                     profile: dict | None = None, mode: str | None = None):
     """Generator of UI events: {"type": "tool_start"|"tool_done"|"plans"|"appeal"|"label"|"profile_update"|"message"}."""
     llm = llm or client()
     model = model or MODELS["agent"]
     run_id = metrics.new_run_id()
+    seen, saved = {}, False  # for the senior-mode self profile
     convo = messages + [{"role": "system", "content": LANG_NOTE.get(lang, LANG_NOTE["en"])}]
     if mode in MODE_NOTE:
         convo.append({"role": "system", "content": MODE_NOTE[mode]})
@@ -153,6 +180,10 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
         convo.append(entry)
         if not msg.tool_calls:
             trace({"assistant": msg.content})
+            if mode == "senior" and seen and not saved:
+                patch = _self_patch(seen, profile, lang)
+                if patch:
+                    yield {"type": "profile_update", "patch": patch}
             yield {"type": "message", "text": msg.content or ""}
             return
         for tc in msg.tool_calls:
@@ -186,7 +217,13 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
                 yield {"type": "current_plan", "data": parsed}
             if ok and tc.function.name == "check_doctor_network" and parsed.get("plans"):
                 yield {"type": "doctor", "data": parsed}
+            if ok and tc.function.name in ("compare_plans", "check_current_plan") and not parsed.get("needs_clarification"):
+                seen.update({k: args.get(k) for k in ("state", "county", "drugs") if args.get(k)})
+                if tc.function.name == "check_current_plan" and (parsed.get("current_plan") or {}).get("plan_key"):
+                    seen["current_plan"] = parsed["current_plan"]["plan_key"]
+                    seen["current_plan_name"] = parsed["current_plan"].get("plan_name")
             if ok and tc.function.name == "update_profile":
+                saved = True
                 yield {"type": "profile_update", "patch": parsed["patch"]}
     yield {"type": "message", "text": "Sorry - I got stuck. Could you rephrase?"}
 
