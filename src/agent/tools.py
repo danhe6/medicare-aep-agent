@@ -150,7 +150,7 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
     out = estimate(person, lang=lang)
     keep = ("plan_key", "plan_name", "type", "organization", "star_overall", "moop", "annual_premium",
             "drug_oop", "drug_oop_is_lower_bound", "total", "bad_year_total", "not_covered", "with_generics",
-            "generic_alerts", "snp_type", "needs_snp_verification", "medical_note")
+            "generic_alerts", "snp_type", "needs_snp_verification", "medical_note", "track_record")
     def slim(r: dict) -> dict:
         p = {k: r.get(k) for k in keep}
         p["generic_alerts"] = [a["message"] for a in r.get("generic_alerts", [])]
@@ -202,6 +202,10 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
                 "drug_flags": "PA = prior authorization, ST = step therapy, QL = quantity limit - per plan and per "
                               "drug; never generalize one plan's rules to other plans or drugs",
                 "ranking_notes": "why a plan is ranked above a cheaper one - mention in one sentence if present",
+                "track_record": "PAST behavior, not a prediction: formulary_record = share of the insurer's drugs "
+                                "removed or restricted 2025->2026 vs the national median, and any of HER drugs "
+                                "affected; next_year = the plan's published premium/MOOP for next year. Mention "
+                                "it when it separates close plans or when one of her drugs was affected.",
                 "special_needs_plan_options": "C-SNP/D-SNP plans she appears eligible for; eligibility must be "
                                               "confirmed by the plan",
             },

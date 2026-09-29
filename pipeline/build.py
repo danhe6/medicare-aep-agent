@@ -227,6 +227,11 @@ def build(monthly: dict, quarterly: dict, promote: bool) -> Path:
     ls_url = LANDSCAPE_BY_YEAR.get(str(years[-1]) if years else "", LANDSCAPE_URL)
     print(f"  parquet: landscape ({ls_url.rsplit('/', 1)[-1]})")
     counts["landscape"] = landscape(ls_url, tmp, con)
+    try:                                   # plan history tables built by pipeline/history.py (optional)
+        from history import copy_into
+        print("  history:", copy_into(tmp))
+    except Exception as e:
+        print("  history: skipped -", e)
     try:                                   # IRA negotiated prices (optional: a failure never blocks a release)
         from mfp import build as build_mfp
         counts["mfp"] = build_mfp(tmp, con)

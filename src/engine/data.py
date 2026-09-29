@@ -12,7 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 RELEASES = Path(__file__).resolve().parents[2] / "data" / "releases"
-TABLES = ("plan_info", "geo", "formulary", "bene_cost", "insulin_cost", "pricing", "landscape", "mfp")
+TABLES = ("plan_info", "geo", "formulary", "bene_cost", "insulin_cost", "pricing", "landscape", "mfp",
+          "hist_plan_years", "hist_formulary_changes", "hist_plan_map", "hist_contract_stability")
 
 SNP_TYPES = {"0": None, "1": "C-SNP", "2": "D-SNP", "3": "I-SNP"}
 COST_TYPES = {"1": "copay", "2": "coinsurance"}  # 0 = not offered at this pharmacy type
@@ -228,6 +229,46 @@ def negotiated_unit_price(con, ndcs: list[str], on: str) -> tuple[float, str] | 
     except Exception:          # older release without mfp.parquet
         return None
     return (float(row[0]), row[1]) if row else None
+
+
+def track_record(con, plan: "Plan", rxcuis: list[str], year: int) -> dict | None:
+    """What this plan did in the past (never a prediction): premium / out-of-pocket max changes year to year,
+    how much of its insurer's formulary got worse last year, and whether any of HER drugs were affected.
+    None when the release has no history tables or the plan has no history under the same ID."""
+    try:
+        yrs = {r[0]: r[1:] for r in con.execute(
+            """SELECT year, premium, moop, star FROM hist_plan_years
+               WHERE contract_id = ? AND plan_id = ? AND segment_id = ?""",
+            [plan.contract_id, plan.plan_id, plan.segment_id]).fetchall()}
+    except Exception:
+        return None
+    out: dict = {}
+    prev, nxt = yrs.get(year - 1), yrs.get(year + 1)
+    cur = yrs.get(year)
+    if cur and prev:
+        out["vs_last_year"] = {"premium_change": _d(cur[0], prev[0]), "moop_change": _d(cur[1], prev[1])}
+    if cur and nxt:
+        out["next_year"] = {"year": year + 1, "premium": nxt[0], "moop": nxt[1],
+                            "premium_change": _d(nxt[0], cur[0]), "moop_change": _d(nxt[1], cur[1])}
+    row = con.execute("SELECT pct_worse FROM hist_contract_stability WHERE contract_id = ?",
+                      [plan.contract_id]).fetchone()
+    if row:
+        med = con.execute("SELECT median(pct_worse) FROM hist_contract_stability").fetchone()[0]
+        out["formulary_record"] = {"period": "2025-2026", "pct_drugs_made_worse": row[0],
+                                   "national_median_pct": round(med, 2)}
+        hers = con.execute("""
+            SELECT c.rxcui, c.change FROM hist_plan_map m JOIN hist_formulary_changes c
+              ON c.f_old = m.f_old AND c.f_new = m.f_new
+            WHERE m.contract_id = ? AND m.plan_id = ? AND m.segment_id = ?
+              AND c.change IN ('removed', 'pa_added', 'st_added')
+              AND c.rxcui IN (SELECT unnest(?::VARCHAR[]))""",
+                           [plan.contract_id, plan.plan_id, plan.segment_id, [r for r in rxcuis if r]]).fetchall()
+        out["formulary_record"]["her_drugs_affected"] = [{"rxcui": r, "change": c} for r, c in hers]
+    return out or None
+
+
+def _d(a, b):
+    return None if a is None or b is None else round(a - b, 2)
 
 
 _MKT_CACHE: dict = {}

@@ -180,7 +180,11 @@ SUMMARY = {
            "wg": "If her doctor approves the generic(s), this plan would cost about ${total}{lb} in a typical year, {cov}.",
            "wg_lb": " (at least)", "all": "with every drug covered", "still": "still not covering {drugs}",
            "snp": "Special needs plan - {why}.",
-           "alert": "Ask the doctor whether {generic} can replace {brand}: at least ${save}/year less on this plan."},
+           "alert": "Ask the doctor whether {generic} can replace {brand}: at least ${save}/year less on this plan.",
+           "rec": "Track record: from 2025 to 2026 this insurer dropped or restricted {pct}% of drugs (typical: {med}%).",
+           "rec_hers": "Last year it dropped or restricted: {drugs}.",
+           "rec_none": "None of her medicines were affected.",
+           "chg": {"removed": "removed", "pa_added": "now needs approval", "st_added": "try another drug first"}},
     "es": {"typical": "{name}: unos ${total} en un año típico{lb} (prima ${prem} + medicinas ${drugs}).",
            "lb": " (como mínimo: una medicina no está cubierta)",
            "bad": "En un año de salud muy malo, como máximo unos ${bad} (límite de gastos médicos ${moop}).",
@@ -192,7 +196,11 @@ SUMMARY = {
            "wg": "Si su médico aprueba el/los genérico(s), este plan costaría unos ${total}{lb} en un año típico, {cov}.",
            "wg_lb": " (como mínimo)", "all": "con todas las medicinas cubiertas", "still": "sin cubrir todavía {drugs}",
            "snp": "Plan de necesidades especiales: {why}.",
-           "alert": "Pregunte al médico si {generic} puede reemplazar a {brand}: al menos ${save} menos al año en este plan."},
+           "alert": "Pregunte al médico si {generic} puede reemplazar a {brand}: al menos ${save} menos al año en este plan.",
+           "rec": "Historial: de 2025 a 2026 esta aseguradora quitó o restringió el {pct}% de las medicinas (lo típico: {med}%).",
+           "rec_hers": "El año pasado quitó o restringió: {drugs}.",
+           "rec_none": "Ninguna de sus medicinas fue afectada.",
+           "chg": {"removed": "quitada", "pa_added": "ahora requiere aprobación", "st_added": "debe probar otra primero"}},
 }
 
 
@@ -226,6 +234,12 @@ def plain_summary(r: dict, lang: str = "en") -> str:
     if wg:
         cov = T["all"] if not wg["not_covered"] else T["still"].format(drugs=", ".join(fn(x) for x in wg["not_covered"]))
         parts.append(T["wg"].format(total=_m(wg["total"]), lb=T["wg_lb"] if wg["drug_oop_is_lower_bound"] else "", cov=cov))
+    fr = (r.get("track_record") or {}).get("formulary_record")
+    if fr:
+        parts.append(T["rec"].format(pct=f"{fr['pct_drugs_made_worse']:g}", med=f"{fr['national_median_pct']:g}"))
+        hers = fr.get("her_drugs_affected") or []
+        parts.append(T["rec_hers"].format(drugs=", ".join(f"{h['drug']} ({T['chg'].get(h['change'], h['change'])})"
+                                                             for h in hers)) if hers else T["rec_none"])
     if r.get("snp_eligibility"):
         parts.append(T["snp"].format(why=r["snp_eligibility"]))
     return " ".join(parts)
@@ -301,6 +315,7 @@ def estimate(person: dict, year: int | None = None, con=None, lang: str = "en") 
         info = rxnorm.lookup(d["name"])  # adds equivalents + generic alternative (cached)
         drugs.append({**info, **d, "equivalents": info.get("equivalents", []), "generic": info.get("generic")})
 
+    her_ids = [x for d in drugs for x in [d.get("rxcui"), *d.get("equivalents", [])] if x]
     ids, ndcs = [], []
     for d in drugs:
         ids += [d.get("rxcui"), *d.get("equivalents", [])]
@@ -335,6 +350,16 @@ def estimate(person: dict, year: int | None = None, con=None, lang: str = "en") 
         r["rank_score"] = r["expected_total"] + (UNCOVERED_RANK_MULTIPLIER - 1) * r["uncovered_cost"]
         for a in r["generic_alerts"]:
             a["message"] = generic_alert_text(a, lang)
+        tr = data.track_record(con, plan, her_ids, year)
+        if tr and tr.get("formulary_record"):
+            by_id = {}
+            for d in drugs:
+                for x in [d.get("rxcui"), *d.get("equivalents", [])]:
+                    by_id[x] = d["name"]
+            tr["formulary_record"]["her_drugs_affected"] = [
+                {**h, "drug": friendly_name(by_id.get(h["rxcui"], h["rxcui"]), lang)}
+                for h in tr["formulary_record"]["her_drugs_affected"]]
+        r["track_record"] = tr
         r["plain_summary"] = plain_summary(r, lang)
         results.append(r)
     mark("plans_loop")
