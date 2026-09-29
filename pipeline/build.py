@@ -40,7 +40,11 @@ DATASETS = {
 SKIP = ("pharmacy network", "excluded", "indication")
 TABLE_KEYWORDS = [("insulin", "insulin_cost"), ("plan information", "plan_info"), ("geographic", "geo"),
                   ("basic drugs formulary", "formulary"), ("beneficiary cost", "bene_cost"), ("pricing", "pricing")]
-LANDSCAPE_URL = "https://www.cms.gov/files/zip/cy2026-landscape-202609.zip"  # update when CY2027 file posts
+LANDSCAPE_BY_YEAR = {  # MA/PDP Landscape per plan year; the release uses the one matching its formulary year
+    "2026": "https://www.cms.gov/files/zip/cy2026-landscape-202609.zip",
+    "2027": "https://www.cms.gov/files/zip/cy2027-landscape-202609.zip",
+}
+LANDSCAPE_URL = LANDSCAPE_BY_YEAR["2026"]
 def landscape_tag(url: str = None) -> str:
     m = re.findall(r"(20\d{4})", (url or LANDSCAPE_URL).rsplit("/", 1)[-1])
     return m[-1] if m else "x"
@@ -208,7 +212,7 @@ def build(monthly: dict, quarterly: dict, promote: bool) -> Path:
     print(f"[quarterly] {quarterly['release']}  {quarterly['url']}")
     q_files = extract(download(quarterly["url"]), NEED["quarterly"])
 
-    release_id = f"m{monthly['release']}_q{quarterly['release']}_l{landscape_tag()}"
+    release_id = f"m{monthly['release']}_q{quarterly['release']}"
     rel = RELEASES / release_id
     tmp = RELEASES / f".{release_id}.building"
     shutil.rmtree(tmp, ignore_errors=True)
@@ -218,21 +222,22 @@ def build(monthly: dict, quarterly: dict, promote: bool) -> Path:
     for t, src in {**m_files, **q_files}.items():
         print(f"  parquet: {t}")
         counts[t] = to_parquet(con, src, tmp / f"{t}.parquet")
-    print("  parquet: landscape")
-    counts["landscape"] = landscape(LANDSCAPE_URL, tmp, con)
+    years = [r[0] for r in con.execute(
+        f"SELECT DISTINCT contract_year FROM read_parquet('{tmp / 'formulary.parquet'}') ORDER BY 1").fetchall()]
+    ls_url = LANDSCAPE_BY_YEAR.get(str(years[-1]) if years else "", LANDSCAPE_URL)
+    print(f"  parquet: landscape ({ls_url.rsplit('/', 1)[-1]})")
+    counts["landscape"] = landscape(ls_url, tmp, con)
     try:                                   # IRA negotiated prices (optional: a failure never blocks a release)
         from mfp import build as build_mfp
         counts["mfp"] = build_mfp(tmp, con)
     except Exception as e:
         print("  mfp: skipped -", e)
-    years = [r[0] for r in con.execute(
-        f"SELECT DISTINCT contract_year FROM read_parquet('{tmp / 'formulary.parquet'}') ORDER BY 1").fetchall()]
     price_year = re.findall(r"SPUF_(20\d\d)", quarterly["url"]) or [quarterly["release"][:4]]
     manifest = {
         "release_id": release_id, "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "benefit_year": years[-1] if years else None, "benefit_years": years, "price_year": price_year[0],
         "sources": {"monthly": monthly, "quarterly": quarterly,
-                    "landscape": {"url": LANDSCAPE_URL, "release": landscape_tag()}}, "row_counts": counts,
+                    "landscape": {"url": ls_url, "release": landscape_tag(ls_url)}}, "row_counts": counts,
     }
     (tmp / "manifest.json").write_text(json.dumps(manifest, indent=1))
     problems = validate(tmp, manifest)
@@ -271,7 +276,7 @@ def main() -> None:
     m = {"kind": "monthly", "url": a.monthly_url, "release": release_date(a.monthly_url)} if a.monthly_url else mon[0]
     q = {"kind": "quarterly", "url": a.quarterly_url, "release": release_date(a.quarterly_url)} if a.quarterly_url else qtr[0]
     if a.plan:
-        print(json.dumps({"release_id": f"m{m['release']}_q{q['release']}_l{landscape_tag()}", "monthly": m, "quarterly": q}))
+        print(json.dumps({"release_id": f"m{m['release']}_q{q['release']}", "monthly": m, "quarterly": q}))
         return
     build(m, q, promote=not a.no_promote)
 

@@ -1,0 +1,7 @@
+{
+  "_note": "USD per 1M tokens from the Nebius Token Factory pricing page. Fill in before quoting costs; null = unknown.",
+  "nvidia/nemotron-3-super-120b-a12b": {"input": null, "output": null},
+  "nvidia/Nemotron-3_5-Lightning": {"input": null, "output": null},
+  "nvidia/Nemotron-3-Ultra-550b-a55b": {"input": null, "output": null},
+  "google/gemma-3-27b-it": {"input": null, "output": null}
+}

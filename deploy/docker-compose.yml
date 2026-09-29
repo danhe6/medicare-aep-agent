@@ -8,6 +8,7 @@ services:
       - TRACE_LOG=0              # never write conversations to disk in production
     volumes:
       - data:/app/data
+      - logs:/app/logs            # metrics.jsonl only (no conversations: TRACE_LOG=0)
     expose: ["8000"]
   caddy:                          # HTTPS (Let's Encrypt) in front of the app; the microphone needs https
     image: caddy:2
@@ -21,4 +22,5 @@ services:
     depends_on: [app]
 volumes:
   data:
+  logs:
   caddy_data:

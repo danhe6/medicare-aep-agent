@@ -147,6 +147,28 @@ def load_market(con, state: str, county: str) -> int:
     return n
 
 
+def narrow_to_drugs(con, rxcuis: list[str], ndcs: list[str]) -> None:
+    """Speed: once the medicines are known, keep only their rows in the market formulary/pricing tables, so the
+    hundreds of per-plan lookups hit small tables instead of millions of rows. Results are identical."""
+    rxcuis = sorted({r for r in rxcuis if r})
+    ndcs = sorted({n for n in ndcs if n})
+    con.execute("""CREATE OR REPLACE TEMP TABLE _mf AS SELECT * FROM market_formulary
+                   WHERE rxcui IN (SELECT unnest(?::VARCHAR[]))""", [rxcuis])
+    con.execute("DROP TABLE market_formulary")
+    con.execute("ALTER TABLE _mf RENAME TO market_formulary")
+    # the formulary's representative NDCs are priced first (unit_cost) - keep them too
+    ndcs = sorted(set(ndcs) | {r[0].strip() for r in con.execute(
+        "SELECT DISTINCT ndc FROM market_formulary WHERE ndc IS NOT NULL").fetchall()})
+    con.execute("""CREATE OR REPLACE TEMP TABLE _mp AS SELECT * FROM market_pricing
+                   WHERE ndc IN (SELECT unnest(?::VARCHAR[]))""", [ndcs])
+    con.execute("DROP TABLE market_pricing")
+    con.execute("ALTER TABLE _mp RENAME TO market_pricing")
+    # national prices for the same NDCs (fallback for drugs no local plan covers): one scan instead of one per plan
+    con.execute("""CREATE OR REPLACE TEMP TABLE national_pricing AS SELECT ndc, unit_cost, days_supply FROM pricing
+                   WHERE ndc IN (SELECT unnest(?::VARCHAR[])) AND days_supply IN ('30', '030', '1')""", [ndcs])
+    _MKT_CACHE.clear()
+
+
 # ---------------------------------------------------------------- queries (market-scoped)
 def plans(con) -> list[Plan]:
     rows = con.execute("""
@@ -208,7 +230,17 @@ def negotiated_unit_price(con, ndcs: list[str], on: str) -> tuple[float, str] | 
     return (float(row[0]), row[1]) if row else None
 
 
+_MKT_CACHE: dict = {}
+
+
 def market_unit_cost(con, representative_ndc: str | None, all_ndcs: list[str]) -> float | None:
+    key = (id(con), representative_ndc, tuple(all_ndcs))
+    if key not in _MKT_CACHE:
+        _MKT_CACHE[key] = _market_unit_cost(con, representative_ndc, all_ndcs)
+    return _MKT_CACHE[key]
+
+
+def _market_unit_cost(con, representative_ndc: str | None, all_ndcs: list[str]) -> float | None:
     """Typical negotiated unit price for a drug a plan does NOT cover.
 
     Tries this market first, then the national price table (a brand every local plan dropped, e.g. after
@@ -216,7 +248,8 @@ def market_unit_cost(con, representative_ndc: str | None, all_ndcs: list[str]) -
     """
     tries = [[representative_ndc]] if representative_ndc else []
     tries.append(all_ndcs)
-    for table in ("market_pricing", "pricing"):
+    has_nat = con.execute("SELECT count(*) FROM information_schema.tables WHERE table_name = 'national_pricing'").fetchone()[0]
+    for table in ("market_pricing", "national_pricing" if has_nat else "pricing"):
         for ndcs in tries:
             if not ndcs:
                 continue

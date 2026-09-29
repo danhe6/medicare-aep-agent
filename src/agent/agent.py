@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-from agent import tools
+from agent import metrics, tools
 from agent.llm import MODELS, client
 
 SYSTEM = """You are a neutral, privacy-first Medicare helper for older adults and the family members who help them.
@@ -23,6 +23,8 @@ How you work:
    Ask for what's missing, a few questions at a time, in plain words.
    A SAVED PROFILE may be provided (kept on the user's own device). Use it and don't ask again for anything in it;
    just confirm in one sentence ("I have Mom's 4 medicines and Miami-Dade - still right?").
+   If the user now lists medicines that differ from the saved ones, do NOT silently merge: ask once whether
+   the saved medicines not mentioned (name them) are still taken, then use exactly what they confirm.
    Photos of pill bottles / pharmacy labels: call read_medicine_label. Tell the user what you read in plain words
    (display_name, how many a month) and ask them to confirm anything in needs_user_confirmation.
    If read_medicine_label returns exactly one rxnorm match and needs_user_confirmation is empty, treat it as
@@ -123,6 +125,7 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
     """Generator of UI events: {"type": "tool_start"|"tool_done"|"plans"|"appeal"|"label"|"profile_update"|"message"}."""
     llm = llm or client()
     model = model or MODELS["agent"]
+    run_id = metrics.new_run_id()
     convo = messages + [{"role": "system", "content": LANG_NOTE.get(lang, LANG_NOTE["en"])}]
     if mode in MODE_NOTE:
         convo.append({"role": "system", "content": MODE_NOTE[mode]})
@@ -130,8 +133,10 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
     if note:
         convo.insert(len(messages) - 1, {"role": "system", "content": note})  # just before the latest user message
     for _ in range(MAX_STEPS):
-        resp = llm.chat.completions.create(model=model, messages=convo, tools=tools.SCHEMAS,
-                                           tool_choice="auto", temperature=0.2, max_tokens=2000)
+        metrics.set_run(run_id)
+        with metrics.task("agent.turn"):
+            resp = llm.chat.completions.create(model=model, messages=convo, tools=tools.SCHEMAS,
+                                               tool_choice="auto", temperature=0.2, max_tokens=2000)
         msg = resp.choices[0].message
         entry = {"role": "assistant", "content": msg.content or ""}
         if msg.tool_calls:  # keep only standard fields (drop provider-specific reasoning fields)
@@ -150,7 +155,10 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
             except json.JSONDecodeError:
                 args = {}
             yield {"type": "tool_start", "id": tc.id, "name": tc.function.name, "args": args}
+            metrics.set_run(run_id)
+            t0 = time.perf_counter()
             result = tools.call(tc.function.name, tc.function.arguments, lang=lang)
+            metrics.record_tool(tc.function.name, (time.perf_counter() - t0) * 1000, '"error"' not in result[:50])
             trace({"tool": tc.function.name, "args": tc.function.arguments, "result": result[:200000]})
             tool_msg = {"role": "tool", "tool_call_id": tc.id, "content": result}
             messages.append(tool_msg)

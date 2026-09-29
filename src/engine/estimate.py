@@ -285,8 +285,14 @@ def generic_alerts(con, plan, drugs: list[dict], pharmacy: str, year: int, base_
 
 
 def estimate(person: dict, year: int | None = None, con=None, lang: str = "en") -> dict:
+    import os
+    import time as _t
+    _t0, _marks = _t.perf_counter(), []
+    mark = lambda name: _marks.append((name, _t.perf_counter()))  # noqa: E731
     con = con or data.connect()
+    mark("connect")
     data.load_market(con, person.get("state", "Florida"), person.get("county", "Miami-Dade"))
+    mark("load_market")
     m = data.manifest()
     year = year or int(m["benefit_year"])
     pharmacy = person.get("pharmacy", "preferred_retail")
@@ -294,6 +300,17 @@ def estimate(person: dict, year: int | None = None, con=None, lang: str = "en") 
     for d in person["drugs"]:
         info = rxnorm.lookup(d["name"])  # adds equivalents + generic alternative (cached)
         drugs.append({**info, **d, "equivalents": info.get("equivalents", []), "generic": info.get("generic")})
+
+    ids, ndcs = [], []
+    for d in drugs:
+        ids += [d.get("rxcui"), *d.get("equivalents", [])]
+        ndcs += d.get("ndcs", []) + ([d["oracle_ndc"]] if d.get("oracle_ndc") else [])
+        g = d.get("generic") or {}
+        ids += [g.get("rxcui"), *g.get("equivalents", [])]
+        ndcs += g.get("ndcs", [])
+    mark("rxnorm_lookup")
+    data.narrow_to_drugs(con, ids, ndcs)
+    mark("narrow")
 
     results, skipped = [], {}
     for plan in data.plans(con):
@@ -320,6 +337,11 @@ def estimate(person: dict, year: int | None = None, con=None, lang: str = "en") 
             a["message"] = generic_alert_text(a, lang)
         r["plain_summary"] = plain_summary(r, lang)
         results.append(r)
+    mark("plans_loop")
+    if os.environ.get("ENGINE_TIMING"):
+        prev = _t0
+        print("timing: " + ", ".join(f"{n} {t - p:.1f}s" for (n, t), p in zip(_marks, [_t0] + [t for _, t in _marks])),
+              file=sys.stderr)
     results.sort(key=lambda x: (len(x["not_covered"]), x["rank_score"], -(x.get("star_overall") or 0)))
     assumptions_extra = []
     if any(x.get("price_source", "").startswith("negotiated_price") for r in results for x in r.get("drugs", [])):

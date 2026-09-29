@@ -29,4 +29,5 @@ def client() -> OpenAI:
     base = os.environ.get("NEBIUS_BASE_URL", "https://api.tokenfactory.nebius.com/v1").rstrip("/")
     if not base.endswith("/v1"):
         base += "/v1"
-    return OpenAI(base_url=base, api_key=os.environ["NEBIUS_API_KEY"], max_retries=3, timeout=120)
+    from agent.metrics import MeteredClient
+    return MeteredClient(OpenAI(base_url=base, api_key=os.environ["NEBIUS_API_KEY"], max_retries=3, timeout=120))

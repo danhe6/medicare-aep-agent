@@ -81,11 +81,14 @@ def _in_text(value, text: str) -> bool:
 
 def analyze(path: str, llm=None) -> dict:
     llm = llm or client()
-    text = transcribe(Path(path), llm)
+    from agent import metrics
+    with metrics.task("label.transcribe"):
+        text = transcribe(Path(path), llm)
     fields = {}
     for role in ("extract", "agent"):
-        resp = llm.chat.completions.create(model=MODELS[role], temperature=0, max_tokens=4000,
-                                           messages=[{"role": "user", "content": EXTRACT_PROMPT + text}])
+        with metrics.task("label.extract"):
+            resp = llm.chat.completions.create(model=MODELS[role], temperature=0, max_tokens=4000,
+                                               messages=[{"role": "user", "content": EXTRACT_PROMPT + text}])
         fields = _json(resp.choices[0].message.content or "")
         if fields.get("drug_name"):
             break
