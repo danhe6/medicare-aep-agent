@@ -81,6 +81,21 @@ SCHEMAS = [
                               "description": "The 'organization' of each plan to check, from compare_plans results"}},
             "required": ["doctor_name", "state", "organizations"]}}},
     {"type": "function", "function": {
+        "name": "check_current_plan",
+        "description": "Use when the user names the plan she is in NOW (or asks 'should she stay?', or has her "
+                       "Annual Notice of Change). Shows what that plan costs her this year, its published changes "
+                       "for next year (premium, out-of-pocket max, whether it continues), its track record, and "
+                       "the best alternative with the savings. Same inputs as compare_plans plus current_plan.",
+        "parameters": {"type": "object", "properties": {
+            "current_plan": {"type": "string", "description": "Plan name as the user says it, or its ID like H1019-057"},
+            "state": {"type": "string"}, "county": {"type": "string"},
+            "drugs": {"type": "array", "items": {"type": "object", "properties": {
+                "rxnorm_name": {"type": "string"}, "qty_per_30d": {"type": "number"}},
+                "required": ["rxnorm_name", "qty_per_30d"]}},
+            "medicaid": {"type": "boolean"}, "chronic_conditions": {"type": "array", "items": {"type": "string"}},
+            "hospital_stay_last_year": {"type": "boolean"}},
+            "required": ["current_plan", "state", "county", "drugs"]}}},
+    {"type": "function", "function": {
         "name": "screen_extra_help",
         "description": "Quick check whether she may qualify for Extra Help (Medicare's Part D low-income subsidy), "
                        "and roughly what her medicines would cost with it. Ask for yearly income and savings only "
@@ -111,6 +126,7 @@ SCHEMAS = [
             "state": {"type": "string"}, "county": {"type": "string"}, "medicaid": {"type": "boolean"},
             "conditions": {"type": "array", "items": {"type": "string"}},
             "hospital_stay_last_year": {"type": "boolean"},
+            "current_plan": {"type": "string", "description": "plan_key of the plan she is in now, e.g. H1019-057-000"},
             "add_medicines": {"type": "array", "items": {"type": "object", "properties": {
                 "rxnorm_name": {"type": "string"}, "qty_per_30d": {"type": "number"},
                 "directions": {"type": "string"}}, "required": ["rxnorm_name", "qty_per_30d"]}},
@@ -264,6 +280,73 @@ def check_doctor_network(doctor_name: str, state: str, organizations: list[str],
     return check_doctor(doctor_name, state, city, organizations, specialty)
 
 
+def _match_plan(results: list[dict], query: str) -> tuple[dict | None, list[dict]]:
+    """Find the plan she's in: exact plan ID first (H1019-057 / H1019-057-000), else closest plan name."""
+    import difflib
+    import re
+    q = query.strip()
+    m = re.search(r"\b([HRS]\d{4})[-_ ]?(\d{3})(?:[-_ ]?(\d{1,3}))?\b", q.upper())
+    if m:
+        hits = [r for r in results if r["plan_key"].startswith(f"{m.group(1)}-{m.group(2)}")]
+        if len(hits) == 1 or (hits and m.group(3)):
+            return hits[0], []
+        if hits:
+            return None, hits[:3]
+    norm = lambda t: " ".join(re.sub(r"[^a-z0-9 ]", " ", t.lower()).split())  # noqa: E731
+    contains = [r for r in results if norm(q) and norm(q) in norm(r["plan_name"])]
+    if len({r["plan_key"] for r in contains}) == 1:
+        return contains[0], []
+    if len(contains) > 1:                      # e.g. "CareOne Plus" = the HMO and the HMO-POS plan
+        return None, contains[:4]
+    scored = sorted(((difflib.SequenceMatcher(None, norm(q), norm(r["plan_name"])).ratio(), r) for r in results),
+                    key=lambda x: -x[0])
+    if not scored or scored[0][0] < 0.55:
+        return None, [r for _, r in scored[:3]]
+    if len(scored) > 1 and scored[1][0] > scored[0][0] - 0.03 and scored[1][1]["plan_name"] != scored[0][1]["plan_name"]:
+        return None, [r for _, r in scored[:3]]
+    return scored[0][1], []
+
+
+def check_current_plan(current_plan: str, state: str, county: str, drugs: list[dict], medicaid: bool = False,
+                       chronic_conditions: list[str] | None = None, hospital_stay_last_year: bool | None = None,
+                       lang: str = "en") -> dict:
+    bad = [d["rxnorm_name"] for d in drugs if not rxnorm.exact_rxcui(d["rxnorm_name"])]
+    if bad:
+        return {"error": "Not exact RxNorm names: " + "; ".join(bad) + ". Call find_drug first."}
+    usage = infer_health_usage([d["rxnorm_name"] for d in drugs], chronic_conditions, hospital_stay_last_year)
+    person = {"state": state, "county": county, "medicaid": medicaid, "chronic_conditions": chronic_conditions or [],
+              "health_usage": usage["level"],
+              "drugs": [{"name": d["rxnorm_name"], "qty_per_30d": d["qty_per_30d"]} for d in drugs]}
+    out = estimate(person, lang=lang)
+    res = out["results"]
+    cur, candidates = _match_plan(res, current_plan)
+    if not cur:
+        return {"needs_clarification": True,
+                "ask": "Which of these is her plan? (Or read the plan name/ID from her member card or ANOC letter.)",
+                "candidates": [{"plan_key": r["plan_key"], "plan_name": r["plan_name"], "organization": r.get("organization")}
+                               for r in candidates]}
+    tr = cur.get("track_record") or {}
+    regular = [r for r in res if not r.get("snp_type")]
+    best = next((r for r in regular if r["plan_key"] != cur["plan_key"]), None)
+    rank = next((i + 1 for i, r in enumerate(res) if r["plan_key"] == cur["plan_key"]), None)
+    keep = ("plan_key", "plan_name", "organization", "total", "bad_year_total", "moop", "annual_premium",
+            "star_overall", "not_covered", "drug_oop_is_lower_bound", "plain_summary")
+    alt = {k: best.get(k) for k in keep} if best else None
+    savings = round(cur["total"] - best["total"], 2) if best else None
+    return {
+        "plan_year": out["year"], "data_as_of": out["data_as_of"],
+        "current_plan": {**{k: cur.get(k) for k in keep}, "rank_in_county": rank, "plans_in_county": len(res)},
+        "next_year": tr.get("next_year") or {"published": False,
+                                             "note": "No published next-year row under this plan ID: the plan may be "
+                                                     "ending or renumbered - check her Annual Notice of Change letter."},
+        "track_record": tr.get("formulary_record"),
+        "best_alternative": alt,
+        "typical_year_savings_if_switching": savings,
+        "note": "Next year's drug list (formulary) for her plan is published in October; until then her drug costs "
+                "are this year's. Premium and out-of-pocket max for next year are already official.",
+    }
+
+
 def screen_extra_help(drugs: list[str] | None = None, **kw) -> dict:
     out = extra_help.screen(**kw)
     if drugs and out["result"] in ("likely", "possible", "automatic"):
@@ -272,7 +355,7 @@ def screen_extra_help(drugs: list[str] | None = None, **kw) -> dict:
     return out
 
 
-IMPL = {"screen_extra_help": screen_extra_help, "check_doctor_network": check_doctor_network, "read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
+IMPL = {"check_current_plan": check_current_plan, "screen_extra_help": screen_extra_help, "check_doctor_network": check_doctor_network, "read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
         "update_profile": update_profile, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
 
 

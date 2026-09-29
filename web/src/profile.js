@@ -18,7 +18,7 @@ export function applyPatch(profile, patch) {
   let i = people.findIndex((x) => norm(x.name) === norm(patch.person));
   if (i < 0) { people.push({ id: crypto.randomUUID?.() || String(Date.now()), name: patch.person || "Me", medicines: [], conditions: [] }); i = people.length - 1; }
   const p = { ...people[i] };
-  for (const k of ["state", "county", "medicaid", "hospital_stay_last_year"]) if (patch[k] !== undefined) p[k] = patch[k];
+  for (const k of ["state", "county", "medicaid", "hospital_stay_last_year", "current_plan"]) if (patch[k] !== undefined) p[k] = patch[k];
   if (patch.conditions) p.conditions = [...new Set([...(p.conditions || []), ...patch.conditions])];
   let meds = [...(p.medicines || [])];
   for (const s of patch.stop_medicines || []) meds = meds.filter((m) => m.rxnorm_name !== s);

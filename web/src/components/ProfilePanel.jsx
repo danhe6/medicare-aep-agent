@@ -20,7 +20,8 @@ export default function ProfilePanel({ profile, onRemoveMed, onRemovePerson, onC
               <button onClick={() => onUse(p)} className="min-h-12 rounded-full bg-brand px-5 text-base font-bold text-white">{t.profileUse}</button>
             </div>
             <p className="mt-1 text-base text-muted">
-              {[p.county && p.state ? `${p.county}, ${p.state}` : null, p.medicaid === true ? t.profileMedicaid : null,
+              {[p.county && p.state ? `${p.county}, ${p.state}` : null, p.current_plan ? `${t.currentPlanShort}: ${p.current_plan}` : null,
+                p.medicaid === true ? t.profileMedicaid : null,
                 ...(p.conditions || [])].filter(Boolean).join(" · ") || t.profileNoPlace}
             </p>
             <ul className="mt-4 space-y-2">

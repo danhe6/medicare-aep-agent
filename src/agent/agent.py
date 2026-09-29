@@ -55,6 +55,12 @@ you discussed. If it returns needs_clarification, list the matches in plain word
 which one; then call again with specialty. Report per plan: "found on the insurer's directory" / "mentioned online" / "no listing found (that
 does not mean out of network)". If npi_registry_matches has several doctors, ask which one (specialty, city). Never
 say a doctor IS in network; always end with: call the plan or the doctor's office to confirm before enrolling.
+CURRENT PLAN: if the user says which plan she has now, or asks whether to stay, call check_current_plan INSTEAD
+of compare_plans (it already includes the best alternative); call compare_plans too only if they also want the full list. Lead
+with the verdict in one sentence (stay / worth switching and the typical-year savings), then next year's published
+changes (premium, out-of-pocket max; say plainly if the plan is not continuing), then any of her drugs the insurer
+dropped last year. If needs_clarification, show the candidates and ask which one. Once identified, save it with
+update_profile (current_plan = the plan_key) so she never has to say it again.
 EXTRA HELP: if someone may have limited income, or asks, offer the Extra Help check (screen_extra_help). Explain
 the result plainly ("you may qualify" - Social Security decides), the rough drug cost with Extra Help if given, and
 how to apply (online or phone from the tool). Plan comparisons do not yet include Extra Help pricing - don't
@@ -163,7 +169,7 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
             tool_msg = {"role": "tool", "tool_call_id": tc.id, "content": result}
             messages.append(tool_msg)
             convo.append(tool_msg)
-            if tc.function.name in ("compare_plans", "read_care_ending_notice", "check_doctor_network") \
+            if tc.function.name in ("compare_plans", "read_care_ending_notice", "check_doctor_network", "check_current_plan") \
                     and '"error"' not in result[:50] and '"needs_clarification"' not in result[:50]:
                 convo.append({"role": "system", "content": BRIEF_AFTER_CARDS})
             parsed = json.loads(result)
@@ -176,6 +182,8 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
                 yield {"type": "appeal", "data": parsed}
             if ok and tc.function.name == "read_medicine_label":
                 yield {"type": "label", "data": parsed}
+            if ok and tc.function.name == "check_current_plan" and parsed.get("current_plan"):
+                yield {"type": "current_plan", "data": parsed}
             if ok and tc.function.name == "check_doctor_network" and parsed.get("plans"):
                 yield {"type": "doctor", "data": parsed}
             if ok and tc.function.name == "update_profile":

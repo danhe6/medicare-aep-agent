@@ -168,6 +168,7 @@ def narrow_to_drugs(con, rxcuis: list[str], ndcs: list[str]) -> None:
     con.execute("""CREATE OR REPLACE TEMP TABLE national_pricing AS SELECT ndc, unit_cost, days_supply FROM pricing
                    WHERE ndc IN (SELECT unnest(?::VARCHAR[])) AND days_supply IN ('30', '030', '1')""", [ndcs])
     _MKT_CACHE.clear()
+    _TR_CACHE.clear()
 
 
 # ---------------------------------------------------------------- queries (market-scoped)
@@ -231,39 +232,59 @@ def negotiated_unit_price(con, ndcs: list[str], on: str) -> tuple[float, str] | 
     return (float(row[0]), row[1]) if row else None
 
 
+_TR_CACHE: dict = {}
+
+
+def _track_tables(con, rxcuis: tuple) -> dict | None:
+    """Load the history for every plan in this market once (3 queries), instead of 3 queries per plan."""
+    key = (id(con), rxcuis)
+    if key in _TR_CACHE:
+        return _TR_CACHE[key]
+    try:
+        years = {}
+        for c, p, sg, y, prem, moop, star in con.execute("""
+                SELECT h.contract_id, h.plan_id, h.segment_id, h.year, h.premium, h.moop, h.star
+                FROM hist_plan_years h
+                JOIN (SELECT DISTINCT contract_id, plan_id, lpad(trim(segment_id), 3, '0') AS segment_id
+                      FROM market_plans) m USING (contract_id, plan_id, segment_id)""").fetchall():
+            years.setdefault((c, p, sg), {})[y] = (prem, moop, star)
+        stab = dict(con.execute("SELECT contract_id, pct_worse FROM hist_contract_stability").fetchall())
+        med = con.execute("SELECT median(pct_worse) FROM hist_contract_stability").fetchone()[0]
+        hers = {}
+        for c, p, sg, rx, ch in con.execute("""
+                SELECT m.contract_id, m.plan_id, m.segment_id, c.rxcui, c.change
+                FROM hist_plan_map m JOIN hist_formulary_changes c ON c.f_old = m.f_old AND c.f_new = m.f_new
+                WHERE c.change IN ('removed', 'pa_added', 'st_added')
+                  AND c.rxcui IN (SELECT unnest(?::VARCHAR[]))
+                  AND m.contract_id IN (SELECT DISTINCT contract_id FROM market_plans)""", [list(rxcuis)]).fetchall():
+            hers.setdefault((c, p, sg), []).append({"rxcui": rx, "change": ch})
+    except Exception:          # release without history tables
+        _TR_CACHE[key] = None
+        return None
+    _TR_CACHE[key] = {"years": years, "stab": stab, "med": med, "hers": hers}
+    return _TR_CACHE[key]
+
+
 def track_record(con, plan: "Plan", rxcuis: list[str], year: int) -> dict | None:
     """What this plan did in the past (never a prediction): premium / out-of-pocket max changes year to year,
     how much of its insurer's formulary got worse last year, and whether any of HER drugs were affected.
     None when the release has no history tables or the plan has no history under the same ID."""
-    try:
-        yrs = {r[0]: r[1:] for r in con.execute(
-            """SELECT year, premium, moop, star FROM hist_plan_years
-               WHERE contract_id = ? AND plan_id = ? AND segment_id = ?""",
-            [plan.contract_id, plan.plan_id, plan.segment_id]).fetchall()}
-    except Exception:
+    t = _track_tables(con, tuple(sorted({r for r in rxcuis if r})))
+    if t is None:
         return None
+    k = (plan.contract_id, plan.plan_id, plan.segment_id)
+    yrs = t["years"].get(k, {})
     out: dict = {}
-    prev, nxt = yrs.get(year - 1), yrs.get(year + 1)
-    cur = yrs.get(year)
+    prev, cur, nxt = yrs.get(year - 1), yrs.get(year), yrs.get(year + 1)
     if cur and prev:
         out["vs_last_year"] = {"premium_change": _d(cur[0], prev[0]), "moop_change": _d(cur[1], prev[1])}
     if cur and nxt:
         out["next_year"] = {"year": year + 1, "premium": nxt[0], "moop": nxt[1],
                             "premium_change": _d(nxt[0], cur[0]), "moop_change": _d(nxt[1], cur[1])}
-    row = con.execute("SELECT pct_worse FROM hist_contract_stability WHERE contract_id = ?",
-                      [plan.contract_id]).fetchone()
-    if row:
-        med = con.execute("SELECT median(pct_worse) FROM hist_contract_stability").fetchone()[0]
-        out["formulary_record"] = {"period": "2025-2026", "pct_drugs_made_worse": row[0],
-                                   "national_median_pct": round(med, 2)}
-        hers = con.execute("""
-            SELECT c.rxcui, c.change FROM hist_plan_map m JOIN hist_formulary_changes c
-              ON c.f_old = m.f_old AND c.f_new = m.f_new
-            WHERE m.contract_id = ? AND m.plan_id = ? AND m.segment_id = ?
-              AND c.change IN ('removed', 'pa_added', 'st_added')
-              AND c.rxcui IN (SELECT unnest(?::VARCHAR[]))""",
-                           [plan.contract_id, plan.plan_id, plan.segment_id, [r for r in rxcuis if r]]).fetchall()
-        out["formulary_record"]["her_drugs_affected"] = [{"rxcui": r, "change": c} for r, c in hers]
+    if plan.contract_id in t["stab"]:
+        out["formulary_record"] = {"period": "2025-2026", "pct_drugs_made_worse": round(t["stab"][plan.contract_id], 1),
+                                   "national_median_pct": round(t["med"], 1),
+                                   "her_drugs_affected": t["hers"].get(k, [])}
     return out or None
 
 
