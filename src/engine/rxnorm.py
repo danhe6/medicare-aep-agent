@@ -72,3 +72,21 @@ def lookup(name: str) -> dict:
     cache[name] = info
     _save(cache)
     return info
+
+
+def search(term: str, limit: int = 5) -> list[dict]:
+    """Free-text drug search (e.g. 'eliquis 5', 'metformin 500mg'): best RxNorm clinical/brand drug matches."""
+    q = urllib.parse.quote(term)
+    cands = _get(f"{RXNAV}/approximateTerm.json?term={q}&maxEntries=25").get("approximateGroup", {}).get("candidate") or []
+    out, seen = [], set()
+    for c in cands:
+        if c["rxcui"] in seen:
+            continue
+        seen.add(c["rxcui"])
+        props = _get(f"{RXNAV}/rxcui/{c['rxcui']}/properties.json").get("properties") or {}
+        if props.get("tty") in ("SCD", "SBD"):  # a specific strength + dose form
+            out.append({"rxnorm_name": props["name"], "rxcui": c["rxcui"],
+                        "type": "brand" if props["tty"] == "SBD" else "generic"})
+        if len(out) >= limit:
+            break
+    return out

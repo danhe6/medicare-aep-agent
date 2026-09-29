@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 RELEASES = Path(__file__).resolve().parents[2] / "data" / "releases"
-TABLES = ("plan_info", "geo", "formulary", "bene_cost", "insulin_cost", "pricing")
+TABLES = ("plan_info", "geo", "formulary", "bene_cost", "insulin_cost", "pricing", "landscape")
 
 SNP_TYPES = {"0": None, "1": "C-SNP", "2": "D-SNP", "3": "I-SNP"}
 COST_TYPES = {"1": "copay", "2": "coinsurance"}  # 0 = not offered at this pharmacy type
@@ -40,6 +40,12 @@ class Plan:
     monthly_premium: float
     drug_deductible: float
     snp_type: str | None
+    moop: float | None = None            # in-network medical out-of-pocket max (MA only)
+    star_overall: float | None = None
+    star_part_d: float | None = None
+    organization: str | None = None
+    plan_type: str | None = None
+    csnp_condition: str | None = None
 
     @property
     def key(self) -> str:
@@ -83,7 +89,9 @@ def connect(release: Path | None = None):
     rel = release or current_release()
     con = duckdb.connect()
     for t in TABLES:
-        con.execute(f"CREATE VIEW {t} AS SELECT * FROM read_parquet('{rel / (t + '.parquet')}')")
+        f = rel / (t + ".parquet")
+        if f.exists():  # landscape is optional in older releases
+            con.execute(f"CREATE VIEW {t} AS SELECT * FROM read_parquet('{f}')")
     return con
 
 
@@ -112,6 +120,18 @@ def load_market(con, state: str, county: str) -> int:
     n = con.execute("SELECT count(*) FROM market_plans").fetchone()[0]
     if n == 0:
         raise LookupError(f"No plans found for {county}, {state}. Check spelling with data.counties().")
+    has_land = con.execute("SELECT count(*) FROM information_schema.tables WHERE table_name = 'landscape'").fetchone()[0]
+    if has_land:
+        con.execute("""CREATE OR REPLACE TEMP TABLE market_landscape AS
+            SELECT DISTINCT ON (contract_id, plan_id, segment_id) * FROM landscape
+            WHERE lower(state) = lower(?) AND lower(county) = lower(?)
+               OR (contract_id LIKE 'S%' AND lower(state) = lower(?))""", [state, county, state])
+    else:
+        con.execute("""CREATE OR REPLACE TEMP TABLE market_landscape AS
+            SELECT NULL::VARCHAR contract_id, NULL::VARCHAR plan_id, NULL::VARCHAR segment_id,
+                   NULL::DOUBLE moop, NULL::DOUBLE star_overall, NULL::DOUBLE star_part_d,
+                   NULL::DOUBLE total_monthly_premium, NULL::VARCHAR organization_marketing_name,
+                   NULL::VARCHAR plan_type, NULL::VARCHAR csnp_condition WHERE false""")
     con.execute("""CREATE OR REPLACE TEMP TABLE market_formulary AS
         SELECT * FROM formulary WHERE formulary_id IN (SELECT DISTINCT formulary_id FROM market_plans)""")
     con.execute("""CREATE OR REPLACE TEMP TABLE market_bene_cost AS
@@ -130,12 +150,15 @@ def load_market(con, state: str, county: str) -> int:
 # ---------------------------------------------------------------- queries (market-scoped)
 def plans(con) -> list[Plan]:
     rows = con.execute("""
-        SELECT DISTINCT contract_id, plan_id, segment_id, plan_name, formulary_id,
-               coalesce(try_cast(premium AS DOUBLE), 0), coalesce(try_cast(deductible AS DOUBLE), 0),
-               coalesce(trim(snp), '0')
-        FROM market_plans
+        SELECT DISTINCT p.contract_id, p.plan_id, p.segment_id, p.plan_name, p.formulary_id,
+               coalesce(l.total_monthly_premium, try_cast(p.premium AS DOUBLE), 0),
+               coalesce(try_cast(p.deductible AS DOUBLE), 0), coalesce(trim(p.snp), '0'),
+               l.moop, l.star_overall, l.star_part_d, l.organization_marketing_name, l.plan_type, l.csnp_condition
+        FROM market_plans p
+        LEFT JOIN market_landscape l USING (contract_id, plan_id, segment_id)
     """).fetchall()
-    return [Plan(c, p, s, n, f, prem, ded, SNP_TYPES.get(snp)) for c, p, s, n, f, prem, ded, snp in rows]
+    return [Plan(c, p, s, n, f, prem, ded, SNP_TYPES.get(snp), moop, star, stard, org, ptype, cond)
+            for c, p, s, n, f, prem, ded, snp, moop, star, stard, org, ptype, cond in rows]
 
 
 def formulary_entry(con, formulary_id: str, rxcuis: str | list[str]) -> FormularyEntry | None:

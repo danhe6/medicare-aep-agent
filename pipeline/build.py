@@ -40,6 +40,12 @@ DATASETS = {
 SKIP = ("pharmacy network", "excluded", "indication")
 TABLE_KEYWORDS = [("insulin", "insulin_cost"), ("plan information", "plan_info"), ("geographic", "geo"),
                   ("basic drugs formulary", "formulary"), ("beneficiary cost", "bene_cost"), ("pricing", "pricing")]
+LANDSCAPE_URL = "https://www.cms.gov/files/zip/cy2026-landscape-202609.zip"  # update when CY2027 file posts
+def landscape_tag(url: str = None) -> str:
+    m = re.findall(r"(20\d{4})", (url or LANDSCAPE_URL).rsplit("/", 1)[-1])
+    return m[-1] if m else "x"
+
+
 NEED = {"monthly": ["plan_info", "geo", "formulary", "bene_cost", "insulin_cost"], "quarterly": ["pricing"]}
 
 
@@ -138,11 +144,47 @@ def to_parquet(con, src: Path, dest: Path) -> int:
     return con.execute(f"SELECT count(*) FROM read_parquet('{dest}')").fetchone()[0]
 
 
+def landscape(url: str, dest_dir: Path, con) -> int:
+    """MA/PDP Landscape (annual, refreshed in-year): MOOP, star ratings, Part C/D premiums per plan x county."""
+    z = DOWNLOADS / url.rsplit("/", 1)[-1]
+    if not z.exists():
+        print(f"  downloading {url}")
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=600) as r:
+            z.write_bytes(r.read())
+    zf = zipfile.ZipFile(z)
+    member = max((i for i in zf.infolist() if i.filename.lower().endswith(".csv")), key=lambda i: i.file_size)
+    csv = EXTRACTED / z.stem / "landscape.csv"
+    csv.parent.mkdir(parents=True, exist_ok=True)
+    if not csv.exists():
+        csv.write_bytes(zf.read(member))
+
+    def money(c: str) -> str:  # "$1,234.00 " / "($3.00)" -> double
+        return (f"try_cast(replace(replace(replace(replace(trim({c}), '$', ''), ',', ''), '(', '-'), ')', '') AS DOUBLE)")
+
+    con.execute(f"""
+        COPY (
+          SELECT contract_year, state_territory_name AS state, county_name AS county,
+                 contract_id, plan_id, lpad(trim(segment_id), 3, '0') AS segment_id,
+                 parent_organization_name, organization_marketing_name, plan_type, snp_type,
+                 chronic_or_disabling_condition_snp_csnp_condition_type AS csnp_condition,
+                 {money('innetwork_maximum_outofpocket_moop_amount')} AS moop,
+                 {money('part_c_premium')} AS part_c_premium,
+                 {money('part_d_total_premium')} AS part_d_premium,
+                 {money('monthly_consolidated_premium_part_c_d')} AS total_monthly_premium,
+                 try_cast(overall_star_rating AS DOUBLE) AS star_overall,
+                 try_cast(part_c_summary_star_rating AS DOUBLE) AS star_part_c,
+                 try_cast(part_d_summary_star_rating AS DOUBLE) AS star_part_d
+          FROM read_csv_auto('{csv}', normalize_names=true, all_varchar=true, ignore_errors=true)
+        ) TO '{dest_dir / "landscape.parquet"}' (FORMAT parquet, COMPRESSION zstd)""")
+    return con.execute(f"SELECT count(*) FROM read_parquet('{dest_dir / 'landscape.parquet'}')").fetchone()[0]
+
+
 def validate(rel: Path, manifest: dict) -> list[str]:
     """Return a list of problems; empty list means the release is safe to promote."""
     problems = []
     rc = manifest["row_counts"]
-    minimums = {"plan_info": 5_000, "geo": 3_000, "formulary": 500_000, "bene_cost": 50_000, "pricing": 1_000_000}
+    minimums = {"landscape": 50_000, "plan_info": 5_000, "geo": 3_000, "formulary": 500_000, "bene_cost": 50_000, "pricing": 1_000_000}
     for t, n in minimums.items():
         if rc.get(t, 0) < n:
             problems.append(f"{t} has only {rc.get(t, 0):,} rows (expected >= {n:,})")
@@ -166,7 +208,7 @@ def build(monthly: dict, quarterly: dict, promote: bool) -> Path:
     print(f"[quarterly] {quarterly['release']}  {quarterly['url']}")
     q_files = extract(download(quarterly["url"]), NEED["quarterly"])
 
-    release_id = f"m{monthly['release']}_q{quarterly['release']}"
+    release_id = f"m{monthly['release']}_q{quarterly['release']}_l{landscape_tag()}"
     rel = RELEASES / release_id
     tmp = RELEASES / f".{release_id}.building"
     shutil.rmtree(tmp, ignore_errors=True)
@@ -176,13 +218,16 @@ def build(monthly: dict, quarterly: dict, promote: bool) -> Path:
     for t, src in {**m_files, **q_files}.items():
         print(f"  parquet: {t}")
         counts[t] = to_parquet(con, src, tmp / f"{t}.parquet")
+    print("  parquet: landscape")
+    counts["landscape"] = landscape(LANDSCAPE_URL, tmp, con)
     years = [r[0] for r in con.execute(
         f"SELECT DISTINCT contract_year FROM read_parquet('{tmp / 'formulary.parquet'}') ORDER BY 1").fetchall()]
     price_year = re.findall(r"SPUF_(20\d\d)", quarterly["url"]) or [quarterly["release"][:4]]
     manifest = {
         "release_id": release_id, "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "benefit_year": years[-1] if years else None, "benefit_years": years, "price_year": price_year[0],
-        "sources": {"monthly": monthly, "quarterly": quarterly}, "row_counts": counts,
+        "sources": {"monthly": monthly, "quarterly": quarterly,
+                    "landscape": {"url": LANDSCAPE_URL, "release": landscape_tag()}}, "row_counts": counts,
     }
     (tmp / "manifest.json").write_text(json.dumps(manifest, indent=1))
     problems = validate(tmp, manifest)
@@ -221,7 +266,7 @@ def main() -> None:
     m = {"kind": "monthly", "url": a.monthly_url, "release": release_date(a.monthly_url)} if a.monthly_url else mon[0]
     q = {"kind": "quarterly", "url": a.quarterly_url, "release": release_date(a.quarterly_url)} if a.quarterly_url else qtr[0]
     if a.plan:
-        print(json.dumps({"release_id": f"m{m['release']}_q{q['release']}", "monthly": m, "quarterly": q}))
+        print(json.dumps({"release_id": f"m{m['release']}_q{q['release']}_l{landscape_tag()}", "monthly": m, "quarterly": q}))
         return
     build(m, q, promote=not a.no_promote)
 

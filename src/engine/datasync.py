@@ -17,7 +17,7 @@ from pathlib import Path
 RELEASES = Path(__file__).resolve().parents[2] / "data" / "releases"
 PREFIX = "data-"
 FILES = ("manifest.json", "plan_info.parquet", "geo.parquet", "formulary.parquet", "bene_cost.parquet",
-         "insulin_cost.parquet", "pricing.parquet")
+         "insulin_cost.parquet", "pricing.parquet", "landscape.parquet")
 
 
 def _req(url: str, accept: str = "application/vnd.github+json") -> urllib.request.Request:
