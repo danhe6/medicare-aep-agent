@@ -58,7 +58,8 @@ def ensure_current(repo: str | None = None) -> str:
         assets = {a["name"]: a for a in rel["assets"]}
         for name in FILES + OPTIONAL:
             if name not in assets:
-                if name in OPTIONAL:
+                if name in OPTIONAL:  # app still works, but say so loudly: results differ from a full release
+                    print(f"datasync: WARNING release {rid} has no {name} (negotiated prices / plan history off)")
                     continue
                 raise RuntimeError(f"release {rid} is missing {name}")
             a = assets[name]
