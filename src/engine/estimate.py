@@ -32,17 +32,20 @@ def estimate_plan(con, plan, drugs: list[dict], pharmacy: str = "preferred_retai
     """Annual cost for one plan. `drugs` items need name, qty_per_30d, rxcui, ndcs."""
     fills, detail = [], []
     for d in drugs:
-        fe = data.formulary_entry(con, plan.formulary_id, d["rxcui"])
+        fe = data.formulary_entry(con, plan.formulary_id, [d["rxcui"], *d.get("equivalents", [])])
         if not fe:
             mkt = data.market_unit_cost(con, d.get("oracle_ndc"), d["ndcs"])
             fills.append(DrugFill(d["name"], None, d["qty_per_30d"], False, uncovered_unit_cost=mkt))
             detail.append({"drug": d["name"], "covered": False,
                            "monthly_full_price": round((mkt or 0) * d["qty_per_30d"], 2),
-                           "note": ("not on formulary: you pay full price, and it does not count toward the cap"
+                           "full_price_is_lower_bound": True,
+                           "note": ("not on formulary: you pay the pharmacy's cash price (at least this much, often "
+                                    "2-3x more), and it does not count toward the cap"
                                     if mkt else "not on formulary and no public price found: cost unknown")})
             continue
         unit, price_src = data.unit_cost(con, plan, fe.representative_ndc, d["ndcs"])
-        cs = data.cost_share(con, plan, fe.tier, pharmacy)
+        is_insulin = "insulin" in d["name"].lower()
+        cs = (data.insulin_cost_share if is_insulin else data.cost_share)(con, plan, fe.tier, pharmacy)
         fills.append(DrugFill(d["name"], unit, d["qty_per_30d"], unit is not None, fe.tier,
                               cs.cost_type, cs.amount, cs.deductible_applies, fe.flags))
         detail.append({"drug": d["name"], "covered": True, "tier": fe.tier, "flags": fe.flags,
@@ -55,9 +58,35 @@ def estimate_plan(con, plan, drugs: list[dict], pharmacy: str = "preferred_retai
         "snp_type": plan.snp_type, "needs_snp_verification": plan.snp_type == "C-SNP",
         "annual_premium": r.annual_premium, "drug_deductible": plan.drug_deductible,
         "drug_oop": r.drug_oop, "covered_oop": r.covered_oop, "uncovered_cost": r.uncovered_cost,
+        "drug_oop_is_lower_bound": r.uncovered_cost > 0,
         "total": r.total, "monthly_oop": r.monthly_oop,
         "hit_cap_month": r.hit_cap_month, "not_covered": r.not_covered, "drugs": detail,
     }
+
+GENERIC_ALERT_MIN_SAVINGS = 100.0  # $/year
+
+
+def generic_alerts(con, plan, drugs: list[dict], pharmacy: str, year: int, base_oop: float) -> list[dict]:
+    """For each brand drug with a generic, re-price the plan with the generic swapped in."""
+    alerts = []
+    for i, d in enumerate(drugs):
+        g = d.get("generic")
+        if not g:
+            continue
+        swapped = drugs[:i] + [{"name": g["name"], "qty_per_30d": d["qty_per_30d"], "rxcui": g["rxcui"],
+                                "ndcs": g["ndcs"], "equivalents": g.get("equivalents", [])}] + drugs[i + 1:]
+        alt = estimate_plan(con, plan, swapped, pharmacy, year)
+        saving = round(base_oop - alt["drug_oop"], 2)
+        if saving >= GENERIC_ALERT_MIN_SAVINGS:
+            gd = next(x for x in alt["drugs"] if x["drug"] == g["name"])
+            alerts.append({"brand": d["name"], "generic": g["name"], "annual_savings": saving,
+                           "generic_covered": gd["covered"], "generic_tier": gd.get("tier"),
+                           "savings_is_lower_bound": base_oop > 0 and any(
+                               not x["covered"] for x in estimate_plan(con, plan, [d], pharmacy, year)["drugs"]),
+                           "message": f"Ask your doctor whether {g['name']} can replace {d['name']}: "
+                                      f"at least ${saving:,.0f}/year less on this plan."})
+    return alerts
+
 
 def estimate(person: dict, year: int | None = None, con=None) -> dict:
     con = con or data.connect()
@@ -67,8 +96,8 @@ def estimate(person: dict, year: int | None = None, con=None) -> dict:
     pharmacy = person.get("pharmacy", "preferred_retail")
     drugs = []
     for d in person["drugs"]:
-        info = {} if d.get("rxcui") and d.get("ndcs") else rxnorm.lookup(d["name"])
-        drugs.append({**d, **info})
+        info = rxnorm.lookup(d["name"])  # adds equivalents + generic alternative (cached)
+        drugs.append({**info, **d, "equivalents": info.get("equivalents", []), "generic": info.get("generic")})
 
     allowed = eligible_snp_types(person)
     results, skipped = [], {}
@@ -76,7 +105,9 @@ def estimate(person: dict, year: int | None = None, con=None) -> dict:
         if plan.snp_type not in allowed:
             skipped[plan.snp_type] = skipped.get(plan.snp_type, 0) + 1
             continue
-        results.append(estimate_plan(con, plan, drugs, pharmacy, year))
+        r = estimate_plan(con, plan, drugs, pharmacy, year)
+        r["generic_alerts"] = generic_alerts(con, plan, drugs, pharmacy, year, r["drug_oop"])
+        results.append(r)
     results.sort(key=lambda x: (len(x["not_covered"]), x["total"]))
     assumptions_extra = []
     if str(m.get("price_year")) != str(m.get("benefit_year")):
@@ -92,8 +123,8 @@ def estimate(person: dict, year: int | None = None, con=None) -> dict:
             "One 30-day fill per drug per month at the chosen pharmacy type",
             "Plan's negotiated price for CMS's representative NDC (median across NDCs if missing)",
             "Premium shown is the plan premium; Part B premium not included",
-            "Drugs not on a plan's formulary are priced at the typical market price, paid in full, "
-            "and do not count toward the annual out-of-pocket cap",
+            "Drugs not on a plan's formulary are shown at the plans' negotiated price as a LOWER BOUND: "
+            "the pharmacy cash price is often 2-3x higher, and it does not count toward the out-of-pocket cap",
             "Pharmacy dispensing fees not included; brand drugs may cost $0-30 more per month "
             "on plans with a deductible or coinsurance",
         ] + assumptions_extra,
@@ -113,9 +144,12 @@ def main() -> None:
     print(f"{out['plans_ranked']} plans ranked; excluded by SNP eligibility: {out['plans_excluded_by_snp_eligibility']}")
     for r in out["results"][:10]:
         nc = f"  NOT COVERED: {', '.join(r['not_covered'])}" if r["not_covered"] else ""
+        lb = "+" if r.get("drug_oop_is_lower_bound") else " "
         snp = f" [{r['snp_type']}]" if r["snp_type"] else ""
-        print(f"  {r['plan_key']:15} ${r['total']:>8,.0f} = drugs ${r['drug_oop']:,.0f} + premium "
+        print(f"  {r['plan_key']:15} ${r['total']:>8,.0f}{lb} = drugs ${r['drug_oop']:,.0f}{lb} + premium "
               f"${r['annual_premium']:,.0f}  {r['type']:5} {r['plan_name'][:42]}{snp}{nc}")
+        for a in r.get("generic_alerts", []):
+            print(f"      -> GENERIC: {a['message']}")
 
 
 if __name__ == "__main__":
