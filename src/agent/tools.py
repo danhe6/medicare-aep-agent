@@ -9,6 +9,8 @@ from engine.estimate import estimate
 from defend.notice import analyze as analyze_notice
 from meds.label import analyze as analyze_label
 from engine.usage import infer_health_usage
+from network.doctor import check as check_doctor
+from engine import extra_help
 from engine.estimate import friendly_name
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -64,6 +66,31 @@ SCHEMAS = [
                                         "for 'what if she uses mail order'."},
             "top_n": {"type": "integer", "description": "How many plans to return (default 5)"}},
             "required": ["state", "county", "drugs"]}}},
+    {"type": "function", "function": {
+        "name": "check_doctor_network",
+        "description": "Look for evidence that a doctor is in the network of the insurers behind the plans you "
+                       "discussed (NPI registry + web search of provider directories). Evidence only - always tell "
+                       "the user to call the plan or the doctor's office to confirm before enrolling.",
+        "parameters": {"type": "object", "properties": {
+            "doctor_name": {"type": "string", "description": "As the user said it, e.g. 'Dr. Maria Lopez'"},
+            "state": {"type": "string"}, "city": {"type": "string", "description": "City or county, if known"},
+            "specialty": {"type": "string", "description": "e.g. 'Family Medicine', 'Cardiology' - use after the user picks one of several matches"},
+            "organizations": {"type": "array", "items": {"type": "string"},
+                              "description": "The 'organization' of each plan to check, from compare_plans results"}},
+            "required": ["doctor_name", "state", "organizations"]}}},
+    {"type": "function", "function": {
+        "name": "screen_extra_help",
+        "description": "Quick check whether she may qualify for Extra Help (Medicare's Part D low-income subsidy), "
+                       "and roughly what her medicines would cost with it. Ask for yearly income and savings only "
+                       "if the user wants this check; never save them.",
+        "parameters": {"type": "object", "properties": {
+            "married": {"type": "boolean", "description": "Married and living together"},
+            "state": {"type": "string"},
+            "yearly_income": {"type": "number", "description": "Before taxes, all sources (Social Security, pensions...)"},
+            "resources": {"type": "number", "description": "Savings, checking, stocks, bonds. NOT the home or one car"},
+            "has_medicaid_ssi_or_msp": {"type": "boolean"},
+            "drugs": {"type": "array", "items": {"type": "string"}, "description": "rxnorm_name of her medicines, if known"}},
+            "required": []}}},
     {"type": "function", "function": {
         "name": "read_medicine_label",
         "description": "Use when the user sends a photo of a prescription bottle, pharmacy label or medicine box. "
@@ -207,7 +234,20 @@ def update_profile(person: str, **fields) -> dict:
     return {"saved_on_device": True, "patch": patch}
 
 
-IMPL = {"read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
+def check_doctor_network(doctor_name: str, state: str, organizations: list[str], city: str | None = None,
+                         specialty: str | None = None) -> dict:
+    return check_doctor(doctor_name, state, city, organizations, specialty)
+
+
+def screen_extra_help(drugs: list[str] | None = None, **kw) -> dict:
+    out = extra_help.screen(**kw)
+    if drugs and out["result"] in ("likely", "possible", "automatic"):
+        out["estimated_yearly_drug_cost_with_extra_help"] = extra_help.estimated_drug_cost_with_extra_help(drugs)
+        out["estimate_note"] = "Rough: one fill per medicine per month at the 2026 Extra Help copays ($5.10 generic, $12.65 brand)."
+    return out
+
+
+IMPL = {"screen_extra_help": screen_extra_help, "check_doctor_network": check_doctor_network, "read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
         "update_profile": update_profile, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
 
 

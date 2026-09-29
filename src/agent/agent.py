@@ -47,6 +47,15 @@ WHAT-IF questions ("what if she uses mail order", "what if she has a hard year",
 call compare_plans again with ONLY that input changed (pharmacy, hospital_stay_last_year / health_usage, drugs),
 then say in 2-3 sentences what changed versus the previous result (best plan, typical-year cost). Don't restate
 everything. "Why is this plan first?": explain with ranking_notes and the field_guide ranking assumption.
+DOCTORS: when asked whether a doctor is in network, call check_doctor_network with the organizations of the plans
+you discussed. If it returns needs_clarification, list the matches in plain words (name, specialty, city) and ask
+which one; then call again with specialty. Report per plan: "found on the insurer's directory" / "mentioned online" / "no listing found (that
+does not mean out of network)". If npi_registry_matches has several doctors, ask which one (specialty, city). Never
+say a doctor IS in network; always end with: call the plan or the doctor's office to confirm before enrolling.
+EXTRA HELP: if someone may have limited income, or asks, offer the Extra Help check (screen_extra_help). Explain
+the result plainly ("you may qualify" - Social Security decides), the rough drug cost with Extra Help if given, and
+how to apply (online or phone from the tool). Plan comparisons do not yet include Extra Help pricing - don't
+offer to re-run them "with Extra Help". Income and savings are private: never call update_profile with them.
 CARE ENDING (Defend mode): if the user says nursing home / rehab / home health care is being stopped, or shares a
 Notice of Medicare Non-Coverage, call read_care_ending_notice. Then lead with the DEADLINE and hours left, then
 the QIO phone number and call script, then the checklist. If checks.needs_user_confirmation is not empty, ask the
@@ -71,7 +80,8 @@ BRIEF_AFTER_CARDS = (
     "no bullet lists, no repeated numbers for every plan. Say: (1) the single best option and its typical-year cost; "
     "if a generic switch makes another plan cheaper, say that too (use with_generics totals); (2) one sentence from "
     "ranking_notes if present; (3) any drug that needs prior authorization on that plan; (4) the one next step. "
-    "For care-ending notices: the deadline first, then who to call.")
+    "For care-ending notices: the deadline first, then who to call. For doctor checks: one sentence on which plans "
+    "list the doctor, then: call the plan or the doctor's office to confirm. NEVER use tables.")
 
 MAX_STEPS = 8
 TRACE = Path(__file__).resolve().parents[2] / "logs" / "agent_trace.jsonl"
@@ -142,7 +152,8 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
             tool_msg = {"role": "tool", "tool_call_id": tc.id, "content": result}
             messages.append(tool_msg)
             convo.append(tool_msg)
-            if tc.function.name in ("compare_plans", "read_care_ending_notice") and '"error"' not in result[:50]:
+            if tc.function.name in ("compare_plans", "read_care_ending_notice", "check_doctor_network") \
+                    and '"error"' not in result[:50] and '"needs_clarification"' not in result[:50]:
                 convo.append({"role": "system", "content": BRIEF_AFTER_CARDS})
             parsed = json.loads(result)
             ok = "error" not in parsed
@@ -154,6 +165,8 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
                 yield {"type": "appeal", "data": parsed}
             if ok and tc.function.name == "read_medicine_label":
                 yield {"type": "label", "data": parsed}
+            if ok and tc.function.name == "check_doctor_network" and parsed.get("plans"):
+                yield {"type": "doctor", "data": parsed}
             if ok and tc.function.name == "update_profile":
                 yield {"type": "profile_update", "patch": parsed["patch"]}
     yield {"type": "message", "text": "Sorry - I got stuck. Could you rephrase?"}

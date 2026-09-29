@@ -11,6 +11,7 @@ import { LabelCard, SavedCard } from "./components/SavedCard.jsx";
 import { applyPatch, clearProfile, loadProfile, removeMedicine, removePerson, saveProfile } from "./profile.js";
 import { Camera, Compass, Pill, Send, Shield, Speaker, User } from "./icons.jsx";
 import NextSteps from "./components/NextSteps.jsx";
+import DoctorCard from "./components/DoctorCard.jsx";
 
 const pref = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
@@ -111,6 +112,7 @@ export default function App() {
         if (ev.type === "tool_done") updSteps((s) => s.map((x) => (x.id === ev.id ? { ...x, status: ev.ok ? "done" : "error" } : x)));
         if (ev.type === "plans") setItems((xs) => [...xs, { kind: "plans", data: ev.data }]);
         if (ev.type === "appeal") setItems((xs) => [...xs, { kind: "appeal", data: ev.data, at: Date.now() }]);
+        if (ev.type === "doctor") setItems((xs) => [...xs, { kind: "doctor", data: ev.data }]);
         if (ev.type === "label") setItems((xs) => [...xs, { kind: "label", data: ev.data }]);
         if (ev.type === "profile_update") {
           setProfile(applyPatch(profileRef.current, ev.patch));
@@ -226,6 +228,7 @@ export default function App() {
           if (it.kind === "steps") return <Steps key={i} steps={it.steps} t={t} />;
           if (it.kind === "plans") return <PlanResults key={i} data={it.data} t={t} table={family} />;
           if (it.kind === "appeal") return <AppealCard key={i} data={it.data} receivedAt={it.at} t={t} />;
+          if (it.kind === "doctor") return <DoctorCard key={i} data={it.data} t={t} />;
           if (it.kind === "label") return <LabelCard key={i} data={it.data} t={t} />;
           if (it.kind === "saved") return <SavedCard key={i} patch={it.patch} t={t} />;
           return null;
