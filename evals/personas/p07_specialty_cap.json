@@ -1,0 +1,22 @@
+{
+ "name": "p07_specialty_cap",
+ "desc": "specialty oncology drug (should hit OOP cap)",
+ "zip": "33125",
+ "county": "Miami-Dade, FL",
+ "pharmacy": "preferred_retail",
+ "medicaid": false,
+ "chronic_conditions": [],
+ "institutional": false,
+ "drugs": [
+  {
+   "name": "enzalutamide 40 MG Oral Capsule [Xtandi]",
+   "qty_per_30d": 120,
+   "rxcui": "1307309",
+   "oracle_ndc": "00469012599",
+   "ndcs": [
+    "00469012599",
+    "00469112556"
+   ]
+  }
+ ]
+}

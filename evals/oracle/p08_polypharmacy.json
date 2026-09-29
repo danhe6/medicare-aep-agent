@@ -1,0 +1,2834 @@
+{
+ "persona": "p08_polypharmacy",
+ "year": "2026",
+ "pharmacy_npi": "1174627087",
+ "ndcs_sent": [
+  "60505257908",
+  "68180098003",
+  "70010049105",
+  "82009002710",
+  "55111015810",
+  "00378180310",
+  "65862001205",
+  "16714066202"
+ ],
+ "fetched": "2026-09-26",
+ "plans": {
+  "H0982-022-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.205,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.89,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.52,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.575,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.205,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.52,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.67,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 13.285,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1019-006-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1019-136-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1019-148-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1032-195-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 0.6,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 0.6,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 1.8,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.9,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1032-237-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 0.6,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 0.6,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 1.8,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.9,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1035-017-000": {
+   "yearly_total": 182.15997,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 3.52,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 3.205,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 4.15,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.89,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.52,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.835,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 7.93,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 3,
+     "full_cost_30d": 15.175,
+     "yearly": 182.16
+    }
+   ],
+   "excluded": []
+  },
+  "H1036-054-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1036-305-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1045-001-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.259,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.166,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.77,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.004,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.725,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.28,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.899,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 15.927,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1290-001-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 11.674,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.483,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 13.864,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.69,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.811,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.2,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.434,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 10.27,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1290-013-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 11.674,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.483,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 13.864,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.69,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.811,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.2,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.434,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 10.27,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1290-037-001": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 11.674,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.483,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 13.864,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.69,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.811,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.2,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.434,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 10.27,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1290-062-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 11.674,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.483,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 13.864,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.69,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.811,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.2,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.434,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 10.27,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H1609-093-000": {
+   "yearly_total": 139.92,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.735,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.539,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.7,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.464,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.695,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.728,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.545,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 3,
+     "full_cost_30d": 16.956,
+     "yearly": 139.92
+    }
+   ],
+   "excluded": []
+  },
+  "H4140-001-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.125,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.366,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.18,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.775,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.765,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.007,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.61,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 12.174,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H4140-012-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.125,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.366,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.18,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.775,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.765,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.007,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.61,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 12.174,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H4140-019-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.125,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.366,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.18,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.775,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.765,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.007,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.61,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 12.174,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H4286-001-000": {
+   "yearly_total": 424.92,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.537,
+     "yearly": 42.48
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.904,
+     "yearly": 34.8
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.25,
+     "yearly": 60
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.917,
+     "yearly": 59.04
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.808,
+     "yearly": 60
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.272,
+     "yearly": 51.24
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.776,
+     "yearly": 57.36
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 10.248,
+     "yearly": 60
+    }
+   ],
+   "excluded": []
+  },
+  "H4286-003-000": {
+   "yearly_total": 497.64,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.537,
+     "yearly": 42.48
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.904,
+     "yearly": 34.8
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.25,
+     "yearly": 63
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.917,
+     "yearly": 59.04
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.808,
+     "yearly": 69.72
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.272,
+     "yearly": 51.24
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.776,
+     "yearly": 57.36
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 10.248,
+     "yearly": 120
+    }
+   ],
+   "excluded": []
+  },
+  "H5216-068-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H5216-311-000": {
+   "yearly_total": 60,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 60
+    }
+   ],
+   "excluded": []
+  },
+  "H5410-060-000": {
+   "yearly_total": 400.79996,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3,
+     "yearly": 36
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3,
+     "yearly": 36
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3,
+     "yearly": 36
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3,
+     "yearly": 36
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3,
+     "yearly": 36
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 12.3,
+     "yearly": 120
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3,
+     "yearly": 36
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 5.4,
+     "yearly": 64.8
+    }
+   ],
+   "excluded": []
+  },
+  "H5420-001-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.259,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.166,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.77,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.004,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.725,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.28,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.899,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 15.927,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H5431-001-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.563,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.14,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.928,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.236,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.088,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.678,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.178,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 6.28,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H5431-006-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.335,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.383,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.928,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.215,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.088,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.678,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.178,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.351,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H5431-017-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.563,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.14,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.928,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.236,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.088,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.678,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.178,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 6.28,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H5434-002-000": {
+   "yearly_total": 182.15997,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 3.52,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 3.205,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 4.15,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.89,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.52,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.835,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 7.93,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 3,
+     "full_cost_30d": 15.175,
+     "yearly": 182.16
+    }
+   ],
+   "excluded": []
+  },
+  "H5471-065-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.563,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.14,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.928,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.236,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.088,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.678,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.178,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 6.28,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H5471-113-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.563,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.14,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.928,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.236,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.088,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.678,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.178,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 6.28,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H5471-114-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.563,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.14,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.928,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.236,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.088,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.678,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.178,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 6.28,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H7284-008-000": {
+   "yearly_total": 60,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 60
+    }
+   ],
+   "excluded": []
+  },
+  "H7617-107-000": {
+   "yearly_total": 0,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 0
+    }
+   ],
+   "excluded": []
+  },
+  "H7617-110-000": {
+   "yearly_total": 60,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 60
+    }
+   ],
+   "excluded": []
+  },
+  "S4802-083-000": {
+   "yearly_total": 612,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.4,
+     "yearly": 28.8
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.4,
+     "yearly": 28.8
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3,
+     "yearly": 36
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.4,
+     "yearly": 28.8
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 10.2,
+     "yearly": 122.4
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 10.2,
+     "yearly": 122.4
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.4,
+     "yearly": 28.8
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 3,
+     "full_cost_30d": 18,
+     "yearly": 216
+    }
+   ],
+   "excluded": []
+  },
+  "S4802-146-000": {
+   "yearly_total": 216,
+   "preferred_pharmacy": true,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.6,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.3,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 3,
+     "full_cost_30d": 18,
+     "yearly": 216
+    }
+   ],
+   "excluded": []
+  },
+  "S5601-022-000": {
+   "yearly_total": 622.62006,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 0.735,
+     "yearly": 8.88
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.375,
+     "yearly": 40.56
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 9.348,
+     "yearly": 112.2
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.464,
+     "yearly": 17.52
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 8.1,
+     "yearly": 97.2
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 12.552,
+     "yearly": 138.05
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.545,
+     "yearly": 18.6
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 3,
+     "full_cost_30d": 16.956,
+     "yearly": 189.61
+    }
+   ],
+   "excluded": []
+  },
+  "S5884-105-000": {
+   "yearly_total": 423.36,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.746,
+     "yearly": 45
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 30.48
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 80.16
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 18.12
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.329,
+     "yearly": 39.96
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 65.64
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 4.49,
+     "yearly": 53.88
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 90.12
+    }
+   ],
+   "excluded": []
+  },
+  "S5884-157-000": {
+   "yearly_total": 397.56003,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 45
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 30.48
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 60
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 18.12
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 39.96
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 60
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 53.88
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 90.12
+    }
+   ],
+   "excluded": []
+  },
+  "S5884-190-000": {
+   "yearly_total": 132,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.746,
+     "yearly": 12
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.54,
+     "yearly": 12
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 6.68,
+     "yearly": 12
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 1.508,
+     "yearly": 12
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.329,
+     "yearly": 12
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 5.468,
+     "yearly": 12
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 4.49,
+     "yearly": 12
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 7.511,
+     "yearly": 48
+    }
+   ],
+   "excluded": []
+  },
+  "S5904-001-000": {
+   "yearly_total": 508.31995,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 3.52,
+     "yearly": 36
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 3.205,
+     "yearly": 36
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 4.15,
+     "yearly": 36
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.89,
+     "yearly": 34.68
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 3.52,
+     "yearly": 42.24
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.835,
+     "yearly": 46.08
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 7.93,
+     "yearly": 95.16
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 3,
+     "full_cost_30d": 15.175,
+     "yearly": 182.16
+    }
+   ],
+   "excluded": []
+  },
+  "S5904-002-000": {
+   "yearly_total": 36,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 3.52,
+     "yearly": 0
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 3.205,
+     "yearly": 0
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 6,
+     "full_cost_30d": 4.15,
+     "yearly": 0
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 2.89,
+     "yearly": 0
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.52,
+     "yearly": 0
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 3.835,
+     "yearly": 0
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 7.93,
+     "yearly": 0
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 15.175,
+     "yearly": 36
+    }
+   ],
+   "excluded": []
+  },
+  "S5921-356-000": {
+   "yearly_total": 892.3599,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 9.954,
+     "yearly": 111.6
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.205,
+     "yearly": 97.68
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 9.126,
+     "yearly": 105.04
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 7.131,
+     "yearly": 85.56
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 9.717,
+     "yearly": 116.64
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 10.812,
+     "yearly": 118.48
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 9.756,
+     "yearly": 110.08
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 13.407,
+     "yearly": 147.28
+    }
+   ],
+   "excluded": []
+  },
+  "S5921-383-000": {
+   "yearly_total": 1052.1501,
+   "preferred_pharmacy": false,
+   "in_network": true,
+   "drugs": [
+    {
+     "ndc": "60505257908",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 9.954,
+     "yearly": 119.4
+    },
+    {
+     "ndc": "68180098003",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 8.205,
+     "yearly": 98.52
+    },
+    {
+     "ndc": "70010049105",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 13.146,
+     "yearly": 156
+    },
+    {
+     "ndc": "82009002710",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 7.131,
+     "yearly": 85.56
+    },
+    {
+     "ndc": "55111015810",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 9.717,
+     "yearly": 116.64
+    },
+    {
+     "ndc": "00378180310",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 11.529,
+     "yearly": 138.36
+    },
+    {
+     "ndc": "65862001205",
+     "covered": true,
+     "tier": 1,
+     "full_cost_30d": 10.596,
+     "yearly": 121.67
+    },
+    {
+     "ndc": "16714066202",
+     "covered": true,
+     "tier": 2,
+     "full_cost_30d": 19.626,
+     "yearly": 216
+    }
+   ],
+   "excluded": []
+  }
+ }
+}

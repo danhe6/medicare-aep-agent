@@ -27,12 +27,43 @@ def eligible_snp_types(person: dict) -> set:
     return ok
 
 
+
+def estimate_plan(con, plan, drugs: list[dict], pharmacy: str = "preferred_retail", year: int = 2026) -> dict:
+    """Annual cost for one plan. `drugs` items need name, qty_per_30d, rxcui, ndcs."""
+    fills, detail = [], []
+    for d in drugs:
+        fe = data.formulary_entry(con, plan.formulary_id, d["rxcui"])
+        if not fe:
+            mkt = data.market_unit_cost(con, d.get("oracle_ndc"), d["ndcs"])
+            fills.append(DrugFill(d["name"], None, d["qty_per_30d"], False, uncovered_unit_cost=mkt))
+            detail.append({"drug": d["name"], "covered": False,
+                           "monthly_full_price": round((mkt or 0) * d["qty_per_30d"], 2),
+                           "note": "not on formulary: you pay full price, and it does not count toward the cap"})
+            continue
+        unit, price_src = data.unit_cost(con, plan, fe.representative_ndc, d["ndcs"])
+        cs = data.cost_share(con, plan, fe.tier, pharmacy)
+        fills.append(DrugFill(d["name"], unit, d["qty_per_30d"], unit is not None, fe.tier,
+                              cs.cost_type, cs.amount, cs.deductible_applies, fe.flags))
+        detail.append({"drug": d["name"], "covered": True, "tier": fe.tier, "flags": fe.flags,
+                       "monthly_drug_cost": round((unit or 0) * d["qty_per_30d"], 2),
+                       "cost_type": cs.cost_type, "cost_amount": cs.amount,
+                       "pharmacy_used": cs.pharmacy_used, "price_source": price_src})
+    r = annual_cost(plan.key, plan.monthly_premium, plan.drug_deductible, fills, year)
+    return {
+        "plan_key": plan.key, "plan_name": plan.name, "type": "PDP" if plan.is_pdp else "MA-PD",
+        "snp_type": plan.snp_type, "needs_snp_verification": plan.snp_type == "C-SNP",
+        "annual_premium": r.annual_premium, "drug_deductible": plan.drug_deductible,
+        "drug_oop": r.drug_oop, "covered_oop": r.covered_oop, "uncovered_cost": r.uncovered_cost,
+        "total": r.total, "monthly_oop": r.monthly_oop,
+        "hit_cap_month": r.hit_cap_month, "not_covered": r.not_covered, "drugs": detail,
+    }
+
 def estimate(person: dict, year: int = 2026, con=None) -> dict:
     con = con or data.connect()
     pharmacy = person.get("pharmacy", "preferred_retail")
     drugs = []
     for d in person["drugs"]:
-        info = rxnorm.lookup(d["name"])
+        info = {} if d.get("rxcui") and d.get("ndcs") else rxnorm.lookup(d["name"])
         drugs.append({**d, **info})
 
     allowed = eligible_snp_types(person)
@@ -41,29 +72,7 @@ def estimate(person: dict, year: int = 2026, con=None) -> dict:
         if plan.snp_type not in allowed:
             skipped[plan.snp_type] = skipped.get(plan.snp_type, 0) + 1
             continue
-        fills, detail = [], []
-        for d in drugs:
-            fe = data.formulary_entry(con, plan.formulary_id, d["rxcui"])
-            if not fe:
-                fills.append(DrugFill(d["name"], None, d["qty_per_30d"], False))
-                detail.append({"drug": d["name"], "covered": False})
-                continue
-            unit, price_src = data.unit_cost(con, plan, fe.representative_ndc, d["ndcs"])
-            cs = data.cost_share(con, plan, fe.tier, pharmacy)
-            fills.append(DrugFill(d["name"], unit, d["qty_per_30d"], unit is not None, fe.tier,
-                                  cs.cost_type, cs.amount, cs.deductible_applies, fe.flags))
-            detail.append({"drug": d["name"], "covered": True, "tier": fe.tier, "flags": fe.flags,
-                           "monthly_drug_cost": round((unit or 0) * d["qty_per_30d"], 2),
-                           "cost_type": cs.cost_type, "cost_amount": cs.amount,
-                           "pharmacy_used": cs.pharmacy_used, "price_source": price_src})
-        r = annual_cost(plan.key, plan.monthly_premium, plan.drug_deductible, fills, year)
-        results.append({
-            "plan_key": plan.key, "plan_name": plan.name, "type": "PDP" if plan.is_pdp else "MA-PD",
-            "snp_type": plan.snp_type, "needs_snp_verification": plan.snp_type == "C-SNP",
-            "annual_premium": r.annual_premium, "drug_deductible": plan.drug_deductible,
-            "drug_oop": r.drug_oop, "total": r.total, "monthly_oop": r.monthly_oop,
-            "hit_cap_month": r.hit_cap_month, "not_covered": r.not_covered, "drugs": detail,
-        })
+        results.append(estimate_plan(con, plan, drugs, pharmacy, year))
     results.sort(key=lambda x: (len(x["not_covered"]), x["total"]))
     return {
         "year": year, "pharmacy": pharmacy, "plans_ranked": len(results),
@@ -72,7 +81,8 @@ def estimate(person: dict, year: int = 2026, con=None) -> dict:
             "One 30-day fill per drug per month at the chosen pharmacy type",
             "Plan's negotiated price for CMS's representative NDC (median across NDCs if missing)",
             "Premium shown is the plan premium; Part B premium not included",
-            "Drugs not on the formulary are listed, not priced",
+            "Drugs not on a plan's formulary are priced at the typical market price, paid in full, "
+            "and do not count toward the annual out-of-pocket cap",
             "Pharmacy dispensing fees not included; brand drugs may cost $0-30 more per month "
             "on plans with a deductible or coinsurance",
         ],

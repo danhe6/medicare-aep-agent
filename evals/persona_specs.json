@@ -1,0 +1,198 @@
+[
+ {
+  "id": "p01_generics_basic",
+  "desc": "4 common generics",
+  "drugs": [
+   [
+    "atorvastatin 20 MG Oral Tablet",
+    30
+   ],
+   [
+    "lisinopril 10 MG Oral Tablet",
+    30
+   ],
+   [
+    "metformin hydrochloride 500 MG Oral Tablet",
+    60
+   ],
+   [
+    "amlodipine 5 MG Oral Tablet",
+    30
+   ]
+  ]
+ },
+ {
+  "id": "p02_spike",
+  "desc": "generic + Eliquis (spike persona)",
+  "drugs": [
+   [
+    "atorvastatin 20 MG Oral Tablet",
+    30
+   ],
+   [
+    "apixaban 5 MG Oral Tablet [Eliquis]",
+    60
+   ]
+  ]
+ },
+ {
+  "id": "p03_insulin",
+  "desc": "insulin pen + metformin (tests $35 insulin cap)",
+  "drugs": [
+   [
+    "insulin glargine 100 UNT/ML Pen Injector [Lantus]",
+    15
+   ],
+   [
+    "metformin hydrochloride 500 MG Oral Tablet",
+    60
+   ]
+  ]
+ },
+ {
+  "id": "p04_diabetes_brands",
+  "desc": "2 negotiated diabetes brands + metformin",
+  "drugs": [
+   [
+    "empagliflozin 10 MG Oral Tablet [Jardiance]",
+    30
+   ],
+   [
+    "sitagliptin 100 MG Oral Tablet [Januvia]",
+    30
+   ],
+   [
+    "metformin hydrochloride 500 MG Oral Tablet",
+    60
+   ]
+  ]
+ },
+ {
+  "id": "p05_heart_failure",
+  "desc": "heart failure regimen",
+  "drugs": [
+   [
+    "sacubitril 24 MG / valsartan 26 MG Oral Tablet [Entresto]",
+    60
+   ],
+   [
+    "dapagliflozin 10 MG Oral Tablet [Farxiga]",
+    30
+   ],
+   [
+    "carvedilol 12.5 MG Oral Tablet",
+    60
+   ],
+   [
+    "furosemide 40 MG Oral Tablet",
+    30
+   ]
+  ]
+ },
+ {
+  "id": "p06_anticoag",
+  "desc": "Xarelto + generics",
+  "drugs": [
+   [
+    "rivaroxaban 20 MG Oral Tablet [Xarelto]",
+    30
+   ],
+   [
+    "atorvastatin 20 MG Oral Tablet",
+    30
+   ],
+   [
+    "amlodipine 5 MG Oral Tablet",
+    30
+   ]
+  ]
+ },
+ {
+  "id": "p07_specialty_cap",
+  "desc": "specialty oncology drug (should hit OOP cap)",
+  "drugs": [
+   [
+    "enzalutamide 40 MG Oral Capsule [Xtandi]",
+    120
+   ]
+  ]
+ },
+ {
+  "id": "p08_polypharmacy",
+  "desc": "8 generics",
+  "drugs": [
+   [
+    "atorvastatin 20 MG Oral Tablet",
+    30
+   ],
+   [
+    "lisinopril 10 MG Oral Tablet",
+    30
+   ],
+   [
+    "metformin hydrochloride 500 MG Oral Tablet",
+    60
+   ],
+   [
+    "amlodipine 5 MG Oral Tablet",
+    30
+   ],
+   [
+    "omeprazole 20 MG Delayed Release Oral Capsule",
+    30
+   ],
+   [
+    "levothyroxine sodium 0.05 MG Oral Tablet",
+    30
+   ],
+   [
+    "sertraline 50 MG Oral Tablet",
+    30
+   ],
+   [
+    "gabapentin 300 MG Oral Capsule",
+    90
+   ]
+  ]
+ },
+ {
+  "id": "p09_negotiated_trio",
+  "desc": "3 IRA-negotiated brands",
+  "drugs": [
+   [
+    "rivaroxaban 20 MG Oral Tablet [Xarelto]",
+    30
+   ],
+   [
+    "dapagliflozin 10 MG Oral Tablet [Farxiga]",
+    30
+   ],
+   [
+    "sitagliptin 100 MG Oral Tablet [Januvia]",
+    30
+   ]
+  ]
+ },
+ {
+  "id": "p10_older_adult",
+  "desc": "common older-adult mix incl. eye drops",
+  "drugs": [
+   [
+    "tamsulosin hydrochloride 0.4 MG Oral Capsule",
+    30
+   ],
+   [
+    "donepezil hydrochloride 10 MG Oral Tablet",
+    30
+   ],
+   [
+    "latanoprost 0.05 MG/ML Ophthalmic Solution",
+    5
+   ],
+   [
+    "apixaban 5 MG Oral Tablet [Eliquis]",
+    60
+   ]
+  ]
+ }
+]

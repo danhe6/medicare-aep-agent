@@ -21,6 +21,10 @@ def lookup(name: str) -> dict:
     if name not in cache:
         q = urllib.parse.quote(name)
         ids = _get(f"{RXNAV}/rxcui.json?name={q}&search=2").get("idGroup", {}).get("rxnormId") or []
+        if not ids:  # fall back to approximate match (e.g. pen injector names with package size)
+            cands = _get(f"{RXNAV}/approximateTerm.json?term={q}&maxEntries=1") \
+                .get("approximateGroup", {}).get("candidate") or []
+            ids = [cands[0]["rxcui"]] if cands else []
         if not ids:
             raise LookupError(f"RxNorm could not find '{name}'")
         ndcs = _get(f"{RXNAV}/rxcui/{ids[0]}/ndcs.json").get("ndcGroup", {}).get("ndcList", {}).get("ndc") or []
