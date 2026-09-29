@@ -13,7 +13,7 @@ import re
 import sys
 from pathlib import Path
 
-from agent.llm import MODELS, client
+from agent.llm import MODELS, NO_THINK, client
 from defend.notice import _json, transcribe
 from engine import rxnorm
 from engine.estimate import friendly_name
@@ -87,7 +87,7 @@ def analyze(path: str, llm=None) -> dict:
     fields = {}
     for role in ("extract", "agent"):
         with metrics.task("label.extract"):
-            resp = llm.chat.completions.create(model=MODELS[role], temperature=0, max_tokens=4000,
+            resp = llm.chat.completions.create(model=MODELS[role], temperature=0, max_tokens=4000, extra_body=NO_THINK,
                                                messages=[{"role": "user", "content": EXTRACT_PROMPT + text}])
         fields = _json(resp.choices[0].message.content or "")
         if fields.get("drug_name"):

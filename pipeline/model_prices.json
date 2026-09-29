@@ -1,7 +1,19 @@
 {
-  "_note": "USD per 1M tokens from the Nebius Token Factory pricing page. Fill in before quoting costs; null = unknown.",
-  "nvidia/nemotron-3-super-120b-a12b": {"input": null, "output": null},
-  "nvidia/Nemotron-3_5-Lightning": {"input": null, "output": null},
-  "nvidia/Nemotron-3-Ultra-550b-a55b": {"input": null, "output": null},
-  "google/gemma-3-27b-it": {"input": null, "output": null}
+  "_note": "USD per 1M tokens, Nebius Token Factory public endpoints (Base, Global), copied 2026-09-29. Prices are approximate per Nebius.",
+  "nvidia/nemotron-3-super-120b-a12b": {
+    "input": 0.3,
+    "output": 0.9
+  },
+  "nvidia/Nemotron-3_5-Lightning": {
+    "input": 0.06,
+    "output": 0.24
+  },
+  "nvidia/Nemotron-3-Ultra-550b-a55b": {
+    "input": 1.0,
+    "output": 3.0
+  },
+  "google/gemma-3-27b-it": {
+    "input": 0.1,
+    "output": 0.3
+  }
 }

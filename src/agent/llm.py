@@ -15,6 +15,10 @@ MODELS = {
 }
 
 
+# Extraction is a small JSON fill-in: Nemotron's thinking mode spent ~3,700 tokens (25 s) on one label.
+NO_THINK = {"chat_template_kwargs": {"enable_thinking": False}}
+
+
 def _load_env() -> None:
     env = ROOT / ".env"
     if env.exists():

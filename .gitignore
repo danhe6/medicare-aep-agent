@@ -34,3 +34,4 @@ dist/
 logs/
 uploads/
 web/.vite/
+web/public/_tmp/

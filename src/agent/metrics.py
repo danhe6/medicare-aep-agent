@@ -21,9 +21,9 @@ LOG = Path(__file__).resolve().parents[2] / "logs" / "metrics.jsonl"
 TASKS = {
     "agent.turn": "v5",            # Nemotron Super: tool calling + plain-language answer
     "notice.transcribe": "v1",     # vision model: care-ending notice photo -> text
-    "notice.extract": "v2",        # Nemotron Lightning (fallback Super): notice text -> fields
+    "notice.extract": "v3",        # Nemotron Lightning (fallback Super): notice text -> fields
     "label.transcribe": "v1",      # vision model: pill-bottle label photo -> text
-    "label.extract": "v1",         # Nemotron Lightning (fallback Super): label text -> fields
+    "label.extract": "v2",         # Nemotron Lightning (fallback Super): label text -> fields
 }
 
 _state = threading.local()

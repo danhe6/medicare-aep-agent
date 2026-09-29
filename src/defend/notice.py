@@ -16,7 +16,7 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from agent.llm import MODELS, client
+from agent.llm import MODELS, NO_THINK, client
 from defend.rules import plan_appeal
 
 MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
@@ -71,7 +71,7 @@ def _json(text: str) -> dict:
 
 
 def _ask(llm, model: str, text: str) -> tuple[dict, str]:
-    resp = llm.chat.completions.create(model=model, temperature=0, max_tokens=4000,
+    resp = llm.chat.completions.create(model=model, temperature=0, max_tokens=4000, extra_body=NO_THINK,
                                        messages=[{"role": "user", "content": EXTRACT_PROMPT + text}])
     raw = resp.choices[0].message.content or ""
     return _json(raw), raw
