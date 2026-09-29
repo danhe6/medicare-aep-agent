@@ -220,6 +220,11 @@ def build(monthly: dict, quarterly: dict, promote: bool) -> Path:
         counts[t] = to_parquet(con, src, tmp / f"{t}.parquet")
     print("  parquet: landscape")
     counts["landscape"] = landscape(LANDSCAPE_URL, tmp, con)
+    try:                                   # IRA negotiated prices (optional: a failure never blocks a release)
+        from mfp import build as build_mfp
+        counts["mfp"] = build_mfp(tmp, con)
+    except Exception as e:
+        print("  mfp: skipped -", e)
     years = [r[0] for r in con.execute(
         f"SELECT DISTINCT contract_year FROM read_parquet('{tmp / 'formulary.parquet'}') ORDER BY 1").fetchall()]
     price_year = re.findall(r"SPUF_(20\d\d)", quarterly["url"]) or [quarterly["release"][:4]]

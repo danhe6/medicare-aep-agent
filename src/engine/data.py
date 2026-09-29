@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 RELEASES = Path(__file__).resolve().parents[2] / "data" / "releases"
-TABLES = ("plan_info", "geo", "formulary", "bene_cost", "insulin_cost", "pricing", "landscape")
+TABLES = ("plan_info", "geo", "formulary", "bene_cost", "insulin_cost", "pricing", "landscape", "mfp")
 
 SNP_TYPES = {"0": None, "1": "C-SNP", "2": "D-SNP", "3": "I-SNP"}
 COST_TYPES = {"1": "copay", "2": "coinsurance"}  # 0 = not offered at this pharmacy type
@@ -190,6 +190,22 @@ def unit_cost(con, plan: Plan, representative_ndc: str | None, all_ndcs: list[st
     if costs:
         return statistics.median(costs), "median_ndc"
     return None, "not_priced"
+
+
+def negotiated_unit_price(con, ndcs: list[str], on: str) -> tuple[float, str] | None:
+    """Medicare's negotiated price (IRA "maximum fair price") in effect on date `on` (YYYY-MM-DD) for any of these
+    NDC-11s, from CMS's official file. None when the drug isn't negotiated or the release has no mfp table."""
+    ndcs = [n for n in ndcs if n]
+    if not ndcs:
+        return None
+    try:
+        row = con.execute("""SELECT unit_price, drug FROM mfp
+                             WHERE ndc IN (SELECT unnest(?::VARCHAR[])) AND start_date <= CAST(? AS DATE)
+                               AND (end_date IS NULL OR end_date >= CAST(? AS DATE))
+                             ORDER BY start_date DESC LIMIT 1""", [ndcs, on, on]).fetchone()
+    except Exception:          # older release without mfp.parquet
+        return None
+    return (float(row[0]), row[1]) if row else None
 
 
 def market_unit_cost(con, representative_ndc: str | None, all_ndcs: list[str]) -> float | None:

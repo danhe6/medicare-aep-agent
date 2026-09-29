@@ -18,6 +18,7 @@ RELEASES = Path(__file__).resolve().parents[2] / "data" / "releases"
 PREFIX = "data-"
 FILES = ("manifest.json", "plan_info.parquet", "geo.parquet", "formulary.parquet", "bene_cost.parquet",
          "insulin_cost.parquet", "pricing.parquet", "landscape.parquet")
+OPTIONAL = ("mfp.parquet",)
 
 
 def _req(url: str, accept: str = "application/vnd.github+json") -> urllib.request.Request:
@@ -54,7 +55,11 @@ def ensure_current(repo: str | None = None) -> str:
         shutil.rmtree(tmp, ignore_errors=True)
         tmp.mkdir(parents=True)
         assets = {a["name"]: a for a in rel["assets"]}
-        for name in FILES:
+        for name in FILES + OPTIONAL:
+            if name not in assets:
+                if name in OPTIONAL:
+                    continue
+                raise RuntimeError(f"release {rid} is missing {name}")
             a = assets[name]
             print(f"datasync: downloading {name} ({a['size']/1e6:.1f} MB)")
             with urllib.request.urlopen(_req(a["url"], "application/octet-stream"), timeout=600) as r, \

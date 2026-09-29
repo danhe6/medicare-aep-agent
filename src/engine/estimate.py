@@ -6,6 +6,7 @@ Returns / prints JSON-able results, which is what the agent tool will call.
 """
 from __future__ import annotations
 
+import functools
 import json
 import sys
 from dataclasses import asdict
@@ -102,13 +103,30 @@ def snp_eligible(plan, person: dict) -> tuple[bool, str | None]:
 
 
 
-def estimate_plan(con, plan, drugs: list[dict], pharmacy: str = "preferred_retail", year: int = 2026) -> dict:
+@functools.lru_cache(maxsize=8)
+def _price_year_for(release: str) -> int | None:
+    try:
+        return int(data.manifest(Path(release))["price_year"])
+    except Exception:
+        return None
+
+
+def _price_year() -> int | None:
+    return _price_year_for(str(data.current_release()))
+
+
+def estimate_plan(con, plan, drugs: list[dict], pharmacy: str = "preferred_retail", year: int = 2026,
+                  price_year: int | None = None) -> dict:
     """Annual cost for one plan. `drugs` items need name, qty_per_30d, rxcui, ndcs."""
     fills, detail = [], []
     for d in drugs:
         fe = data.formulary_entry(con, plan.formulary_id, [d["rxcui"], *d.get("equivalents", [])])
+        # Plan year newer than the price file: use Medicare's official negotiated price where one applies.
+        py = price_year if price_year is not None else _price_year()
+        nego = (data.negotiated_unit_price(con, d["ndcs"], f"{year}-01-01")
+                if py and year > py else None)
         if not fe:
-            mkt = data.market_unit_cost(con, d.get("oracle_ndc"), d["ndcs"])
+            mkt = nego[0] if nego else data.market_unit_cost(con, d.get("oracle_ndc"), d["ndcs"])
             fills.append(DrugFill(d["name"], None, d["qty_per_30d"], False, uncovered_unit_cost=mkt))
             detail.append({"drug": d["name"], "covered": False,
                            "monthly_full_price": round((mkt or 0) * d["qty_per_30d"], 2),
@@ -118,6 +136,8 @@ def estimate_plan(con, plan, drugs: list[dict], pharmacy: str = "preferred_retai
                                     if mkt else "not on formulary and no public price found: cost unknown")})
             continue
         unit, price_src = data.unit_cost(con, plan, fe.representative_ndc, d["ndcs"])
+        if nego:
+            unit, price_src = nego[0], f"negotiated_price_{year}"
         is_insulin = "insulin" in d["name"].lower()
         cs = (data.insulin_cost_share if is_insulin else data.cost_share)(con, plan, fe.tier, pharmacy)
         fills.append(DrugFill(d["name"], unit, d["qty_per_30d"], unit is not None, fe.tier,
@@ -302,6 +322,9 @@ def estimate(person: dict, year: int | None = None, con=None, lang: str = "en") 
         results.append(r)
     results.sort(key=lambda x: (len(x["not_covered"]), x["rank_score"], -(x.get("star_overall") or 0)))
     assumptions_extra = []
+    if any(x.get("price_source", "").startswith("negotiated_price") for r in results for x in r.get("drugs", [])):
+        assumptions_extra.append(f"Where Medicare negotiated a {year} price for a drug (Inflation Reduction Act), that "
+                                 f"official price is used (CMS maximum fair price file).")
     if str(m.get("price_year")) != str(m.get("benefit_year")):
         assumptions_extra.append(f"Drug prices are {m['price_year']} negotiated prices applied to "
                                  f"{m['benefit_year']} plan benefits (CMS has not yet published {m['benefit_year']} prices)")
