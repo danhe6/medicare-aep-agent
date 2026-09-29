@@ -12,3 +12,22 @@ Spike result (2026-09-26): 6 of 7 plans within 0.2% of Medicare Plan Finder; wor
 
 ## Product idea from the eval
 **Generic-switch alert.** Live Plan Finder: brand Farxiga = not covered, $483/month full price; authorized generic dapagliflozin on the same plan = covered, $0 copay. A user who types "Farxiga" into Plan Finder sees ~$16k/yr for p05. The agent should detect brand -> generic alternatives (RxNorm SBD -> SCD) and say "ask your doctor about the generic; saves ~$5,800/yr on this plan".
+
+## From agent testing (2026-09-26)
+
+| Issue | Seen in | Plan |
+| --- | --- | --- |
+| Plans with an uncovered drug can still rank #1 when that drug's lower-bound price is small (Leon MediExtra ranked first while not covering Lantus) | Choose, Rosa persona | Stronger penalty / hard rule: a plan that covers every drug (as prescribed or after generic switch) ranks above plans that don't; revisit in UI ranking view |
+| Agent adds advice not in tool results ("ask about generic insulin") | Choose | Agent-level eval: flag statements not grounded in tool output; tighten prompt |
+| Therapeutic alternatives (Lantus not covered, but Basaglar/Semglee are) not detected | Choose | Look up same-ingredient covered products on the plan's formulary |
+| QIO name misread by OCR ("Accentra" vs "Acentra") | Defend | National BFCC-QIO directory (Acentra, Livanta): canonical name from phone number |
+| Answers too long for a stressed family | Defend + Choose | UI: countdown + "call now" button + checklist cards; agent text limited to 2-3 sentences |
+| Only NOMNC supported | Defend | Add hospital discharge notice (IM); MA prior-auth denial on roadmap |
+
+## Health profile (added 2026-09-27)
+- Profile lives ONLY in the browser (localStorage `mh_profile_v1`), sent with each chat turn, never stored server-side.
+- TODO before deploy: turn OFF `logs/agent_trace.jsonl` in production (it records tool args incl. update_profile) or redact.
+- TODO: encrypt at rest on device (Web Crypto + optional PIN); export/import file or QR so a family member can take over.
+- TODO: label reader for insulin/inhaler boxes (units/day directions tested in code only), multi-label photo.
+- TODO: next AEP: proactive "your plan changed" check using saved meds (ANOC compare).
+- Health usage is now inferred (engine/usage.py) - verify the thresholds against eval personas.

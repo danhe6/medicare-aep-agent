@@ -15,6 +15,48 @@ from engine import data, rxnorm
 from engine.part_d_cost import DrugFill, annual_cost
 
 
+# ---- plain drug names for people (RxNorm names stay the internal keys) ----
+import re as _re
+_FORMS = [("Delayed Release Oral Capsule", "delayed-release capsule"), ("Delayed Release Oral Tablet", "delayed-release tablet"),
+          ("Extended Release Oral Tablet", "extended-release tablet"), ("Extended Release Oral Capsule", "extended-release capsule"),
+          ("24 HR Extended Release Oral Tablet", "extended-release tablet"), ("Sublingual Tablet", "tablet under the tongue"),
+          ("Oral Tablet", "tablet"), ("Oral Capsule", "capsule"), ("Oral Solution", "liquid"), ("Oral Suspension", "liquid"),
+          ("Auto-Injector", "pen"), ("Pen Injector", "pen"), ("Prefilled Syringe", "syringe"), ("Injectable Solution", "injection"),
+          ("Ophthalmic Solution", "eye drops"), ("Ophthalmic Suspension", "eye drops"), ("Nasal Spray", "nasal spray"),
+          ("Metered Dose Inhaler", "inhaler"), ("Dry Powder Inhaler", "inhaler"), ("Inhalation Powder", "inhaler"),
+          ("Inhalation Spray", "inhaler"), ("Topical Cream", "cream"), ("Transdermal System", "patch")]
+_UNITS = {"MG": "mg", "MCG": "mcg", "ML": "mL", "UNT": "units", "MG/ML": "mg/mL", "UNT/ML": "units/mL", "MCG/ML": "mcg/mL",
+          "%": "%", "MG/HR": "mg/hr", "MEQ": "mEq"}
+
+
+def friendly_name(rx: str) -> str:
+    """'0.5 ML dulaglutide 1.5 MG/ML Auto-Injector [Trulicity]' -> 'Trulicity 1.5 mg/mL pen';
+    'icosapent ethyl 1000 MG Oral Capsule' -> 'generic icosapent ethyl 1000 mg capsule'."""
+    if not rx:
+        return rx
+    m = _re.match(r"^(.*?)\s*\[(.+?)\]\s*$", rx)
+    base, brand = (m.group(1), m.group(2)) if m else (rx, None)
+    base = _re.sub(r"^\d[\d.]*\s+(ML|ACTUAT)\s+", "", base)          # leading package volume
+    form = ""
+    for k, v in _FORMS:
+        if base.endswith(k):
+            base, form = base[: -len(k)].strip(), v
+            break
+    sm = _re.search(r"\d[\d.,]*\s*(MG/ML|UNT/ML|MCG/ML|MG/HR|MG|MCG|UNT|MEQ|%)", base)
+    strength = ""
+    ingredient = base
+    if sm:
+        def _fmt(n, u):
+            if u == "MG" and float(n.replace(",", "")) < 1:        # 0.075 mg -> 75 mcg (as on the bottle)
+                return f"{float(n) * 1000:g} mcg"
+            return f"{n} {_UNITS.get(u, u.lower())}"
+        strength = " / ".join(_fmt(n, u) for n, u in
+                              _re.findall(r"(\d[\d.,]*)\s*(MG/ML|UNT/ML|MCG/ML|MG/HR|MG|MCG|UNT|MEQ|%)", base))
+        ingredient = base[: sm.start()].strip()
+    words = [brand or f"generic {ingredient}", strength, form]
+    return " ".join(w for w in words if w).strip()
+
+
 # Person's condition words -> CMS C-SNP condition codes (Landscape "csnp_condition")
 CSNP_KEYWORDS = {
     "ChronicHeartFailure": ["heart failure", "chf", "hfref", "hfpef"],
@@ -108,17 +150,23 @@ def plain_summary(r: dict) -> str:
     if r.get("star_overall"):
         parts.append(f"Medicare star rating {r['star_overall']:.1f} of 5.")
     for d in r.get("not_covered", []):
-        parts.append(f"NOT covered: {d} - she would pay the pharmacy cash price, which does not count toward any cap.")
+        parts.append(f"NOT covered: {friendly_name(d)} - she would pay the pharmacy cash price, which does not count toward any cap.")
     for a in r.get("generic_alerts", []):
         parts.append(a["message"])
-    limits = [f"{d['drug']} ({', '.join(d['flags'])})" for d in r.get("drugs", []) if d.get("flags")]
-    if limits:
-        parts.append("Coverage rules to check: " + "; ".join(limits) +
-                     " (PA = prior authorization, ST = step therapy, QL = quantity limit).")
+    flagged = [d for d in r.get("drugs", []) if d.get("flags")]
+    pa = [friendly_name(d["drug"]) for d in flagged if "PA" in d["flags"]]
+    st = [friendly_name(d["drug"]) for d in flagged if "ST" in d["flags"]]
+    ql = [friendly_name(d["drug"]) for d in flagged if "QL" in d["flags"]]
+    if pa:
+        parts.append("The doctor must get the plan's approval first (prior authorization) for: " + ", ".join(pa) + ".")
+    if st:
+        parts.append("The plan may ask her to try another drug first (step therapy) for: " + ", ".join(st) + ".")
+    if ql:
+        parts.append("Limit on how much per fill (quantity limit) for: " + ", ".join(ql) + ".")
     wg = r.get("with_generics")
     if wg:
         lbg = " (at least)" if wg["drug_oop_is_lower_bound"] else ""
-        cov = "with every drug covered" if not wg["not_covered"] else "still not covering " + ", ".join(wg["not_covered"])
+        cov = "with every drug covered" if not wg["not_covered"] else "still not covering " + ", ".join(friendly_name(x) for x in wg["not_covered"])
         parts.append(f"If her doctor approves the generic(s), this plan would cost about ${wg['total']:,.0f}{lbg} "
                      f"in a typical year, {cov}.")
     if r.get("snp_eligibility"):
@@ -166,8 +214,8 @@ def generic_alerts(con, plan, drugs: list[dict], pharmacy: str, year: int, base_
                            "generic_covered": gd["covered"], "generic_tier": gd.get("tier"),
                            "savings_is_lower_bound": base_oop > 0 and any(
                                not x["covered"] for x in estimate_plan(con, plan, [d], pharmacy, year)["drugs"]),
-                           "message": f"Ask your doctor whether {g['name']} can replace {d['name']}: "
-                                      f"at least ${saving:,.0f}/year less on this plan."})
+                           "message": f"Ask the doctor whether the generic ({friendly_name(g['name'])}) can replace "
+                                      f"{friendly_name(d['name'])}: at least ${saving:,.0f}/year less on this plan."})
     return alerts
 
 
@@ -197,7 +245,7 @@ def estimate(person: dict, year: int | None = None, con=None) -> dict:
             swap = {a["brand"]: a["_generic_drug"] for a in r["generic_alerts"]}
             alt = estimate_plan(con, plan, [swap.get(d["name"], d) for d in drugs], pharmacy, year)
             add_medical(alt, person)
-            r["with_generics"] = {"switched": [f"{b} -> {g['name']}" for b, g in swap.items()],
+            r["with_generics"] = {"switched": [f"{friendly_name(b)} -> {friendly_name(g['name'])}" for b, g in swap.items()],
                                   "total": alt["total"], "drug_oop": alt["drug_oop"],
                                   "bad_year_total": alt.get("bad_year_total"), "not_covered": alt["not_covered"],
                                   "drug_oop_is_lower_bound": alt["drug_oop_is_lower_bound"],

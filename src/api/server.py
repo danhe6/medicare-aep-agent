@@ -1,0 +1,149 @@
+"""Web API + static front end.
+
+    PYTHONPATH=src uvicorn api.server:app --reload --port 8000
+
+POST /api/session            -> {"session_id"}
+POST /api/chat   (SSE)       {session_id, message, lang} -> stream of agent events (see agent.run_turn_events)
+POST /api/upload (multipart) session_id + file -> {"path"}  (photo/PDF of a notice)
+GET  /api/meta               -> data release info
+"""
+from __future__ import annotations
+
+import json
+import uuid
+from pathlib import Path
+
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from agent.agent import SYSTEM, run_turn_events
+from agent.llm import client
+from engine import data, datasync, rxnorm
+
+ROOT = Path(__file__).resolve().parents[2]
+UPLOADS = ROOT / "uploads"
+WEB_DIST = ROOT / "web" / "dist"
+MAX_UPLOAD = 15 * 1024 * 1024
+
+app = FastAPI(title="Medicare helper")
+SESSIONS: dict[str, list[dict]] = {}
+LLM = None
+
+
+@app.on_event("startup")
+def startup() -> None:
+    global LLM
+    try:
+        datasync.ensure_current()
+    except Exception as e:  # keep serving local data if GitHub is unreachable
+        print("datasync:", e)
+    LLM = client()
+
+
+class ChatIn(BaseModel):
+    session_id: str
+    message: str
+    lang: str = "en"
+    mode: str | None = None       # "senior" | "family"
+    profile: dict | None = None   # health profile held on the user's device; used for this turn, never stored
+
+
+@app.post("/api/session")
+def new_session() -> dict:
+    sid = uuid.uuid4().hex
+    SESSIONS[sid] = [{"role": "system", "content": SYSTEM}]
+    return {"session_id": sid}
+
+
+@app.get("/api/meta")
+def meta() -> dict:
+    m = data.manifest()
+    return {"plan_year": m["benefit_year"], "coverage_as_of": m["sources"]["monthly"]["release"],
+            "prices_as_of": m["sources"]["quarterly"]["release"], "release_id": m["release_id"]}
+
+
+@app.get("/api/states")
+def states() -> list[str]:
+    con = data.connect()
+    return sorted({s for s, _ in data.counties(con)})
+
+
+@app.get("/api/counties")
+def counties(state: str) -> list[str]:
+    con = data.connect()
+    return [c for _, c in data.counties(con, state)]
+
+
+@app.get("/api/check")
+def check(drug: str, state: str, county: str) -> dict:
+    """Landing-page quick check: how many regular plans in the county cover this medicine (and its generic)."""
+    matches = rxnorm.search(drug[:80], limit=1)
+    if not matches:
+        raise HTTPException(404, "We couldn't find that medicine. Try the name on the bottle, e.g. 'Eliquis 5 mg'.")
+    info = rxnorm.lookup(matches[0]["rxnorm_name"])
+    con = data.connect()
+    try:
+        data.load_market(con, state, county)
+    except LookupError as e:
+        raise HTTPException(404, str(e))
+    regular = [p for p in data.plans(con) if p.snp_type is None]
+
+    def count(concept: dict) -> int:
+        ids = [concept["rxcui"], *concept.get("equivalents", [])]
+        return sum(1 for p in regular if data.formulary_entry(con, p.formulary_id, ids))
+
+    out = {"drug": info["name"], "plans_total": len(regular), "covered": count(info), "generic": None,
+           "data_as_of": data.manifest()["sources"]["monthly"]["release"]}
+    g = info.get("generic")
+    # Only report a generic that is actually sold here (priced under generic NDCs), not a brand listed under
+    # the generic's code (e.g. apixaban before any generic launch).
+    if g and g["ndcs"] and con.execute("SELECT count(*) FROM market_pricing WHERE ndc IN (SELECT unnest(?::VARCHAR[]))",
+                                       [g["ndcs"]]).fetchone()[0]:
+        out["generic"] = {"name": g["name"], "covered": count(g)}
+    return out
+
+
+@app.post("/api/chat")
+def chat(body: ChatIn) -> StreamingResponse:
+    msgs = SESSIONS.get(body.session_id)
+    if msgs is None:
+        raise HTTPException(404, "Unknown session")
+    msgs.append({"role": "user", "content": body.message[:4000]})
+
+    def stream():
+        try:
+            for ev in run_turn_events(msgs, LLM, lang=body.lang, profile=body.profile, mode=body.mode):
+                yield f"data: {json.dumps(ev, default=str)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'text': str(e)[:300]})}\n\n"
+        yield "data: {\"type\": \"done\"}\n\n"
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+@app.post("/api/upload")
+async def upload(session_id: str = Form(...), file: UploadFile = File(...)) -> dict:
+    if session_id not in SESSIONS:
+        raise HTTPException(404, "Unknown session")
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".heic", ".webp", ".pdf"):
+        raise HTTPException(400, "Please upload a photo (JPG/PNG) or PDF")
+    body = await file.read()
+    if len(body) > MAX_UPLOAD:
+        raise HTTPException(400, "File too large (max 15 MB)")
+    d = UPLOADS / session_id
+    d.mkdir(parents=True, exist_ok=True)
+    dest = d / f"{uuid.uuid4().hex[:8]}{ext}"
+    dest.write_bytes(body)
+    return {"path": str(dest.relative_to(ROOT))}
+
+
+if WEB_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    def spa(full_path: str):
+        f = WEB_DIST / full_path
+        return FileResponse(f if f.is_file() else WEB_DIST / "index.html")

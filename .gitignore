@@ -32,3 +32,4 @@ dist/
 
 # agent traces (may contain user health info)
 logs/
+uploads/

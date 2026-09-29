@@ -2,10 +2,16 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from engine import data, rxnorm
 from engine.estimate import estimate
 from defend.notice import analyze as analyze_notice
+from meds.label import analyze as analyze_label
+from engine.usage import infer_health_usage
+from engine.estimate import friendly_name
+
+ROOT = Path(__file__).resolve().parents[2]
 
 SCHEMAS = [
     {"type": "function", "function": {
@@ -52,8 +58,36 @@ SCHEMAS = [
             "chronic_conditions": {"type": "array", "items": {"type": "string"},
                                    "description": "Diagnoses the user stated, e.g. ['heart failure','diabetes']. "
                                                   "Used only to check eligibility for condition-specific plans (C-SNPs)."},
+            "hospital_stay_last_year": {"type": "boolean", "description": "Only if the user said so"},
+            "pharmacy": {"type": "string", "enum": ["preferred_retail", "standard_retail", "preferred_mail"],
+                         "description": "Where she fills prescriptions. Default preferred_retail. Use preferred_mail "
+                                        "for 'what if she uses mail order'."},
             "top_n": {"type": "integer", "description": "How many plans to return (default 5)"}},
             "required": ["state", "county", "drugs"]}}},
+    {"type": "function", "function": {
+        "name": "read_medicine_label",
+        "description": "Use when the user sends a photo of a prescription bottle, pharmacy label or medicine box. "
+                       "Reads the name, strength, directions and quantity, and works out how many per 30 days.",
+        "parameters": {"type": "object", "properties": {
+            "file_path": {"type": "string", "description": "Path to the uploaded photo"}},
+            "required": ["file_path"]}}},
+    {"type": "function", "function": {
+        "name": "update_profile",
+        "description": "Save facts the user confirmed to the health profile stored ON THEIR DEVICE (not on our servers), "
+                       "so they never have to repeat them: where they live, Medicaid, conditions, hospital stay, and "
+                       "medicines added or stopped. Call it whenever the user tells you something new or confirms a "
+                       "label. Never save Medicare numbers, Social Security numbers or other ID numbers.",
+        "parameters": {"type": "object", "properties": {
+            "person": {"type": "string", "description": "Who this is about, as the user says it: 'me', 'Mom', 'Dad'"},
+            "state": {"type": "string"}, "county": {"type": "string"}, "medicaid": {"type": "boolean"},
+            "conditions": {"type": "array", "items": {"type": "string"}},
+            "hospital_stay_last_year": {"type": "boolean"},
+            "add_medicines": {"type": "array", "items": {"type": "object", "properties": {
+                "rxnorm_name": {"type": "string"}, "qty_per_30d": {"type": "number"},
+                "directions": {"type": "string"}}, "required": ["rxnorm_name", "qty_per_30d"]}},
+            "stop_medicines": {"type": "array", "items": {"type": "string"},
+                               "description": "rxnorm_name of medicines the user no longer takes"}},
+            "required": ["person"]}}},
 ]
 
 
@@ -70,13 +104,18 @@ def find_county(state: str, contains: str | None = None) -> dict:
 
 
 def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str | None = None,
-                  medicaid: bool = False, chronic_conditions: list[str] | None = None, top_n: int = 5) -> dict:
+                  medicaid: bool = False, chronic_conditions: list[str] | None = None, top_n: int = 5,
+                  hospital_stay_last_year: bool | None = None, pharmacy: str = "preferred_retail") -> dict:
     bad = [d["rxnorm_name"] for d in drugs if not rxnorm.exact_rxcui(d["rxnorm_name"])]
     if bad:
         return {"error": "These are not exact RxNorm names: " + "; ".join(bad) +
                          ". Call find_drug for each one and use a rxnorm_name it returns (ask the user which "
                          "form/strength if several match). Do not guess names."}
-    person = {"state": state, "county": county, "medicaid": medicaid,
+    usage = infer_health_usage([d["rxnorm_name"] for d in drugs], chronic_conditions, hospital_stay_last_year)
+    if health_usage in ("low", "medium", "high"):
+        usage = {"level": health_usage, "reasons": ["the user said so"], "explain": f"You told me {health_usage} use."}
+    health_usage = usage["level"]
+    person = {"state": state, "county": county, "medicaid": medicaid, "pharmacy": pharmacy,
               "chronic_conditions": chronic_conditions or [], "health_usage": health_usage,
               "drugs": [{"name": d["rxnorm_name"], "qty_per_30d": d["qty_per_30d"]} for d in drugs]}
     out = estimate(person)
@@ -92,6 +131,13 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
         return p
 
     regular = [slim(r) for r in out["results"] if not r.get("snp_type")][:top_n]
+    # Explain when the list is not in order of typical-year cost (the ranking also weighs the medical max).
+    ranking_notes = []
+    for a, b in zip(regular, regular[1:]):
+        if a["total"] > b["total"] and a.get("moop") is not None and b.get("moop") is not None and a["moop"] < b["moop"]:
+            ranking_notes.append(f"{a['plan_name']} is listed above {b['plan_name']} even though its typical year costs "
+                                 f"${a['total'] - b['total']:,.0f} more, because its medical out-of-pocket max is lower "
+                                 f"(${a['moop']:,.0f} vs ${b['moop']:,.0f}) - safer if she has a bad health year.")
     snp = [slim(r) for r in out["results"] if r.get("snp_type")][:2]
     everything_covered = any(not r["not_covered"] for r in out["results"] if not r.get("snp_type"))
 
@@ -105,6 +151,9 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
             "plans_considered": out["plans_ranked"], "excluded_snp_plans": out["plans_excluded_by_snp_eligibility"],
             "top_plans": regular, "special_needs_plan_options": snp,
             "a_regular_plan_covers_every_drug_as_prescribed": everything_covered,
+            "ranking_notes": ranking_notes,
+            "health_usage_used": usage,
+            "pharmacy_used": pharmacy,
             "best_if_doctor_approves_generics": best_generics,
             "field_guide": {
                 "plain_summary": "accurate plain-language summary of each plan - base your explanation on it",
@@ -117,18 +166,49 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
                                                     "present as an option to discuss with the doctor",
                 "drug_oop_is_lower_bound": "true = a drug is not covered; real cost is at least this, often 2-3x",
                 "generic_alerts": "cheaper generic on the same plan - suggest asking the doctor, never switch alone",
-                "drug_flags": "PA = prior authorization, ST = step therapy, QL = quantity limit",
+                "drug_flags": "PA = prior authorization, ST = step therapy, QL = quantity limit - per plan and per "
+                              "drug; never generalize one plan's rules to other plans or drugs",
+                "ranking_notes": "why a plan is ranked above a cheaper one - mention in one sentence if present",
                 "special_needs_plan_options": "C-SNP/D-SNP plans she appears eligible for; eligibility must be "
                                               "confirmed by the plan",
             },
             "assumptions": out["assumptions"]}
 
 
+ALLOWED_DIRS = [ROOT / "uploads", ROOT / "evals" / "fixtures"]
+
+
 def read_care_ending_notice(file_path: str, medicare_advantage: bool | None = None) -> dict:
-    return analyze_notice(file_path, medicare_advantage=medicare_advantage)
+    p = (ROOT / file_path).resolve() if not Path(file_path).is_absolute() else Path(file_path).resolve()
+    if not any(str(p).startswith(str(d.resolve())) for d in ALLOWED_DIRS) or not p.exists():
+        return {"error": "File not found. Ask the user to upload a photo of the notice."}
+    return analyze_notice(str(p), medicare_advantage=medicare_advantage)
 
 
-IMPL = {"read_care_ending_notice": read_care_ending_notice, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
+def _safe_path(file_path: str) -> Path | None:
+    p = (ROOT / file_path).resolve() if not Path(file_path).is_absolute() else Path(file_path).resolve()
+    return p if any(str(p).startswith(str(d.resolve())) for d in ALLOWED_DIRS) and p.exists() else None
+
+
+def read_medicine_label(file_path: str) -> dict:
+    p = _safe_path(file_path)
+    if not p:
+        return {"error": "File not found. Ask the user to take a photo of the label."}
+    return analyze_label(str(p))
+
+
+def update_profile(person: str, **fields) -> dict:
+    """No server storage: the patch is streamed to the user's device, which keeps the profile."""
+    for m in fields.get("add_medicines") or []:
+        if not rxnorm.exact_rxcui(m["rxnorm_name"]):
+            return {"error": f"'{m['rxnorm_name']}' is not an exact RxNorm name. Call find_drug first."}
+        m["display_name"] = friendly_name(m["rxnorm_name"])
+    patch = {"person": person, **{k: v for k, v in fields.items() if v not in (None, [], "")}}
+    return {"saved_on_device": True, "patch": patch}
+
+
+IMPL = {"read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
+        "update_profile": update_profile, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
 
 
 def call(name: str, args_json: str) -> str:
