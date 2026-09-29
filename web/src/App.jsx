@@ -8,7 +8,8 @@ import PlanResults from "./components/PlanResults.jsx";
 import AppealCard from "./components/AppealCard.jsx";
 import ProfilePanel from "./components/ProfilePanel.jsx";
 import { LabelCard, SavedCard } from "./components/SavedCard.jsx";
-import { applyPatch, clearProfile, loadProfile, removeMedicine, removePerson, saveProfile } from "./profile.js";
+import { applyPatch, clearProfile, loadProfile, markStatus, removeMedicine, removePerson, saveProfile, setAppeal, whoIsThis } from "./profile.js";
+import Dashboard from "./components/Dashboard.jsx";
 import { Camera, Compass, Pill, Send, Shield, Speaker, User } from "./icons.jsx";
 import NextSteps from "./components/NextSteps.jsx";
 import DoctorCard from "./components/DoctorCard.jsx";
@@ -53,6 +54,13 @@ export default function App() {
   const family = mode === "family";
   const profileRef = useRef(profile);
   const setProfile = (p) => { profileRef.current = p; saveProfile(p); setProfileState(p); };
+  const [activeId, setActiveIdState] = useState(() => { try { return localStorage.getItem("mh_active") || null; } catch { return null; } });
+  const activeRef = useRef(activeId);
+  const setActiveId = (id) => { activeRef.current = id; setActiveIdState(id); try { localStorage.setItem("mh_active", id); } catch { /* ignore */ } };
+  const [other, setOther] = useState(false);     // "Something else" on the home page shows the generic start options
+  const [photoFor, setPhotoFor] = useState(null);
+  // Remember what was done for whom (dates only), so the home page can show a checklist.
+  const mark = (args, key) => { const id = whoIsThis(profileRef.current, args, activeRef.current); if (id) setProfile(markStatus(profileRef.current, id, key)); };
   const bottom = useRef(null);
   const fileRef = useRef(null);
   const t = STRINGS[lang];
@@ -97,7 +105,7 @@ export default function App() {
       ro.disconnect();
     };
   }, []);
-  useEffect(() => { if (follow.current) window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }); }, [items, busy]);
+  useEffect(() => { if (follow.current && items.length) window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }); }, [items, busy]);
 
   async function send(text) {
     if (!text.trim() || !sid || busy) return;
@@ -107,8 +115,18 @@ export default function App() {
     const stepsKey = Date.now();
     setItems((xs) => [...xs, { kind: "user", text }, { kind: "steps", key: stepsKey, steps: [] }]);
     const updSteps = (fn) => setItems((xs) => xs.map((x) => (x.key === stepsKey ? { ...x, steps: fn(x.steps) } : x)));
+    const argsById = {};
     try {
       await chat(sid, text, lang, (ev) => {
+        if (ev.type === "tool_start") { argsById[ev.id] = ev.args; argsById[ev.name] = ev.args; }
+        if (ev.type === "tool_done" && ev.ok && ev.name === "screen_extra_help") mark(argsById[ev.id], "extra_help_checked");
+        if (ev.type === "plans") mark(argsById.compare_plans, "compared");
+        if (ev.type === "current_plan") mark(argsById.check_current_plan, "current_plan_checked");
+        if (ev.type === "doctor") mark(argsById.check_doctor_network, "doctor_checked");
+        if (ev.type === "appeal" && ev.data?.appeal) {
+          const id = whoIsThis(profileRef.current, null, activeRef.current), a = ev.data.appeal;
+          if (id) setProfile(setAppeal(profileRef.current, id, { deadline_at: Date.now() + a.hours_left * 3600000, deadline_local: a.deadline_local, effective_date: a.effective_date }));
+        }
         if (ev.type === "tool_start") updSteps((s) => [...s, { id: ev.id, name: ev.name, args: ev.args, status: "run" }]);
         if (ev.type === "tool_done") updSteps((s) => s.map((x) => (x.id === ev.id ? { ...x, status: ev.ok ? "done" : "error" } : x)));
         if (ev.type === "plans") setItems((xs) => [...xs, { kind: "plans", data: ev.data }]);
@@ -147,13 +165,17 @@ export default function App() {
     setPendingFile(null);
     if (!f) return;
     setUploading(true);
-    try { const path = await uploadFile(sid, f); await send(kind === "label" ? t.uploadedLabelMsg(path) : t.uploadedMsg(path)); }
+    const who = photoFor; setPhotoFor(null);
+    try { const path = await uploadFile(sid, f); await send(kind === "label" ? (who ? t.uploadedLabelFor(path, who) : t.uploadedLabelMsg(path)) : t.uploadedMsg(path)); }
     catch (err) { setItems((xs) => [...xs, { kind: "assistant", text: err.message }]); }
     finally { setUploading(false); }
   }
 
   const started = items.length > 0;
-  function reset() { window.speechSynthesis?.cancel(); setItems([]); newSession().then(setSid); }
+  function reset() { window.speechSynthesis?.cancel(); setItems([]); setOther(false); follow.current = false; window.scrollTo(0, 0); newSession().then(setSid); }
+  const people = profile.people || [];
+  const active = people.find((p) => p.id === activeId) || people[0];
+  const showDash = !started && mode && people.length > 0 && !other;
 
   return (
     <div className={`mx-auto flex min-h-dvh flex-col px-4 ${family ? "max-w-6xl" : "max-w-2xl"}`}>
@@ -183,7 +205,7 @@ export default function App() {
             <ul className="mt-3 space-y-2">
               {(profile.people || []).map((p) => (
                 <li key={p.id}>
-                  <button onClick={() => send(t.useProfileMsg(p.name))} disabled={busy} className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left hover:bg-white/20 disabled:opacity-60">
+                  <button onClick={() => { setActiveId(p.id); if (started) send(t.useProfileMsg(p.name)); }} disabled={busy} className={`w-full rounded-2xl ${!started && p.id === active?.id ? "bg-brand" : "bg-white/10"} px-4 py-3 text-left hover:bg-white/20 disabled:opacity-60`}>
                     <span className="block text-lg font-bold">{p.name}</span>
                     <span className="text-sm text-[#CFE2DC]">{[p.county, (p.medicines || []).length + " Rx"].filter(Boolean).join(" · ")}</span>
                   </button>
@@ -210,7 +232,11 @@ export default function App() {
             <p className="rounded-2xl bg-brand-soft p-4 text-base">{t.whoPrivacy}</p>
           </div>
         )}
-        {!started && mode && (
+        {showDash && (
+          <Dashboard profile={profile} activeId={active?.id} onPick={setActiveId} onSend={send} t={t} lang={lang} big={big}
+            onPhoto={() => { setPhotoFor(active?.name || null); fileRef.current?.click(); }} onOther={() => setOther(true)} />
+        )}
+        {!started && mode && !showDash && (
           <div className="mx-auto max-w-2xl space-y-5">
             <h1 className="text-4xl leading-tight">{t.hello}</h1>
             <p className="text-lg text-muted">{t.tagline}</p>
@@ -260,12 +286,12 @@ export default function App() {
       </main>
       </div>
 
+      <input ref={fileRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={onFile} />
       {started && (
         <footer className="sticky bottom-0 -mx-4 border-t print:hidden border-line bg-paper/95 px-4 py-3 backdrop-blur">
           <form onSubmit={(e) => { e.preventDefault(); send(input); }} className="flex items-center gap-2">
             <button type="button" onClick={() => fileRef.current?.click()} title={t.upload} aria-label={t.upload}
               className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-brand text-brand"><Camera className="h-7 w-7" /></button>
-            <input ref={fileRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={onFile} />
             <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={t.typeHere} aria-label={t.typeHere}
               className="min-h-14 w-full rounded-full border-2 border-line bg-card px-5 text-lg outline-none focus:border-brand" />
             <MicButton lang={lang} onText={send} label={t.talk} listeningLabel={t.listening} />
