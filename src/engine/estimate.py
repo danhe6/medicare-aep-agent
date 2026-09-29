@@ -15,16 +15,37 @@ from engine import data, rxnorm
 from engine.part_d_cost import DrugFill, annual_cost
 
 
-def eligible_snp_types(person: dict) -> set:
-    """Which SNP types this person may join. Non-SNP plans (None) are always allowed."""
-    ok = {None}
-    if person.get("medicaid"):
-        ok.add("D-SNP")
-    if person.get("chronic_conditions"):
-        ok.add("C-SNP")  # condition match per plan still needs confirmation (flagged in output)
-    if person.get("institutional"):
-        ok.add("I-SNP")
-    return ok
+# Person's condition words -> CMS C-SNP condition codes (Landscape "csnp_condition")
+CSNP_KEYWORDS = {
+    "ChronicHeartFailure": ["heart failure", "chf", "hfref", "hfpef"],
+    "CardiovascularDisorders": ["heart", "cardio", "coronary", "afib", "atrial fibrillation", "arrhythmia",
+                                "vascular", "stroke"],
+    "DiabetesMellitus": ["diabet", "type 2", "type 1"],
+    "ChronicLungDisorders": ["copd", "lung", "asthma", "emphysema", "pulmonary"],
+    "ChronicKidneyDisease": ["kidney", "renal", "ckd", "dialysis", "esrd"],
+    "Dementia": ["dementia", "alzheimer"],
+    "ChronicMentalHealth": ["depress", "bipolar", "schizo", "mental"],
+}
+
+
+def person_csnp_codes(person: dict) -> set[str]:
+    text = " ".join(person.get("chronic_conditions") or []).lower()
+    return {code for code, words in CSNP_KEYWORDS.items() if any(w in text for w in words)}
+
+
+def snp_eligible(plan, person: dict) -> tuple[bool, str | None]:
+    """Can this person join this plan? Returns (eligible, why)."""
+    if plan.snp_type is None:
+        return True, None
+    if plan.snp_type == "D-SNP":
+        return (True, "Has Medicaid") if person.get("medicaid") else (False, "D-SNP needs Medicaid")
+    if plan.snp_type == "I-SNP":
+        return (True, "Lives in a facility") if person.get("institutional") else (False, "I-SNP needs facility care")
+    codes = set((plan.csnp_condition or "").split(",")) - {"", "Not Applicable"}
+    match = codes & person_csnp_codes(person)
+    if match:
+        return True, "Condition match: " + ", ".join(sorted(match)) + " (plan must confirm diagnosis)"
+    return False, f"C-SNP for {', '.join(sorted(codes)) or 'other conditions'}"
 
 
 
@@ -68,6 +89,41 @@ def estimate_plan(con, plan, drugs: list[dict], pharmacy: str = "preferred_retai
     }
 
 GENERIC_ALERT_MIN_SAVINGS = 100.0  # $/year
+# For RANKING only: an uncovered drug's true cash price is usually 2-3x our lower bound; rank as if 3x.
+UNCOVERED_RANK_MULTIPLIER = 3.0
+# Standard Part B premium, paid by everyone on top of plan premiums. Source: Medicare Plan Finder (2026).
+PART_B_PREMIUM = {2026: 202.90}
+
+
+def plain_summary(r: dict) -> str:
+    """Deterministic one-paragraph summary so the LLM never has to assemble facts itself."""
+    lb = " (at least - a drug is not covered)" if r.get("drug_oop_is_lower_bound") else ""
+    parts = [f"{r['plan_name']}: about ${r['total']:,.0f} in a typical year{lb} "
+             f"(premium ${r['annual_premium']:,.0f} + drugs ${r['drug_oop']:,.0f})."]
+    if r.get("bad_year_total") is not None:
+        parts.append(f"In a very bad health year, at most about ${r['bad_year_total']:,.0f} "
+                     f"(medical out-of-pocket max ${r['moop']:,.0f}).")
+    elif r.get("medical_note"):
+        parts.append(r["medical_note"] + ".")
+    if r.get("star_overall"):
+        parts.append(f"Medicare star rating {r['star_overall']:.1f} of 5.")
+    for d in r.get("not_covered", []):
+        parts.append(f"NOT covered: {d} - she would pay the pharmacy cash price, which does not count toward any cap.")
+    for a in r.get("generic_alerts", []):
+        parts.append(a["message"])
+    limits = [f"{d['drug']} ({', '.join(d['flags'])})" for d in r.get("drugs", []) if d.get("flags")]
+    if limits:
+        parts.append("Coverage rules to check: " + "; ".join(limits) +
+                     " (PA = prior authorization, ST = step therapy, QL = quantity limit).")
+    wg = r.get("with_generics")
+    if wg:
+        lbg = " (at least)" if wg["drug_oop_is_lower_bound"] else ""
+        cov = "with every drug covered" if not wg["not_covered"] else "still not covering " + ", ".join(wg["not_covered"])
+        parts.append(f"If her doctor approves the generic(s), this plan would cost about ${wg['total']:,.0f}{lbg} "
+                     f"in a typical year, {cov}.")
+    if r.get("snp_eligibility"):
+        parts.append("Special needs plan - " + r["snp_eligibility"] + ".")
+    return " ".join(parts)
 # Heuristic chance of a "bad health year" that reaches the medical out-of-pocket max (disclosed to user).
 BAD_YEAR_RISK = {"low": 0.05, "medium": 0.15, "high": 0.50}
 
@@ -106,7 +162,7 @@ def generic_alerts(con, plan, drugs: list[dict], pharmacy: str, year: int, base_
             (gd.get("price_source") == "representative_ndc" and gd.get("representative_ndc") in generic_ndcs)
             or (gd.get("price_source") == "median_ndc" and gd.get("representative_ndc") not in set(d.get("ndcs", []))))
         if saving >= GENERIC_ALERT_MIN_SAVINGS and real_generic:
-            alerts.append({"brand": d["name"], "generic": g["name"], "annual_savings": saving,
+            alerts.append({"_generic_drug": swapped[i], "brand": d["name"], "generic": g["name"], "annual_savings": saving,
                            "generic_covered": gd["covered"], "generic_tier": gd.get("tier"),
                            "savings_is_lower_bound": base_oop > 0 and any(
                                not x["covered"] for x in estimate_plan(con, plan, [d], pharmacy, year)["drugs"]),
@@ -126,17 +182,31 @@ def estimate(person: dict, year: int | None = None, con=None) -> dict:
         info = rxnorm.lookup(d["name"])  # adds equivalents + generic alternative (cached)
         drugs.append({**info, **d, "equivalents": info.get("equivalents", []), "generic": info.get("generic")})
 
-    allowed = eligible_snp_types(person)
     results, skipped = [], {}
     for plan in data.plans(con):
-        if plan.snp_type not in allowed:
+        ok, why = snp_eligible(plan, person)
+        if not ok:
             skipped[plan.snp_type] = skipped.get(plan.snp_type, 0) + 1
             continue
         r = estimate_plan(con, plan, drugs, pharmacy, year)
         r["generic_alerts"] = generic_alerts(con, plan, drugs, pharmacy, year, r["drug_oop"])
         add_medical(r, person)
+        r["snp_eligibility"] = why
+        r["with_generics"] = None
+        if r["generic_alerts"]:
+            swap = {a["brand"]: a["_generic_drug"] for a in r["generic_alerts"]}
+            alt = estimate_plan(con, plan, [swap.get(d["name"], d) for d in drugs], pharmacy, year)
+            add_medical(alt, person)
+            r["with_generics"] = {"switched": [f"{b} -> {g['name']}" for b, g in swap.items()],
+                                  "total": alt["total"], "drug_oop": alt["drug_oop"],
+                                  "bad_year_total": alt.get("bad_year_total"), "not_covered": alt["not_covered"],
+                                  "drug_oop_is_lower_bound": alt["drug_oop_is_lower_bound"],
+                                  "rank_score": alt["expected_total"] + (UNCOVERED_RANK_MULTIPLIER - 1) * alt["uncovered_cost"]}
+        r["rank_score"] = r["expected_total"] + (UNCOVERED_RANK_MULTIPLIER - 1) * r["uncovered_cost"]
+        r["plain_summary"] = plain_summary(r)
+        r["plain_summary"] = plain_summary(r)
         results.append(r)
-    results.sort(key=lambda x: (len(x["not_covered"]), x["expected_total"], -(x.get("star_overall") or 0)))
+    results.sort(key=lambda x: (len(x["not_covered"]), x["rank_score"], -(x.get("star_overall") or 0)))
     assumptions_extra = []
     if str(m.get("price_year")) != str(m.get("benefit_year")):
         assumptions_extra.append(f"Drug prices are {m['price_year']} negotiated prices applied to "
@@ -145,14 +215,15 @@ def estimate(person: dict, year: int | None = None, con=None) -> dict:
         "year": year, "market": {"state": person.get("state", "Florida"), "county": person.get("county", "Miami-Dade")},
         "data_as_of": {"coverage": m["sources"]["monthly"]["release"], "prices": m["sources"]["quarterly"]["release"],
                        "release_id": m["release_id"]},
+        "part_b_monthly_premium": PART_B_PREMIUM.get(year),
         "pharmacy": pharmacy, "plans_ranked": len(results),
         "plans_excluded_by_snp_eligibility": {str(k): v for k, v in skipped.items()},
         "assumptions": [
             "One 30-day fill per drug per month at the chosen pharmacy type",
             "Plan's negotiated price for CMS's representative NDC (median across NDCs if missing)",
             "Premium is the plan's monthly Part C + D premium; the standard Part B premium is not included",
-            "Ranking uses expected cost = premium + drugs + (chance of a bad health year x medical out-of-pocket max); "
-            "chance is a simple assumption: 5% low / 15% medium / 50% high health-care use",
+            "Ranking (not shown as a cost): premium + drugs + an assumed chance of a bad health year (5% / 15% / 50% "
+            "for low / medium / high use) x the medical out-of-pocket max; uncovered drugs count 3x their lower bound",
             "Ties are broken by CMS overall star rating",
             "Drugs not on a plan's formulary are shown at the plans' negotiated price as a LOWER BOUND: "
             "the pharmacy cash price is often 2-3x higher, and it does not count toward the out-of-pocket cap",

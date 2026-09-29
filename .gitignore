@@ -29,3 +29,6 @@ dist/
 # os
 .DS_Store
 *.new
+
+# agent traces (may contain user health info)
+logs/

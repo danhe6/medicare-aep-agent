@@ -90,3 +90,10 @@ def search(term: str, limit: int = 5) -> list[dict]:
         if len(out) >= limit:
             break
     return out
+
+
+def exact_rxcui(name: str) -> str | None:
+    """RXCUI only if `name` is an exact RxNorm name (no fuzzy matching) - used to reject invented names."""
+    q = urllib.parse.quote(name)
+    ids = _get(f"{RXNAV}/rxcui.json?name={q}&search=0").get("idGroup", {}).get("rxnormId") or []
+    return ids[0] if ids else None
