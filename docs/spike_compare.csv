@@ -1,0 +1,8 @@
+plan_key,plan_name,our_drug_oop_2drugs,plan_finder_2drugs,error_pct
+H5471-114-000,Simply More Platinum (HMO),0.0,0,0
+H5431-017-000,HealthSun HealthAdvantage Plus (HMO),60.0,60,0.0
+H4140-019-000,DrElite-SFL (HMO),564.0,564,0.0
+H5434-002-000,BlueMedicare Select (PPO),1088.88,1152.44,-5.5
+S5884-105-000,Humana Basic Rx Plan (PDP),1218.98,1220.67,-0.1
+H5431-001-000,HealthSun HealthAdvantage Plan (HMO),0.0,0,0
+H1290-062-000,DEVOTED CORE 062 FL (HMO),564.0,564,0.0
