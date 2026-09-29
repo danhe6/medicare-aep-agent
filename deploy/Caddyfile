@@ -1,4 +1,5 @@
-{$DOMAIN} {
+# Local test: no DOMAIN -> plain http://localhost. On the VM set DOMAIN=<ip-with-dashes>.sslip.io for HTTPS.
+{$DOMAIN:http://localhost} {
 	encode gzip
 	request_body {
 		max_size 16MB

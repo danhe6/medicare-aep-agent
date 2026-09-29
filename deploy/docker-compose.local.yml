@@ -1,0 +1,6 @@
+# Local test on your Mac: use the data already built in ../data instead of downloading a GitHub release.
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.local.yml up --build
+services:
+  app:
+    volumes:
+      - ../data:/app/data
