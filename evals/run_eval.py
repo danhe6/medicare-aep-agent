@@ -20,6 +20,7 @@ EVALS = Path(__file__).resolve().parent
 
 def main() -> None:
     con = data.connect()
+    data.load_market(con, "Florida", "Miami-Dade")
     plans = {p.key: p for p in data.plans(con)}
     rows = []
     for opath in sorted((EVALS / "oracle").glob("*.json")):
@@ -69,6 +70,8 @@ def main() -> None:
     out = EVALS / "results_latest.json"
     out.write_text(json.dumps(rows, indent=1))
     print(f"Details: {out}")
+    if "--min-ok" in sys.argv and ok < float(sys.argv[sys.argv.index("--min-ok") + 1]):
+        sys.exit(1)
 
 
 if __name__ == "__main__":

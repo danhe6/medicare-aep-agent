@@ -17,6 +17,7 @@ EVALS = Path(__file__).resolve().parent
 
 def main() -> None:
     con = data.connect()
+    data.load_market(con, "Florida", "Miami-Dade")
     specs = json.loads((EVALS / "persona_specs.json").read_text())
     for spec in specs:
         drugs = []

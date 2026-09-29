@@ -1,19 +1,20 @@
 {
-  "name": "spike-2-drugs (apples-to-apples with Plan Finder API run on 2026-09-26)",
-  "zip": "33125",
-  "county": "Miami-Dade, FL",
-  "pharmacy": "preferred_retail",
-  "drugs": [
-    {
-      "name": "atorvastatin 20 MG Oral Tablet",
-      "qty_per_30d": 30
-    },
-    {
-      "name": "apixaban 5 MG Oral Tablet [Eliquis]",
-      "qty_per_30d": 60
-    }
-  ],
-  "medicaid": false,
-  "chronic_conditions": [],
-  "institutional": false
+ "name": "spike-2-drugs (apples-to-apples with Plan Finder API run on 2026-09-26)",
+ "zip": "33125",
+ "county": "Miami-Dade",
+ "pharmacy": "preferred_retail",
+ "drugs": [
+  {
+   "name": "atorvastatin 20 MG Oral Tablet",
+   "qty_per_30d": 30
+  },
+  {
+   "name": "apixaban 5 MG Oral Tablet [Eliquis]",
+   "qty_per_30d": 60
+  }
+ ],
+ "medicaid": false,
+ "chronic_conditions": [],
+ "institutional": false,
+ "state": "Florida"
 }

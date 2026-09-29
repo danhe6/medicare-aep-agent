@@ -2,7 +2,7 @@
  "name": "p10_older_adult",
  "desc": "common older-adult mix incl. eye drops",
  "zip": "33125",
- "county": "Miami-Dade, FL",
+ "county": "Miami-Dade",
  "pharmacy": "preferred_retail",
  "medicaid": false,
  "chronic_conditions": [],
@@ -475,5 +475,6 @@
     "82804008531"
    ]
   }
- ]
+ ],
+ "state": "Florida"
 }

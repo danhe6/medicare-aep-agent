@@ -1454,14 +1454,12 @@
  {
   "persona": "p04_diabetes_brands",
   "plan": "H0982-022-000",
-  "ours": 0.0,
+  "ours": 1406.84,
   "pf": 5112.0,
-  "abs_err": 1.0,
-  "diff": -5112.0,
+  "abs_err": 0.7247965571205007,
+  "diff": -3705.16,
   "ok": false,
-  "coverage_mismatch": [
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -1522,14 +1520,12 @@
  {
   "persona": "p04_diabetes_brands",
   "plan": "H1035-017-000",
-  "ours": 1294.9,
+  "ours": 2406.31,
   "pf": 5756.1396,
-  "abs_err": 0.7750402022911328,
-  "diff": -4461.239600000001,
+  "abs_err": 0.5819576717701566,
+  "diff": -3349.8296000000005,
   "ok": false,
-  "coverage_mismatch": [
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -1755,14 +1751,12 @@
  {
   "persona": "p04_diabetes_brands",
   "plan": "H5434-002-000",
-  "ours": 1262.52,
+  "ours": 2388.0,
   "pf": 6155.169,
-  "abs_err": 0.7948845921208662,
-  "diff": -4892.648999999999,
+  "abs_err": 0.6120333982706242,
+  "diff": -3767.169,
   "ok": false,
-  "coverage_mismatch": [
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -1900,27 +1894,23 @@
  {
   "persona": "p04_diabetes_brands",
   "plan": "S5904-001-000",
-  "ours": 1298.16,
+  "ours": 2423.64,
   "pf": 6193.9297,
-  "abs_err": 0.7904141533927969,
-  "diff": -4895.7697,
+  "abs_err": 0.6087072153886409,
+  "diff": -3770.2897,
   "ok": false,
-  "coverage_mismatch": [
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p04_diabetes_brands",
   "plan": "S5904-002-000",
-  "ours": 1197.77,
+  "ours": 2351.39,
   "pf": 6111.1597,
-  "abs_err": 0.8040028310829448,
-  "diff": -4913.3897,
+  "abs_err": 0.6152301501791878,
+  "diff": -3759.7697000000003,
   "ok": false,
-  "coverage_mismatch": [
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -1948,14 +1938,12 @@
  {
   "persona": "p05_heart_failure",
   "plan": "H0982-022-000",
-  "ours": 3763.08,
+  "ours": 5942.12,
   "pf": 16620.238,
-  "abs_err": 0.7735844697290135,
-  "diff": -12857.158000000001,
+  "abs_err": 0.6424768405843527,
+  "diff": -10678.118000000002,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -1994,40 +1982,34 @@
  {
   "persona": "p05_heart_failure",
   "plan": "H1032-195-000",
-  "ours": 4690.88,
+  "ours": 5942.12,
   "pf": 15924.238,
-  "abs_err": 0.7054251512694045,
-  "diff": -11233.358,
+  "abs_err": 0.6268505909042554,
+  "diff": -9982.117999999999,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p05_heart_failure",
   "plan": "H1032-237-000",
-  "ours": 4643.96,
+  "ours": 5942.12,
   "pf": 15924.238,
-  "abs_err": 0.7083716030870676,
-  "diff": -11280.277999999998,
+  "abs_err": 0.6268505909042554,
+  "diff": -9982.117999999999,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p05_heart_failure",
   "plan": "H1035-017-000",
-  "ours": 4706.52,
+  "ours": 5942.12,
   "pf": 15924.238,
-  "abs_err": 0.7044430006635168,
-  "diff": -11217.717999999999,
+  "abs_err": 0.6268505909042554,
+  "diff": -9982.117999999999,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -2055,14 +2037,12 @@
  {
   "persona": "p05_heart_failure",
   "plan": "H1045-001-000",
-  "ours": 3763.08,
+  "ours": 5942.12,
   "pf": 15914.638,
-  "abs_err": 0.7635459882907799,
-  "diff": -12151.558,
+  "abs_err": 0.6266255003726757,
+  "diff": -9972.518,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -2211,14 +2191,12 @@
  {
   "persona": "p05_heart_failure",
   "plan": "H5420-001-000",
-  "ours": 4063.08,
+  "ours": 5942.12,
   "pf": 15914.638,
-  "abs_err": 0.7446954181427187,
-  "diff": -11851.558,
+  "abs_err": 0.6266255003726757,
+  "diff": -9972.518,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -2257,14 +2235,12 @@
  {
   "persona": "p05_heart_failure",
   "plan": "H5434-002-000",
-  "ours": 4690.88,
+  "ours": 5942.12,
   "pf": 16620.238,
-  "abs_err": 0.7177609610644564,
-  "diff": -11929.358,
+  "abs_err": 0.6424768405843527,
+  "diff": -10678.118000000002,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -2336,27 +2312,23 @@
  {
   "persona": "p05_heart_failure",
   "plan": "S4802-083-000",
-  "ours": 4773.58,
+  "ours": 6014.09,
   "pf": 15989.04,
-  "abs_err": 0.7014467410175971,
-  "diff": -11215.460000000001,
+  "abs_err": 0.6238617202783907,
+  "diff": -9974.95,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p05_heart_failure",
   "plan": "S4802-146-000",
-  "ours": 4769.08,
+  "ours": 5942.12,
   "pf": 15924.238,
-  "abs_err": 0.700514398239966,
-  "diff": -11155.158,
+  "abs_err": 0.6268505909042554,
+  "diff": -9982.117999999999,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -2406,53 +2378,45 @@
  {
   "persona": "p05_heart_failure",
   "plan": "S5904-001-000",
-  "ours": 4750.01,
+  "ours": 6044.76,
   "pf": 16769.041,
-  "abs_err": 0.7167393174123672,
-  "diff": -12019.031,
+  "abs_err": 0.639528581270688,
+  "diff": -10724.281,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p05_heart_failure",
   "plan": "S5904-002-000",
-  "ours": 4659.6,
+  "ours": 5942.12,
   "pf": 16620.238,
-  "abs_err": 0.7196430039088489,
-  "diff": -11960.638,
+  "abs_err": 0.6424768405843527,
+  "diff": -10678.118000000002,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p05_heart_failure",
   "plan": "S5921-356-000",
-  "ours": 4777.89,
+  "ours": 6090.91,
   "pf": 16116.96,
-  "abs_err": 0.7035489323048516,
-  "diff": -11339.07,
+  "abs_err": 0.6220807149735433,
+  "diff": -10026.05,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p05_heart_failure",
   "plan": "S5921-383-000",
-  "ours": 4380.77,
+  "ours": 6081.48,
   "pf": 16111.002,
-  "abs_err": 0.7280882964324628,
-  "diff": -11730.232,
+  "abs_err": 0.6225262711779194,
+  "diff": -10029.522,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -3910,15 +3874,12 @@
  {
   "persona": "p09_negotiated_trio",
   "plan": "H0982-022-000",
-  "ours": 0.0,
+  "ours": 3585.89,
   "pf": 10912.56,
-  "abs_err": 1.0,
-  "diff": -10912.56,
+  "abs_err": 0.6713979121306092,
+  "diff": -7326.67,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]",
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -3957,41 +3918,34 @@
  {
   "persona": "p09_negotiated_trio",
   "plan": "H1032-195-000",
-  "ours": 1704.58,
+  "ours": 3447.82,
   "pf": 6726.119,
-  "abs_err": 0.7465730237600613,
-  "diff": -5021.539,
+  "abs_err": 0.48739830502552806,
+  "diff": -3278.2989999999995,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p09_negotiated_trio",
   "plan": "H1032-237-000",
-  "ours": 1541.14,
+  "ours": 3349.76,
   "pf": 6627.331,
-  "abs_err": 0.7674569144049089,
-  "diff": -5086.191,
+  "abs_err": 0.49455368986398895,
+  "diff": -3277.571,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p09_negotiated_trio",
   "plan": "H1035-017-000",
-  "ours": 1759.06,
+  "ours": 4591.93,
   "pf": 11225.132,
-  "abs_err": 0.8432927113908327,
-  "diff": -9466.072,
+  "abs_err": 0.5909241869048845,
+  "diff": -6633.201999999999,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]",
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -4019,14 +3973,12 @@
  {
   "persona": "p09_negotiated_trio",
   "plan": "H1045-001-000",
-  "ours": 0.0,
+  "ours": 2179.04,
   "pf": 5447.7603,
-  "abs_err": 1.0,
-  "diff": -5447.7603,
+  "abs_err": 0.6000117699745343,
+  "diff": -3268.7203,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -4175,14 +4127,12 @@
  {
   "persona": "p09_negotiated_trio",
   "plan": "H5420-001-000",
-  "ours": 900.0,
+  "ours": 2779.04,
   "pf": 6047.7603,
-  "abs_err": 0.8511845781983125,
-  "diff": -5147.7603,
+  "abs_err": 0.540484433551376,
+  "diff": -3268.7203,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -4221,15 +4171,12 @@
  {
   "persona": "p09_negotiated_trio",
   "plan": "H5434-002-000",
-  "ours": 1704.58,
+  "ours": 4573.31,
   "pf": 11972.029,
-  "abs_err": 0.8576197902627867,
-  "diff": -10267.449,
+  "abs_err": 0.6180004241553374,
+  "diff": -7398.719,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]",
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -4301,27 +4248,23 @@
  {
   "persona": "p09_negotiated_trio",
   "plan": "S4802-083-000",
-  "ours": 1976.98,
+  "ours": 3611.27,
   "pf": 6890.8394,
-  "abs_err": 0.7131002646789301,
-  "diff": -4913.859399999999,
+  "abs_err": 0.4759317710988882,
+  "diff": -3279.5694,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p09_negotiated_trio",
   "plan": "S4802-146-000",
-  "ours": 1976.98,
+  "ours": 3611.27,
   "pf": 6890.8394,
-  "abs_err": 0.7131002646789301,
-  "diff": -4913.859399999999,
+  "abs_err": 0.4759317710988882,
+  "diff": -3279.5694,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
@@ -4371,55 +4314,45 @@
  {
   "persona": "p09_negotiated_trio",
   "plan": "S5904-001-000",
-  "ours": 1704.58,
+  "ours": 4573.31,
   "pf": 11972.029,
-  "abs_err": 0.8576197902627867,
-  "diff": -10267.449,
+  "abs_err": 0.6180004241553374,
+  "diff": -7398.719,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]",
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p09_negotiated_trio",
   "plan": "S5904-002-000",
-  "ours": 1595.62,
+  "ours": 4536.06,
   "pf": 11927.571,
-  "abs_err": 0.8662242295602349,
-  "diff": -10331.951000000001,
+  "abs_err": 0.6196996018719989,
+  "diff": -7391.5109999999995,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]",
-   "sitagliptin 100 MG Oral Tablet [Januvia]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p09_negotiated_trio",
   "plan": "S5921-356-000",
-  "ours": 1595.64,
+  "ours": 3382.46,
   "pf": 6653.7104,
-  "abs_err": 0.7601879396494322,
-  "diff": -5058.0704,
+  "abs_err": 0.49164303874722287,
+  "diff": -3271.2504,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {
   "persona": "p09_negotiated_trio",
   "plan": "S5921-383-000",
-  "ours": 1138.61,
+  "ours": 2947.22,
   "pf": 6218.3105,
-  "abs_err": 0.8168939939554322,
-  "diff": -5079.7005,
+  "abs_err": 0.5260416796491587,
+  "diff": -3271.0905,
   "ok": false,
-  "coverage_mismatch": [
-   "dapagliflozin 10 MG Oral Tablet [Farxiga]"
-  ],
+  "coverage_mismatch": [],
   "skipped_by_pf": 0
  },
  {

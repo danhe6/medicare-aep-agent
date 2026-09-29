@@ -2,7 +2,7 @@
  "name": "p09_negotiated_trio",
  "desc": "3 IRA-negotiated brands",
  "zip": "33125",
- "county": "Miami-Dade, FL",
+ "county": "Miami-Dade",
  "pharmacy": "preferred_retail",
  "medicaid": false,
  "chronic_conditions": [],
@@ -65,5 +65,6 @@
     "66105065203"
    ]
   }
- ]
+ ],
+ "state": "Florida"
 }

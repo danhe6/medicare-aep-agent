@@ -2,7 +2,7 @@
  "name": "p07_specialty_cap",
  "desc": "specialty oncology drug (should hit OOP cap)",
  "zip": "33125",
- "county": "Miami-Dade, FL",
+ "county": "Miami-Dade",
  "pharmacy": "preferred_retail",
  "medicaid": false,
  "chronic_conditions": [],
@@ -18,5 +18,6 @@
     "00469112556"
    ]
   }
- ]
+ ],
+ "state": "Florida"
 }

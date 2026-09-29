@@ -1,0 +1,69 @@
+name: Refresh CMS data
+
+# CMS posts the monthly Part D file around the 4th Wednesday; checking weekly is cheap because the
+# job exits early when that release is already published.
+on:
+  schedule:
+    - cron: "17 13 * * 4"   # Thursdays 13:17 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: What would we build?
+        id: plan
+        run: |
+          python pipeline/build.py --plan > plan.json
+          cat plan.json
+          echo "release_id=$(python -c 'import json;print(json.load(open("plan.json"))["release_id"])')" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if already published
+        id: check
+        run: |
+          if python pipeline/publish.py --exists "${{ steps.plan.outputs.release_id }}"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; echo "Already published - nothing to do."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Free disk space (CMS zips are ~5 GB)
+        if: steps.check.outputs.skip == 'false'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+
+      - name: Build and validate
+        if: steps.check.outputs.skip == 'false'
+        run: python pipeline/build.py
+
+      - name: Unit tests
+        if: steps.check.outputs.skip == 'false'
+        run: python -m unittest discover tests
+
+      - name: Accuracy regression vs Plan Finder answer key (same plan year only)
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          BY=$(python -c 'import json,pathlib;r=pathlib.Path("data/releases");print(json.load(open(r/(r/"CURRENT").read_text().strip()/"manifest.json"))["benefit_year"])')
+          if [ "$BY" = "2026" ]; then PYTHONPATH=src python evals/run_eval.py --min-ok 80; else echo "Answer key is 2026; skipping eval for benefit year $BY"; fi
+
+      - name: Publish release
+        if: steps.check.outputs.skip == 'false'
+        run: python pipeline/publish.py

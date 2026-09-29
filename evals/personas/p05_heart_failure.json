@@ -2,7 +2,7 @@
  "name": "p05_heart_failure",
  "desc": "heart failure regimen",
  "zip": "33125",
- "county": "Miami-Dade, FL",
+ "county": "Miami-Dade",
  "pharmacy": "preferred_retail",
  "medicaid": false,
  "chronic_conditions": [],
@@ -424,5 +424,6 @@
     "83980000397"
    ]
   }
- ]
+ ],
+ "state": "Florida"
 }
