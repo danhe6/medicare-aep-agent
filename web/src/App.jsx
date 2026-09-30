@@ -10,6 +10,7 @@ import ProfilePanel from "./components/ProfilePanel.jsx";
 import { LabelCard, SavedCard } from "./components/SavedCard.jsx";
 import { applyPatch, clearProfile, forMode, loadProfile, markStatus, removeMedicine, removePerson, saveProfile, setAppeal, whoIsThis } from "./profile.js";
 import Dashboard from "./components/Dashboard.jsx";
+import { isYesNoQuestion } from "./yesno.js";
 import { Camera, Compass, Pill, Send, Shield, Speaker, User } from "./icons.jsx";
 import NextSteps from "./components/NextSteps.jsx";
 import DoctorCard from "./components/DoctorCard.jsx";
@@ -269,7 +270,7 @@ export default function App() {
         {!busy && items.some((x) => x.kind === "plans") && items[items.length - 1]?.kind === "assistant" && (
           <NextSteps t={t} onPick={send} />
         )}
-        {!busy && mode === "senior" && items[items.length - 1]?.kind === "assistant" && /\?\s*(\([^)]*\)\s*)?$/.test(items[items.length - 1].text) && (
+        {!busy && mode === "senior" && items[items.length - 1]?.kind === "assistant" && isYesNoQuestion(items[items.length - 1].text) && (
           <div className="my-4 grid grid-cols-2 gap-3">
             <button onClick={() => send(t.yes)} className="min-h-20 rounded-3xl bg-brand text-2xl font-bold text-white">{t.yes}</button>
             <button onClick={() => send(t.no)} className="min-h-20 rounded-3xl border-[3px] border-brand bg-card text-2xl font-bold text-brand">{t.no}</button>
