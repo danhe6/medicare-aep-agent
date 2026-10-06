@@ -211,7 +211,7 @@ export default function App() {
               {(profile.people || []).map((p) => (
                 <li key={p.id}>
                   <button onClick={() => { setActiveId(p.id); if (started) send(t.useProfileMsg(p.name)); }} disabled={busy} className={`w-full rounded-2xl ${!started && p.id === active?.id ? "bg-brand" : "bg-white/10"} px-4 py-3 text-left hover:bg-white/20 disabled:opacity-60`}>
-                    <span className="block text-lg font-bold">{p.name}</span>
+                    <span className="block text-lg font-bold">{/^(me|myself|i|yo|mí|mi)$/i.test(p.name.trim()) ? t.meLabel : p.name}</span>
                     <span className="text-sm text-[#DCE6E1]">{[p.county, (p.medicines || []).length + " Rx"].filter(Boolean).join(" · ")}</span>
                   </button>
                 </li>
@@ -239,7 +239,8 @@ export default function App() {
         )}
         {showDash && (
           <Dashboard profile={forMode(profile, mode)} activeId={active?.id} onPick={setActiveId} onSend={send} t={t} lang={lang} big={big}
-            onPhoto={() => { setPhotoFor(active?.name || null); fileRef.current?.click(); }} onOther={() => setOther(true)} />
+            onPhoto={() => { setPhotoFor(active?.name || null); fileRef.current?.click(); }}
+            onAddMed={(pid, m) => { const who = profileRef.current.people.find((x) => x.id === pid); if (who) setProfile(applyPatch(profileRef.current, { person: who.name, add_medicines: [m] })); }} onOther={() => setOther(true)} />
         )}
         {!started && mode && !showDash && (
           <div className="mx-auto max-w-2xl space-y-5">

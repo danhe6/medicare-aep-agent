@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { Camera, Check, Pill, Shield, Alert, Arrow } from "../icons.jsx";
+import DrugPicker from "./DrugPicker.jsx";
 import { season, daysUntil, windows, buildIcs, downloadIcs } from "../dates.js";
 
 /** Home page for a saved person: what we know, what's next, and one-tap actions into the chat.
  *  Everything shown here comes from the profile on this device. */
-export default function Dashboard({ profile, activeId, onPick, onSend, onPhoto, onOther, t, lang, big }) {
+export default function Dashboard({ profile, activeId, onPick, onSend, onPhoto, onAddMed, onOther, t, lang, big }) {
+  const [adding, setAdding] = useState(false);
+  const [med, setMed] = useState(null);
+  const [qty, setQty] = useState(30);
   const people = profile.people || [];
   const p = people.find((x) => x.id === activeId) || people[0];
   if (!p) return null;
@@ -42,7 +47,7 @@ export default function Dashboard({ profile, activeId, onPick, onSend, onPhoto, 
         <div role="tablist" className="flex flex-wrap gap-2">
           {people.map((x) => (
             <button key={x.id} role="tab" aria-selected={x.id === p.id} onClick={() => onPick(x.id)}
-              className={`min-h-12 rounded-full px-5 text-lg font-bold ${x.id === p.id ? "bg-brand text-white" : "border-2 border-line bg-card text-ink"}`}>{x.name}</button>
+              className={`min-h-12 rounded-full px-5 text-lg font-bold ${x.id === p.id ? "bg-brand text-white" : "border-2 border-line bg-card text-ink"}`}>{/^(me|myself|i|yo|mí|mi)$/i.test(x.name.trim()) ? t.meLabel : x.name}</button>
           ))}
         </div>
       )}
@@ -74,8 +79,33 @@ export default function Dashboard({ profile, activeId, onPick, onSend, onPhoto, 
                 <span className="text-base text-muted"> · {t.perMonth(m.qty_per_30d)}</span></li>
             ))}
           </ul>
-          <button onClick={onPhoto} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand text-lg font-bold text-brand">
-            <Camera className="h-6 w-6" />{t.dashAddPhoto}</button>
+          {adding ? (
+            <form className="mt-4 flex flex-col gap-3 rounded-2xl bg-paper p-4" onSubmit={(e) => {
+              e.preventDefault();
+              if (!med || !(qty > 0)) return;
+              onAddMed(p.id, { rxnorm_name: med.rxnorm_name, display_name: med.label, qty_per_30d: Number(qty) });
+              setAdding(false); setMed(null); setQty(30);
+            }}>
+              <DrugPicker t={t} field="w-full rounded-2xl border-2 border-field bg-card px-4 py-3 text-lg text-ink outline-none focus:border-brand" onChange={setMed} />
+              {med && (
+                <label className="flex flex-col gap-1 text-base font-bold">{t.qtyLabel}
+                  <input type="number" min="1" max="1000" value={qty} onChange={(e) => setQty(e.target.value)} className="w-40 rounded-2xl border-2 border-field bg-card px-4 py-3 text-lg font-normal outline-none focus:border-brand" />
+                  <span className="text-sm font-normal text-muted">{t.qtyHint}</span>
+                </label>
+              )}
+              <div className="flex gap-2">
+                <button disabled={!med} className="min-h-12 flex-1 rounded-full bg-brand px-4 text-lg font-bold text-white disabled:opacity-50">{t.saveMed}</button>
+                <button type="button" onClick={() => { setAdding(false); setMed(null); }} className="min-h-12 rounded-full px-4 text-lg font-bold text-muted underline">{t.cancel}</button>
+              </div>
+            </form>
+          ) : (
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <button onClick={onPhoto} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand px-3 text-base font-bold text-brand">
+                <Camera className="h-5 w-5" />{t.dashAddPhoto}</button>
+              <button onClick={() => setAdding(true)} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand px-3 text-base font-bold text-brand">
+                <Pill className="h-5 w-5" />{t.dashAddType}</button>
+            </div>
+          )}
         </section>
 
         <section className={card}>
