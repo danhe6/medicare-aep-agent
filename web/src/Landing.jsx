@@ -1,3 +1,4 @@
+import DrugPicker from "./components/DrugPicker.jsx";
 import { useEffect, useState } from "react";
 import { L } from "./landing_i18n.js";
 import { Arrow, Chat, Check, Compass, Mic, Phone, Pill, Shield } from "./icons.jsx";
@@ -7,7 +8,7 @@ const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private 
 const fmtDate = (s) => (s && s.length === 8 ? `${s.slice(4, 6)}/${s.slice(6)}/${s.slice(0, 4)}` : s);
 
 export function CheckTool({ t }) {
-  const [drug, setDrug] = useState("");
+  const [drug, setDrug] = useState(null);  // a chosen product: {rxnorm_name, label}
   const [states, setStates] = useState([]);
   const [state, setState] = useState("Florida");
   const [counties, setCounties] = useState([]);
@@ -26,10 +27,10 @@ export function CheckTool({ t }) {
 
   async function run(e) {
     e.preventDefault();
-    if (!drug.trim()) return;
+    if (!drug) { setErr(t.pickFirst); return; }
     setBusy(true); setErr(""); setRes(null);
     try {
-      const r = await fetch(`/api/check?drug=${encodeURIComponent(drug)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}&lang=${document.documentElement.lang === "es" ? "es" : "en"}`);
+      const r = await fetch(`/api/check?drug=${encodeURIComponent(drug.label)}&rxnorm_name=${encodeURIComponent(drug.rxnorm_name)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}&lang=${document.documentElement.lang === "es" ? "es" : "en"}`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.detail || "Something went wrong");
       setRes(j);
@@ -40,9 +41,7 @@ export function CheckTool({ t }) {
   return (
     <form onSubmit={run} className="flex flex-col gap-4 rounded-[28px] border border-line bg-card p-7 shadow-[0_24px_60px_rgba(20,48,43,0.08)] md:p-9">
       <h2 className="text-3xl">{t.title}</h2>
-      <label className="flex flex-col gap-2 text-base font-bold">{t.drug}
-        <input value={drug} onChange={(e) => setDrug(e.target.value)} placeholder={t.drugPh} className={field + " font-normal"} />
-      </label>
+      <DrugPicker t={t} field={field} onChange={(p) => { setDrug(p); setRes(null); setErr(""); }} />
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-2 text-base font-bold">{t.state}
           <select value={state} onChange={(e) => setState(e.target.value)} className={field + " font-normal"}>{states.map((s) => <option key={s}>{s}</option>)}</select>

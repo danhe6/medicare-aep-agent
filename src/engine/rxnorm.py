@@ -97,3 +97,84 @@ def exact_rxcui(name: str) -> str | None:
     q = urllib.parse.quote(name)
     ids = _get(f"{RXNAV}/rxcui.json?name={q}&search=0").get("idGroup", {}).get("rxnormId") or []
     return ids[0] if ids else None
+
+
+# ---- autocomplete (search-as-you-type) ----
+NAMES = CACHE.parent / "rxnav_displaynames.json"
+_names: list[str] | None = None
+
+
+def display_names() -> list[str]:
+    """All RxNorm display names (drug + brand names, ~30k), downloaded once from RxNav and kept on disk."""
+    global _names
+    if _names is None:
+        if NAMES.exists():
+            _names = json.loads(NAMES.read_text())
+        else:
+            terms = _get(f"{RXNAV}/displaynames.json").get("displayTermsList", {}).get("term") or []
+            _names = sorted({t.strip() for t in terms if t and t.strip()}, key=str.lower)
+            NAMES.parent.mkdir(parents=True, exist_ok=True)
+            NAMES.write_text(json.dumps(_names))
+    return _names
+
+
+SALTS = {"calcium", "sodium", "potassium", "magnesium", "hydrochloride", "hcl", "hydrobromide", "anhydrous", "monohydrate",
+         "dihydrate", "trihydrate", "hemihydrate", "solvate", "mesylate", "maleate", "besylate", "succinate", "tartrate",
+         "fumarate", "citrate", "acetate", "sulfate", "phosphate", "bromide", "chloride", "propylene", "glycol", "free", "base"}
+
+
+def _clean(n: str, names: set[str]) -> bool:
+    """Keep plain drug and brand names; drop dose packs/kits ('... 0.5 mg (28) tablet') and salt spellings of a
+    drug that is already listed ('atorvastatin calcium trihydrate' when 'atorvastatin' exists)."""
+    low = n.lower()
+    if any(ch.isdigit() for ch in low) or " pack" in low or " kit" in low or "(" in low:
+        return False
+    words = low.replace("/", " ").split()
+    if len(words) > 1 and any(w in SALTS for w in words[1:]) and words[0] in names:
+        return False
+    return True
+
+
+def suggest(q: str, limit: int = 8) -> list[str]:
+    """Names starting with what was typed first, then names containing it as a word ('glar' -> insulin glargine)."""
+    q = q.strip().lower()
+    if len(q) < 2:
+        return []
+    names = display_names()
+    lower = {n.lower() for n in names}
+    hits = [n for n in names if (n.lower().startswith(q) or f" {q}" in f" {n.lower()}") and _clean(n, lower)]
+    hits.sort(key=lambda n: (not n.lower().startswith(q), len(n), n.lower()))
+    return [h[:1].upper() + h[1:].lower() for h in hits[:limit]]  # drop tall-man caps (metFORMIN)
+
+
+def products(name: str) -> list[dict]:
+    """Every strength and form of a drug name: [{rxnorm_name, rxcui, type: brand|generic}] (RxNav /drugs)."""
+    cache = _load()
+    key = f"products:{name.lower()}"
+    if key in cache:
+        return cache[key]
+    groups = _get(f"{RXNAV}/drugs.json?name={urllib.parse.quote(name)}").get("drugGroup", {}).get("conceptGroup") or []
+    out = []
+    for g in groups:
+        if g.get("tty") not in ("SBD", "SCD"):
+            continue
+        for c in g.get("conceptProperties") or []:
+            out.append({"rxnorm_name": c["name"], "rxcui": c["rxcui"], "type": "brand" if g["tty"] == "SBD" else "generic"})
+    cache[key] = out
+    _save(cache)
+    return out
+
+
+def products_for(name: str) -> list[dict]:
+    """products(), narrowed to the name that was picked: a brand ('Eliquis') -> that brand's products; an ingredient
+    ('atorvastatin') -> its single-ingredient products, generic and brand (Lipitor), not combinations (Caduet)."""
+    import re
+    n = name.strip().lower()
+    items = products(name)
+    brand = [x for x in items if re.search(r"\[([^\]]+)\]$", x["rxnorm_name"]) and
+             re.search(r"\[([^\]]+)\]$", x["rxnorm_name"]).group(1).lower() == n]
+    if brand:
+        return brand
+    slashes = n.count(" / ")
+    bare = lambda r: re.sub(r"^\d+(?:\.\d+)? (ml|actuat|hr|day) ", "", r.lower())  # "3 ML insulin glargine ... Pen"
+    return [x for x in items if bare(x["rxnorm_name"]).startswith(n + " ") and x["rxnorm_name"].count(" / ") == slashes]

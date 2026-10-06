@@ -1,0 +1,211 @@
+import { useEffect, useRef, useState } from "react";
+import { Calendar, Camera, Check, Lightbulb, Lock, Shield, Star, Stethoscope } from "../icons.jsx";
+
+const ICON = { compare: Star, label: Camera, current: Check, doctor: Stethoscope, extra: Lightbulb, defend: Shield, dates: Calendar };
+
+/** Home-page demo: every feature in one auto-playing window. Sample data only; numbers match real engine runs
+ *  (Orange County FL compare = Plan Finder #1; Humana Gold Plus check; sample care-ending notice). */
+const P = {
+  en: {
+    label: "SEVEN THINGS IT DOES · SAMPLE DATA", play: "Play all", pause: "Pause",
+    foot: "Every number comes from Medicare's public data and a rules engine, never from the AI. Bracketed items are examples.",
+    scenes: [
+      { key: "compare", short: "Compare plans", title: "Compare every plan", line: "Ranked for the medicines you take", tag: "COMPARE PLANS",
+        say: "I take Eliquis 5 mg twice a day and atorvastatin 40 mg at night. I live in Orlando.", think: "Checking every plan in Orange County against both medicines…" },
+      { key: "label", short: "Pill bottle", photo: true, title: "Read a pill bottle", line: "Snap a photo instead of typing", tag: "PHOTO OF A LABEL",
+        say: "Here is my new prescription.", think: "Reading the label…" },
+      { key: "current", short: "Your plan", title: "Check your current plan", line: "Stay or switch, with a verdict first", tag: "YOUR PLAN, NEXT YEAR",
+        say: "I have Humana Gold Plus. Should I stay with it next year?", think: "Looking up next year's costs and the insurer's track record…" },
+      { key: "doctor", short: "Doctor", title: "Find your doctor", line: "Is the doctor in the plan's network?", tag: "DOCTOR CHECK",
+        say: "Is my doctor in network for this plan?", think: "Searching the national registry and insurer directories…" },
+      { key: "extra", short: "Extra Help", title: "Get help paying", line: "A private Extra Help check", tag: "EXTRA HELP",
+        say: "Could I get help paying for my medicines?", think: "A few private questions, nothing saved…" },
+      { key: "defend", short: "Appeal", photo: true, title: "Fight a care cutoff", line: "A notice becomes a deadline and a script", tag: "CARE-ENDING NOTICE",
+        say: "The rehab center gave us this notice.", think: "Reading the notice and the appeal rules…" },
+      { key: "dates", short: "Dates", title: "Never miss a date", line: "Enrollment deadlines in your calendar", tag: "CALENDAR",
+        say: "Remind me of the deadlines.", think: "Making a calendar file…" },
+    ],
+    r: {
+      bestFit: "BEST FIT FOR THESE MEDICINES · ORANGE COUNTY, FL", typical: "Typical year", bad: "Bad year, at most", stars: "Stars",
+      sameAsPF: "Same #1 and same numbers as Medicare's Plan Finder.",
+      labelTag: "READ FROM THE LABEL · MATCHED IN THE NATIONAL DRUG LIST", labelDose: "1 a day · 30 a month", savedDevice: "Saved on this device only",
+      goodFit: "Your current plan is a good fit for next year.", premium27: "2027 premium", max27: "2027 out-of-pocket max",
+      track: "Track record: this insurer dropped or restricted 5.5% of drugs last year (typical 4.2%). None of yours.",
+      docTag: "NATIONAL PROVIDER REGISTRY + INSURER DIRECTORIES", docName: "[Doctor name], [specialty]", docListed: "Listed in [insurer]'s [year] provider directory",
+      docLead: "A lead, not a promise: call the office to confirm before you switch.",
+      ehTag: "EXTRA HELP CHECK · NOTHING IS SAVED", ehTitle: "You may qualify for Extra Help", ehBody: "Lower drug copays, and it's free to apply through Social Security.",
+      ehCost: "Your drugs with Extra Help: [estimated $ a year]",
+      apTag: "APPEAL DEADLINE · SAMPLE NOTICE", apWhen: "Thursday, Oct 8, 12:00 noon", apCall: "Call Acentra Health, 1-888-317-0751",
+      apSay: "Say: \"I want a fast-track appeal of a Notice of Medicare Non-Coverage.\" Care continues while they review.",
+      calTag: "ADDED TO YOUR CALENDAR, WITH REMINDERS",
+      cal: [["Oct 15", "Open Enrollment starts"], ["Dec 7", "Last day to change"], ["Jan 1", "New plan starts"], ["Mar 31", "Advantage switch window ends"]],
+    },
+  },
+  es: {
+    label: "SIETE COSAS QUE HACE · DATOS DE EJEMPLO", play: "Ver todo", pause: "Pausa",
+    foot: "Cada número viene de los datos públicos de Medicare y de un motor de reglas, nunca de la IA. Lo que está entre corchetes es un ejemplo.",
+    scenes: [
+      { key: "compare", short: "Comparar", title: "Compare todos los planes", line: "Ordenados según sus medicinas", tag: "COMPARAR PLANES",
+        say: "Tomo Eliquis 5 mg dos veces al día y atorvastatina 40 mg en la noche. Vivo en Orlando.", think: "Revisando cada plan del condado Orange con ambas medicinas…" },
+      { key: "label", short: "Frasco", photo: true, title: "Lea un frasco de pastillas", line: "Tome una foto en vez de escribir", tag: "FOTO DE UNA ETIQUETA",
+        say: "Esta es mi nueva receta.", think: "Leyendo la etiqueta…" },
+      { key: "current", short: "Su plan", title: "Revise su plan actual", line: "Quedarse o cambiar, con una respuesta clara", tag: "SU PLAN, EL PRÓXIMO AÑO",
+        say: "Tengo Humana Gold Plus. ¿Me conviene quedarme el próximo año?", think: "Buscando los costos del próximo año y el historial de la aseguradora…" },
+      { key: "doctor", short: "Médico", title: "Encuentre a su médico", line: "¿Está su médico en la red del plan?", tag: "REVISAR MÉDICO",
+        say: "¿Está mi médico en la red de este plan?", think: "Buscando en el registro nacional y los directorios de las aseguradoras…" },
+      { key: "extra", short: "Ayuda Adicional", title: "Ayuda para pagar", line: "Una revisión privada de Ayuda Adicional", tag: "AYUDA ADICIONAL",
+        say: "¿Podría recibir ayuda para pagar mis medicinas?", think: "Unas preguntas privadas, nada se guarda…" },
+      { key: "defend", short: "Apelar", photo: true, title: "Defienda su atención", line: "Un aviso se vuelve una fecha límite y un guion", tag: "AVISO DE FIN DE ATENCIÓN",
+        say: "El centro de rehabilitación nos dio este aviso.", think: "Leyendo el aviso y las reglas de apelación…" },
+      { key: "dates", short: "Fechas", title: "No pierda ninguna fecha", line: "Fechas de inscripción en su calendario", tag: "CALENDARIO",
+        say: "Recuérdeme las fechas límite.", think: "Creando un archivo de calendario…" },
+    ],
+    r: {
+      bestFit: "LA MEJOR OPCIÓN PARA ESTAS MEDICINAS · CONDADO ORANGE, FL", typical: "Año típico", bad: "Año difícil, máximo", stars: "Estrellas",
+      sameAsPF: "El mismo #1 y los mismos números que el Buscador de Planes de Medicare.",
+      labelTag: "LEÍDO DE LA ETIQUETA · ENCONTRADO EN LA LISTA NACIONAL DE MEDICINAS", labelDose: "1 al día · 30 al mes", savedDevice: "Guardado solo en este dispositivo",
+      goodFit: "Su plan actual le conviene para el próximo año.", premium27: "Prima 2027", max27: "Gasto máximo 2027",
+      track: "Historial: esta aseguradora quitó o restringió el 5.5% de las medicinas el año pasado (lo típico: 4.2%). Ninguna de las suyas.",
+      docTag: "REGISTRO NACIONAL DE PROVEEDORES + DIRECTORIOS", docName: "[Nombre del médico], [especialidad]", docListed: "Aparece en el directorio [año] de [aseguradora]",
+      docLead: "Es una pista, no una garantía: llame al consultorio para confirmar antes de cambiar.",
+      ehTag: "AYUDA ADICIONAL · NADA SE GUARDA", ehTitle: "Podría calificar para Ayuda Adicional", ehBody: "Copagos más bajos en medicinas, y solicitarla en el Seguro Social es gratis.",
+      ehCost: "Sus medicinas con Ayuda Adicional: [$ estimado al año]",
+      apTag: "FECHA LÍMITE PARA APELAR · AVISO DE EJEMPLO", apWhen: "Jueves 8 de oct, 12:00 del mediodía", apCall: "Llame a Acentra Health, 1-888-317-0751",
+      apSay: "Diga: \"Quiero una apelación rápida de un Aviso de No Cobertura de Medicare.\" La atención continúa mientras revisan.",
+      calTag: "AGREGADO A SU CALENDARIO, CON RECORDATORIOS",
+      cal: [["15 oct", "Empieza la Inscripción Abierta"], ["7 dic", "Último día para cambiar"], ["1 ene", "Empieza el nuevo plan"], ["31 mar", "Termina el cambio de Advantage"]],
+    },
+  },
+};
+
+const SCENE_MS = 5200, THINK_MS = 1100;
+const Big = ({ k, v }) => <div className="flex flex-col"><span className="text-sm text-muted">{k}</span><span className="font-display text-4xl font-[650]">{v}</span></div>;
+const Tag = ({ children, cls = "text-muted" }) => <span className={`font-mono text-xs tracking-[0.06em] ${cls}`}>{children}</span>;
+
+function Result({ k, r }) {
+  const box = "flex flex-col gap-2.5 rounded-3xl border border-line p-6 md:p-7";
+  if (k === "compare") return (
+    <div className={`${box} border-2 border-brand`}>
+      <Tag cls="text-brand">{r.bestFit}</Tag>
+      <span className="font-display text-3xl font-[650]">DrSelect-CFL (HMO)</span>
+      <div className="flex flex-wrap gap-x-10 gap-y-2"><Big k={r.typical} v="$0" /><Big k={r.bad} v="$3,500" /><Big k={r.stars} v="4.5" /></div>
+      <span className="font-bold text-brand">{r.sameAsPF}</span>
+    </div>);
+  if (k === "label") return (
+    <div className={box}>
+      <Tag>{r.labelTag}</Tag>
+      <span className="font-display text-3xl font-[650]">Jardiance 25 mg tablet</span>
+      <span className="text-xl">{r.labelDose}</span>
+      <span className="inline-flex items-center gap-2 self-start rounded-full bg-brand-soft px-4 py-2 text-sm font-bold text-brand"><Lock className="h-4 w-4" />{r.savedDevice}</span>
+    </div>);
+  if (k === "current") return (
+    <div className={box}>
+      <span className="text-xl font-bold text-brand">{r.goodFit}</span>
+      <span className="text-muted">Humana Gold Plus H1036-054C (HMO) · Miami-Dade, FL</span>
+      <div className="flex flex-wrap gap-x-10 gap-y-2"><Big k={r.premium27} v="$0" /><Big k={r.max27} v="$500" /></div>
+      <span className="text-muted">{r.track}</span>
+    </div>);
+  if (k === "doctor") return (
+    <div className={box}>
+      <Tag>{r.docTag}</Tag>
+      <span className="font-display text-3xl font-[650]">{r.docName}</span>
+      <span className="text-lg">{r.docListed}</span>
+      <span className="font-bold text-warn">{r.docLead}</span>
+    </div>);
+  if (k === "extra") return (
+    <div className={box}>
+      <Tag>{r.ehTag}</Tag>
+      <span className="font-display text-3xl font-[650]">{r.ehTitle}</span>
+      <span className="text-lg">{r.ehBody}</span>
+      <span className="text-muted">{r.ehCost}</span>
+    </div>);
+  if (k === "defend") return (
+    <div className={`${box} border-2 border-warn`}>
+      <Tag cls="text-warn">{r.apTag}</Tag>
+      <span className="font-display text-3xl font-[650]">{r.apWhen}</span>
+      <span className="text-lg">{r.apCall}</span>
+      <span className="text-muted">{r.apSay}</span>
+    </div>);
+  return (
+    <div className={box}>
+      <Tag>{r.calTag}</Tag>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {r.cal.map(([d, what], i) => <div key={d} className={`flex flex-col gap-1 rounded-2xl p-4 ${i === 1 ? "bg-gold-soft" : "bg-paper"}`}><span className="font-display text-2xl font-[650]">{d}</span><span className="text-sm text-muted">{what}</span></div>)}
+      </div>
+    </div>);
+}
+
+export default function DemoPlayer({ lang, compact = false }) {
+  const p = P[lang] || P.en;
+  const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const [i, setI] = useState(0);
+  const [playing, setPlaying] = useState(!reduced);
+  const [shown, setShown] = useState(false);
+  const timers = useRef([]);
+  useEffect(() => {
+    timers.current.forEach(clearTimeout);
+    setShown(false);
+    timers.current = [setTimeout(() => setShown(true), reduced ? 0 : THINK_MS)];
+    if (playing) timers.current.push(setTimeout(() => setI((x) => (x + 1) % p.scenes.length), SCENE_MS));
+    return () => timers.current.forEach(clearTimeout);
+  }, [i, playing, p.scenes.length, reduced]);
+  const s = p.scenes[i];
+  const bar = (
+    <span key={`${i}-${playing}`} className="block h-full bg-gold" style={{ width: playing ? undefined : "100%", animation: playing ? `mhfill ${SCENE_MS}ms linear forwards` : "none" }} />
+  );
+  const windowEl = (
+    <div className={`flex flex-col gap-5 rounded-[28px] bg-card p-6 shadow-[0_1px_0_var(--color-line),0_24px_60px_-30px_rgba(47,58,53,0.25)] md:p-8 ${compact ? "min-h-[440px]" : "min-h-[460px] md:p-9"}`} aria-live="polite">
+      <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-line" /><span className="h-2.5 w-2.5 rounded-full bg-line" /><span className="h-2.5 w-2.5 rounded-full bg-line" />
+        <span className="ml-3 font-mono text-xs text-muted">{s.tag}</span>
+        <button onClick={() => setPlaying(!playing)} className="ml-auto min-h-9 rounded-full border border-line px-3 text-xs font-bold text-muted hover:border-ink hover:text-ink">{playing ? p.pause : p.play}</button></div>
+      <div key={`say-${i}`} className="mh-rise flex justify-end">
+        <span className="flex max-w-[560px] items-center gap-3 rounded-[22px] rounded-br-md bg-brand px-5 py-4 text-lg leading-snug text-white">
+          {s.photo && <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/90"><Camera className="h-6 w-6 text-brand" /></span>}
+          {s.say}
+        </span>
+      </div>
+      {!shown && <span key={`t-${i}`} className="mh-rise text-muted">{s.think}</span>}
+      {shown && <div key={`r-${i}`} className="mh-rise"><Result k={s.key} r={p.r} /></div>}
+    </div>
+  );
+  if (compact) return (
+    <div id="demo" className="flex min-w-0 flex-col gap-4">
+      {windowEl}
+      <div role="tablist" aria-label={p.label} className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+        {p.scenes.map((x, n) => {
+          const Icon = ICON[x.key];
+          return (
+            <button key={x.key} role="tab" aria-selected={n === i} title={x.title} onClick={() => { setI(n); setPlaying(false); }}
+              className={`relative flex min-h-[76px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl px-1 py-2 text-center text-[13px] font-bold leading-tight transition-colors ${n === i ? "bg-ink text-white" : "bg-card text-ink hover:bg-brand-soft"}`}>
+              <Icon className={`h-5 w-5 ${n === i ? "text-gold" : "text-brand"}`} />
+              {x.short}
+              {n === i && <span className="absolute inset-x-3 bottom-1.5 h-[2px] overflow-hidden rounded bg-white/25">{bar}</span>}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-sm text-muted">{p.foot}</p>
+    </div>
+  );
+  return (
+    <section id="demo" className="mx-auto w-full max-w-[1440px] px-5 md:px-12">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="font-mono text-xs tracking-[0.06em] text-muted">{p.label}</span>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
+        <div role="tablist" aria-label={p.label} aria-orientation="vertical" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+          {p.scenes.map((x, n) => (
+            <button key={x.key} role="tab" aria-selected={n === i} onClick={() => { setI(n); setPlaying(false); }}
+              className={`flex min-w-[220px] flex-col gap-1 rounded-2xl px-4 py-3 text-left transition-colors lg:min-w-0 ${n === i ? "bg-ink text-white" : "hover:bg-brand-soft"}`}>
+              <span className="flex items-baseline justify-between gap-3"><span className="text-lg font-bold">{x.title}</span><span className="font-mono text-xs opacity-60">0{n + 1}</span></span>
+              <span className="text-sm opacity-80">{x.line}</span>
+              {n === i && <span className="mt-1 block h-[3px] overflow-hidden rounded bg-white/25">{bar}</span>}
+            </button>
+          ))}
+        </div>
+        {windowEl}
+      </div>
+      <p className="mt-3 text-sm text-muted">{p.foot}</p>
+    </section>
+  );
+}

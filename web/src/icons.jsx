@@ -1,6 +1,6 @@
 // Stroke icons (no emoji). Size via className (e.g. "h-6 w-6"); color via currentColor.
 const base = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", viewBox: "0 0 24 24", "aria-hidden": true };
-export const Compass = (p) => <svg {...base} {...p}><circle cx="12" cy="12" r="10" /><path d="M12 5l3 7-3 7-3-7z" fill="#E3A13B" /></svg>;
+export const Compass = (p) => <svg {...base} {...p}><circle cx="12" cy="12" r="10" /><path d="M12 5l3 7-3 7-3-7z" fill="#D4AA5E" /></svg>;
 export const Pill = (p) => <svg {...base} {...p}><path d="M10.5 20.5a4.95 4.95 0 1 1-7-7l7-7a4.95 4.95 0 1 1 7 7z" /><path d="m8.5 8.5 7 7" /></svg>;
 export const Shield = (p) => <svg {...base} {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>;
 export const Phone = (p) => <svg {...base} {...p}><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" /></svg>;
@@ -17,3 +17,5 @@ export const Lightbulb = (p) => <svg {...base} {...p}><path d="M9 18h6M10 22h4M1
 export const Send = (p) => <svg {...base} {...p}><path d="m22 2-7 20-4-9-9-4z" /><path d="M22 2 11 13" /></svg>;
 export const Lock = (p) => <svg {...base} {...p}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>;
 export const User = (p) => <svg {...base} {...p}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>;
+export const Calendar = (p) => <svg {...base} {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /></svg>;
+export const Stethoscope = (p) => <svg {...base} {...p}><path d="M6 3v6a5 5 0 0 0 10 0V3" /><path d="M11 14v2a4 4 0 0 0 8 0v-1" /><circle cx="19" cy="13" r="2" /></svg>;

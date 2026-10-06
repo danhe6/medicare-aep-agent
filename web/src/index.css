@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
-/* Direction A · Steady Hands — calm, clinical-warm. Cool sage-white ground, pine, one marigold accent. */
+/* Sage: soft, calm, light. Chosen 2026-10 over warmer reds ("red feels anxious"). Text colors keep 4.5:1 on paper/card. */
 @theme {
-  --color-paper: #F3F6F4;
+  --color-paper: #F7F8F4;
   --color-card: #FFFFFF;
-  --color-ink: #14302B;
-  --color-muted: #4A5F58;
-  --color-line: #D5DED9;
-  --color-field: #C6D3CD;
-  --color-brand: #1F5C50;
-  --color-brand-dark: #17473E;
-  --color-brand-soft: #E2EEEA;
-  --color-gold: #E3A13B;
-  --color-gold-soft: #FBEFD9;
-  --color-warn: #8A5300;
-  --color-warn-soft: #FBEFD9;
-  --color-urgent: #B3261E;
-  --color-urgent-soft: #FBE9E7;
-  --color-ok: #1E6B36;
-  --color-ok-soft: #E4F2E8;
+  --color-ink: #2F3A35;
+  --color-muted: #5B6862;
+  --color-line: #E2E7DF;
+  --color-field: #CBD5CF;
+  --color-brand: #4A7565;
+  --color-brand-dark: #3B5F52;
+  --color-brand-soft: #E8F0EC;
+  --color-gold: #D4AA5E;
+  --color-gold-soft: #F6F0E2;
+  --color-warn: #9A6416;
+  --color-warn-soft: #F8EEDC;
+  --color-urgent: #A3472E;
+  --color-urgent-soft: #F8E9E3;
+  --color-ok: #2F6B45;
+  --color-ok-soft: #E6F1EA;
   --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", Georgia, serif;
 }
@@ -38,6 +38,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .md strong { font-weight: 700; }
 .md table { display: block; overflow-x: auto; font-size: 0.85rem; border-collapse: collapse; margin: 0.5rem 0; }
 .md th, .md td { border: 1px solid var(--color-line); padding: 0.3rem 0.5rem; text-align: left; }
-@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(179,38,30,.45); } 100% { box-shadow: 0 0 0 18px rgba(179,38,30,0); } }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(163,71,46,.40); } 100% { box-shadow: 0 0 0 18px rgba(163,71,46,0); } }
 .listening { animation: pulse-ring 1.2s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { .listening, .animate-pulse { animation: none; } }
+@keyframes mhfill { from { width: 0%; } to { width: 100%; } }
+@keyframes mhrise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.mh-rise { animation: mhrise .35s ease-out; }
+@media (prefers-reduced-motion: reduce) { .mh-rise { animation: none; } }

@@ -205,14 +205,14 @@ export default function App() {
       {family && (
         <aside className="hidden self-start pt-6 md:sticky md:top-24 md:block print:hidden">
           <div className="rounded-3xl bg-ink p-5 text-white">
-            <div className="text-sm font-bold tracking-[0.08em] text-[#9FC2B7]">{t.people.toUpperCase()}</div>
-            {!profile.people?.length && <p className="mt-3 text-base text-[#CFE2DC]">{t.noPeople}</p>}
+            <div className="text-sm font-bold tracking-[0.08em] text-[#B5CCC3]">{t.people.toUpperCase()}</div>
+            {!profile.people?.length && <p className="mt-3 text-base text-[#DCE6E1]">{t.noPeople}</p>}
             <ul className="mt-3 space-y-2">
               {(profile.people || []).map((p) => (
                 <li key={p.id}>
                   <button onClick={() => { setActiveId(p.id); if (started) send(t.useProfileMsg(p.name)); }} disabled={busy} className={`w-full rounded-2xl ${!started && p.id === active?.id ? "bg-brand" : "bg-white/10"} px-4 py-3 text-left hover:bg-white/20 disabled:opacity-60`}>
                     <span className="block text-lg font-bold">{p.name}</span>
-                    <span className="text-sm text-[#CFE2DC]">{[p.county, (p.medicines || []).length + " Rx"].filter(Boolean).join(" · ")}</span>
+                    <span className="text-sm text-[#DCE6E1]">{[p.county, (p.medicines || []).length + " Rx"].filter(Boolean).join(" · ")}</span>
                   </button>
                 </li>
               ))}

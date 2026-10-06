@@ -113,7 +113,7 @@ A full plan comparison is a few turns, roughly a cent, which is what lets this s
 cp .env.example .env            # NEBIUS_API_KEY, TAVILY_API_KEY
 pip install -r requirements.txt
 python pipeline/build.py        # or download the latest data release (src/engine/datasync.py)
-uvicorn api.server:app --app-dir src --reload --port 8000
+PYTHONPATH=src uvicorn api.server:app --reload --port 8000
 cd web && npm install && npm run dev   # http://localhost:5173
 ```
 

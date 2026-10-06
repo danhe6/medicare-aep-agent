@@ -7,14 +7,14 @@ export const L = {
     ctaChoose: "Check her plan options",
     ctaDefend: "I got a notice",
     tool: {
-      title: "Is her medicine covered?",
-      drug: "Medicine and strength", drugPh: "e.g. Eliquis 5 mg",
+      title: "Is this medicine covered?",
+      drug: "Medicine and strength", drugPh: "Start typing, e.g. Eliq", drugName: "Medicine", strength: "Strength and form", pickStrength: "Choose the one on the bottle", noStrength: "No strengths found", noMatch: "No match. Check the spelling on the bottle.", generic_: "generic", pickFirst: "Choose the strength first.",
       state: "State", county: "County",
       go: "Check now", checking: "Checking every plan…",
       result: (c, t, county) => `${c} of ${t} regular plans in ${county} cover it.`,
       generic: (c, t) => `The generic version is covered by ${c} of ${t}.`,
       matched: "We looked up",
-      next: "See full costs for her medicines",
+      next: "See full costs for all your medicines",
       asOf: (d) => `Medicare plan data, updated ${d}.`,
     },
     trust: [
@@ -73,7 +73,7 @@ export const L = {
     ctaDefend: "Recibí un aviso",
     tool: {
       title: "¿Su medicina está cubierta?",
-      drug: "Medicina y dosis", drugPh: "p. ej. Eliquis 5 mg",
+      drug: "Medicina y dosis", drugPh: "Empiece a escribir, p. ej. Eliq", drugName: "Medicina", strength: "Dosis y forma", pickStrength: "Elija la que dice el frasco", noStrength: "No encontramos dosis", noMatch: "No hay resultados. Revise cómo se escribe en el frasco.", generic_: "genérico", pickFirst: "Primero elija la dosis.",
       state: "Estado", county: "Condado",
       go: "Revisar ahora", checking: "Revisando todos los planes…",
       result: (c, t, county) => `${c} de ${t} planes regulares en ${county} la cubren.`,

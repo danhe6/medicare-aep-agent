@@ -94,13 +94,41 @@ def counties(state: str) -> list[str]:
     return [c for _, c in data.counties(con, state)]
 
 
+@app.get("/api/drugs/suggest")
+def drug_suggest(q: str) -> list[str]:
+    """Search-as-you-type drug names, so nobody has to spell 'atorvastatin' right."""
+    return rxnorm.suggest(q[:60])
+
+
+@app.get("/api/drugs/products")
+def drug_products(name: str, lang: str = "en") -> list[dict]:
+    """Strengths and forms for a chosen drug name, with plain labels ('Eliquis 5 mg tablet')."""
+    import re
+    items = rxnorm.products_for(name[:80])
+    out = [{**x, "label": re.sub(r"\b(12|24) HR ", "", friendly_name(x["rxnorm_name"], lang))} for x in items]
+    seen = {}
+    for x in out:
+        seen[x["label"]] = seen.get(x["label"], 0) + 1
+    for x in out:  # two pens with the same strength differ only by size: say so ("3 mL")
+        m = re.match(r"^(\d+(?:\.\d+)?) ML ", x["rxnorm_name"])
+        if seen[x["label"]] > 1 and m:
+            x["label"] += f" · {m.group(1)} mL"
+    num = lambda x: float((re.search(r"\d+(?:\.\d+)?", x["label"]) or [0])[0])  # 5 mg before 10 mg
+    out.sort(key=lambda x: (x["type"] != "generic", x["label"].split(" ")[0 if x["type"] == "brand" else 1].lower(), num(x)))
+    return out
+
+
 @app.get("/api/check")
-def check(drug: str, state: str, county: str, lang: str = "en") -> dict:
-    """Landing-page quick check: how many regular plans in the county cover this medicine (and its generic)."""
-    matches = rxnorm.search(drug[:80], limit=1)
-    if not matches:
-        raise HTTPException(404, "We couldn't find that medicine. Try the name on the bottle, e.g. 'Eliquis 5 mg'.")
-    info = rxnorm.lookup(matches[0]["rxnorm_name"])
+def check(drug: str, state: str, county: str, lang: str = "en", rxnorm_name: str | None = None) -> dict:
+    """Landing-page quick check: how many regular plans in the county cover this medicine (and its generic).
+    `rxnorm_name` (picked from the strength list) is used exactly; otherwise `drug` is free text."""
+    if rxnorm_name and rxnorm.exact_rxcui(rxnorm_name):
+        info = rxnorm.lookup(rxnorm_name)
+    else:
+        matches = rxnorm.search(drug[:80], limit=1)
+        if not matches:
+            raise HTTPException(404, "We couldn't find that medicine. Try the name on the bottle, e.g. 'Eliquis 5 mg'.")
+        info = rxnorm.lookup(matches[0]["rxnorm_name"])
     con = data.connect()
     try:
         data.load_market(con, state, county)
