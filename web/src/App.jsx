@@ -149,6 +149,8 @@ export default function App() {
       if (e.status === 404) {  // server restarted: sessions live in memory, so start a fresh one
         newSession().then(setSid);
         setItems((xs) => [...xs, { kind: "assistant", text: t.sessionLost }]);
+      } else if (e.status === 429 && e.detail) {  // rate limit: the server's message is already in the user's language
+        setItems((xs) => [...xs, { kind: "assistant", text: e.detail }]);
       } else {
         setItems((xs) => [...xs, { kind: "assistant", text: t.netError }]);
       }

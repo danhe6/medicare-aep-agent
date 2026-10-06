@@ -16,7 +16,7 @@ import time
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -25,6 +25,7 @@ from agent.agent import SYSTEM, run_turn_events
 from agent.llm import client
 from engine import data, datasync, rxnorm
 from engine.estimate import friendly_name
+from api import limits
 
 ROOT = Path(__file__).resolve().parents[2]
 UPLOADS = ROOT / "uploads"
@@ -32,7 +33,9 @@ WEB_DIST = ROOT / "web" / "dist"
 MAX_UPLOAD = 15 * 1024 * 1024
 
 app = FastAPI(title="Medicare helper")
-SESSIONS: dict[str, list[dict]] = {}
+SESSIONS: dict[str, list[dict]] = {}   # in memory; oldest dropped past MAX_SESSIONS
+MAX_SESSIONS = int(os.environ.get("MAX_SESSIONS", "3000"))
+MAX_TURNS = 60  # user messages per session
 LLM = None
 
 
@@ -69,7 +72,10 @@ class ChatIn(BaseModel):
 
 
 @app.post("/api/session")
-def new_session() -> dict:
+def new_session(request: Request) -> dict:
+    limits.check(request, "session")
+    while len(SESSIONS) >= MAX_SESSIONS:
+        SESSIONS.pop(next(iter(SESSIONS)))
     sid = uuid.uuid4().hex
     SESSIONS[sid] = [{"role": "system", "content": SYSTEM}]
     return {"session_id": sid}
@@ -95,13 +101,15 @@ def counties(state: str) -> list[str]:
 
 
 @app.get("/api/drugs/suggest")
-def drug_suggest(q: str) -> list[str]:
+def drug_suggest(q: str, request: Request) -> list[str]:
+    limits.check(request, "lookup")
     """Search-as-you-type drug names, so nobody has to spell 'atorvastatin' right."""
     return rxnorm.suggest(q[:60])
 
 
 @app.get("/api/drugs/products")
-def drug_products(name: str, lang: str = "en") -> list[dict]:
+def drug_products(name: str, request: Request, lang: str = "en") -> list[dict]:
+    limits.check(request, "lookup", lang)
     """Strengths and forms for a chosen drug name, with plain labels ('Eliquis 5 mg tablet')."""
     import re
     items = rxnorm.products_for(name[:80])
@@ -119,9 +127,10 @@ def drug_products(name: str, lang: str = "en") -> list[dict]:
 
 
 @app.get("/api/check")
-def check(drug: str, state: str, county: str, lang: str = "en", rxnorm_name: str | None = None) -> dict:
+def check(drug: str, state: str, county: str, request: Request, lang: str = "en", rxnorm_name: str | None = None) -> dict:
     """Landing-page quick check: how many regular plans in the county cover this medicine (and its generic).
     `rxnorm_name` (picked from the strength list) is used exactly; otherwise `drug` is free text."""
+    limits.check(request, "lookup", lang)
     if rxnorm_name and rxnorm.exact_rxcui(rxnorm_name):
         info = rxnorm.lookup(rxnorm_name)
     else:
@@ -152,10 +161,14 @@ def check(drug: str, state: str, county: str, lang: str = "en", rxnorm_name: str
 
 
 @app.post("/api/chat")
-def chat(body: ChatIn) -> StreamingResponse:
+def chat(body: ChatIn, request: Request) -> StreamingResponse:
     msgs = SESSIONS.get(body.session_id)
     if msgs is None:
         raise HTTPException(404, "Unknown session")
+    limits.check(request, "chat", body.lang)
+    if sum(1 for m in msgs if m.get("role") == "user") >= MAX_TURNS:
+        raise HTTPException(429, "This conversation is very long. Please tap Home and start a new one."
+                            if body.lang != "es" else "Esta conversación es muy larga. Toque Inicio y empiece una nueva.")
     msgs.append({"role": "user", "content": body.message[:4000]})
 
     def stream():
@@ -170,7 +183,8 @@ def chat(body: ChatIn) -> StreamingResponse:
 
 
 @app.post("/api/upload")
-async def upload(session_id: str = Form(...), file: UploadFile = File(...)) -> dict:
+async def upload(request: Request, session_id: str = Form(...), file: UploadFile = File(...)) -> dict:
+    limits.check(request, "upload")
     if session_id not in SESSIONS:
         raise HTTPException(404, "Unknown session")
     ext = Path(file.filename or "").suffix.lower()

@@ -25,8 +25,11 @@ export async function chat(sessionId, message, lang, onEvent, profile = null, mo
     body: JSON.stringify({ session_id: sessionId, message, lang, profile, mode }),
   });
   if (!r.ok) {
-    const err = new Error(`chat failed: ${r.status}`);
+    let detail = "";
+    try { detail = (await r.json()).detail || ""; } catch { /* not JSON */ }
+    const err = new Error(detail || `chat failed: ${r.status}`);
     err.status = r.status;
+    err.detail = detail;
     throw err;
   }
   const reader = r.body.getReader();
