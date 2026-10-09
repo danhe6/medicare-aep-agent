@@ -52,6 +52,21 @@ def _refresh_loop() -> None:
             print("datasync:", e)
 
 
+def _purge_uploads_loop() -> None:
+    """Production: bills and statements are kept at most 30 minutes (so a bill can be compared with its EOB/MSN)."""
+    while True:
+        time.sleep(600)
+        if os.environ.get("TRACE_LOG", "1") != "0":
+            continue
+        cutoff = time.time() - 1800
+        for f in UPLOADS.glob("*/*"):
+            try:
+                if f.is_file() and f.stat().st_mtime < cutoff:
+                    f.unlink()
+            except OSError:
+                pass
+
+
 @app.on_event("startup")
 def startup() -> None:
     global LLM
@@ -61,6 +76,7 @@ def startup() -> None:
         print("datasync:", e)
     LLM = client()
     threading.Thread(target=_refresh_loop, daemon=True).start()
+    threading.Thread(target=_purge_uploads_loop, daemon=True).start()
 
 
 class ChatIn(BaseModel):

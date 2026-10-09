@@ -44,7 +44,7 @@ T = {
         "titles": {"partd_denial": "Drug coverage denied", "ma_denial": "Medical coverage denied",
                    "msn": "Medicare Summary Notice (Original Medicare)", "irmaa": "Higher Part B / D premium (IRMAA)",
                    "anoc": "Annual Notice of Change (your plan next year)", "nomnc": "Care is ending (Notice of Medicare Non-Coverage)",
-                   "eob": "Explanation of Benefits (a statement, not a bill)", "other": "Medicare letter"},
+                   "eob": "Explanation of Benefits (a statement, not a bill)", "bill": "A bill from a doctor or hospital", "other": "Medicare letter"},
         "partd": ["Ask the doctor who prescribed it to send the plan a supporting statement explaining why you need this drug "
                   "(required for an exception). You can use the request below.",
                   "Send the plan a \"Request for Redetermination\" (the letter below works) by mail, fax or phone, using the "
@@ -72,7 +72,11 @@ T = {
         "anoc": ["This letter lists what changes in your plan on January 1.",
                  "I can check your plan for next year against your medicines and show the best alternative."],
         "eob": ["This is a summary of what your plan paid. It is not a bill.",
-                "Check that you received each service listed. If something looks wrong, call the plan."],
+                "Check that you received each service listed. If something looks wrong, call the plan.",
+                "If you also got a bill for one of these visits, send a photo of it and I'll check you're not asked to pay more."],
+        "bill": ["Before you pay, check it against the statement for the same visit: the Explanation of Benefits (EOB) from "
+                 "your plan, or the Medicare Summary Notice (MSN) if you have Original Medicare.",
+                 "Take a photo of that statement and I'll compare them line by line."],
         "other": ["I couldn't match this to a Medicare letter I know how to act on.",
                   "Call 1-800-MEDICARE or your local SHIP for free help reading it."],
         "no_date": "I couldn't read the date on the letter. Please type the date printed at the top so I can work out the deadline.",
@@ -85,7 +89,7 @@ T = {
         "titles": {"partd_denial": "Le negaron la cobertura de una medicina", "ma_denial": "Le negaron cobertura médica",
                    "msn": "Resumen de Medicare (Medicare Original)", "irmaa": "Prima más alta de la Parte B / D (IRMAA)",
                    "anoc": "Aviso Anual de Cambios (su plan el próximo año)", "nomnc": "Fin de la atención (Aviso de No Cobertura de Medicare)",
-                   "eob": "Explicación de Beneficios (un resumen, no una factura)", "other": "Carta de Medicare"},
+                   "eob": "Explicación de Beneficios (un resumen, no una factura)", "bill": "Una factura de un médico u hospital", "other": "Carta de Medicare"},
         "partd": ["Pida al médico que recetó la medicina que envíe al plan una declaración explicando por qué la necesita "
                   "(es obligatoria para una excepción). Puede usar la solicitud de abajo.",
                   "Envíe al plan una \"Solicitud de Redeterminación\" (sirve la carta de abajo) por correo, fax o teléfono, "
@@ -113,7 +117,11 @@ T = {
         "anoc": ["Esta carta explica qué cambia en su plan el 1 de enero.",
                  "Puedo revisar su plan del próximo año con sus medicinas y mostrarle la mejor alternativa."],
         "eob": ["Es un resumen de lo que pagó su plan. No es una factura.",
-                "Revise que recibió cada servicio. Si algo parece estar mal, llame al plan."],
+                "Revise que recibió cada servicio. Si algo parece estar mal, llame al plan.",
+                "Si también recibió una factura por una de estas visitas, envíe una foto y reviso que no le cobren de más."],
+        "bill": ["Antes de pagar, compárela con el resumen de la misma visita: la Explicación de Beneficios (EOB) de su plan, "
+                 "o el Resumen de Medicare (MSN) si tiene Medicare Original.",
+                 "Tome una foto de ese resumen y las comparo línea por línea."],
         "other": ["No pude identificar esta carta como una que sé manejar.",
                   "Llame al 1-800-MEDICARE o a su SHIP local para recibir ayuda gratis."],
         "no_date": "No pude leer la fecha de la carta. Escriba la fecha impresa arriba para calcular la fecha límite.",

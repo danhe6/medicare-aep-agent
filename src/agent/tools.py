@@ -10,6 +10,7 @@ from engine import data, rxnorm
 from engine.estimate import estimate
 from defend.notice import analyze as analyze_notice
 from letters.read import analyze as analyze_letter
+from letters.bill import analyze as analyze_bill
 from meds.label import analyze as analyze_label
 from engine.usage import infer_health_usage
 from network.doctor import check as check_doctor
@@ -29,6 +30,14 @@ SCHEMAS = [
         "parameters": {"type": "object", "properties": {
             "file_path": {"type": "string", "description": "Path to the uploaded photo or PDF"}},
             "required": ["file_path"]}}},
+    {"type": "function", "function": {
+        "name": "check_bill",
+        "description": "Compare a doctor's or hospital's bill with the Explanation of Benefits (EOB) from the plan or the "
+                       "Medicare Summary Notice (MSN) for the same visit, line by line, to see if the bill asks for more "
+                       "than the person owes. Use the file_path values returned by read_medicare_letter for both photos.",
+        "parameters": {"type": "object", "properties": {
+            "bill_file_path": {"type": "string"}, "statement_file_path": {"type": "string", "description": "EOB or MSN photo"}},
+            "required": ["bill_file_path", "statement_file_path"]}}},
     {"type": "function", "function": {
         "name": "find_drug",
         "description": "REQUIRED for every medication before compare_plans. Look up a medication the user mentioned "
@@ -248,10 +257,26 @@ def read_medicare_letter(file_path: str, lang: str = "en") -> dict:
     p = _safe_path(file_path)
     if not p:
         return {"error": "File not found. Ask the user to upload a photo of the letter."}
+    out = {}
     try:
-        return analyze_letter(str(p), lang=lang)
+        out = analyze_letter(str(p), lang=lang)
+        if out.get("letter_type") in ("bill", "eob", "msn"):  # kept briefly so a bill can be compared with its statement
+            out["file_path"] = file_path
+        return out
     finally:
-        _discard(p)
+        if out.get("letter_type") not in ("bill", "eob", "msn"):
+            _discard(p)
+
+
+def check_bill(bill_file_path: str, statement_file_path: str, lang: str = "en") -> dict:
+    b, st = _safe_path(bill_file_path), _safe_path(statement_file_path)
+    if not b or not st:
+        return {"error": "One of the photos is missing. Ask the user to upload the bill and the EOB or MSN again."}
+    try:
+        return analyze_bill(str(b), str(st), lang=lang)
+    finally:
+        _discard(b)
+        _discard(st)
 
 
 def _safe_path(file_path: str) -> Path | None:
@@ -368,7 +393,7 @@ def screen_extra_help(drugs: list[str] | None = None, **kw) -> dict:
     return out
 
 
-IMPL = {"read_medicare_letter": read_medicare_letter, "check_current_plan": check_current_plan, "screen_extra_help": screen_extra_help, "check_doctor_network": check_doctor_network, "read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
+IMPL = {"check_bill": check_bill, "read_medicare_letter": read_medicare_letter, "check_current_plan": check_current_plan, "screen_extra_help": screen_extra_help, "check_doctor_network": check_doctor_network, "read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
         "update_profile": update_profile, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
 
 

@@ -21,7 +21,7 @@ from defend.notice import _json, _parse_date, transcribe
 from letters.checks import check_draft, keyword_type
 from letters.rules import fmt, plan
 
-TYPES = ["nomnc", "partd_denial", "ma_denial", "msn", "irmaa", "anoc", "eob", "other"]
+TYPES = ["nomnc", "partd_denial", "ma_denial", "msn", "irmaa", "anoc", "eob", "bill", "other"]
 def classify(text: str, llm=None) -> tuple[str, str]:
     """(type, how): 'keyword' when an official title is found, else 'llm'."""
     kind = keyword_type(text)
@@ -49,6 +49,7 @@ FIELDS = {
     "irmaa": '{"notice_date": "YYYY-MM-DD", "notice_date_as_written", "premium_year", "tax_year_used", "member_first_name"}',
     "anoc": '{"plan_name", "plan_id": like "H1234-056" if printed, "plan_year"}',
     "eob": '{"plan_name", "period"}',
+    "bill": '{"provider_name", "statement_date", "amount_due"}',
     "other": '{"sender", "subject": one line, "date": "YYYY-MM-DD"}',
 }
 

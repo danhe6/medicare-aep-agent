@@ -86,17 +86,44 @@ To appeal, fill out the Redetermination Request Form (CMS-20027) and send it to 
 Medicare contractor at the address on the last page.
 
 SAMPLE LETTER FOR TESTING - NOT A REAL NOTICE""",
+
+"bill": """BAYVIEW ORTHOPEDIC ASSOCIATES
+450 Harbor Blvd, Tampa, FL 33602        Billing office: 1-813-555-0177
+
+PATIENT STATEMENT                    Statement date: 10/01/2026
+Patient: Walter Chen                 Account: [REDACTED]
+
+Date of service   Description                         Charges   Insurance paid   Amount due
+08/12/2026        Office visit, established patient   $210.00   $170.00          $40.00
+08/12/2026        X-ray, knee, 3 views                $145.00   $70.00           $75.00
+
+AMOUNT DUE: $115.00        Please pay this amount by 10/31/2026
+
+SAMPLE BILL FOR TESTING - NOT A REAL BILL""",
+
+"eob": """GULF COAST CARE PLUS (HMO)
+Explanation of Benefits - THIS IS NOT A BILL
+
+Member: Walter Chen                  Claims processed September 2026
+
+Date of service   Provider                         Service                      Plan paid   Your share
+08/12/2026        Bayview Orthopedic Associates    Specialist office visit      $170.00     $40.00
+08/12/2026        Bayview Orthopedic Associates    Diagnostic X-ray, knee       $70.00      $15.00
+
+Your share is the most an in-network provider can bill you for these services.
+
+SAMPLE STATEMENT FOR TESTING - NOT A REAL EOB""",
 }
 
 
 def render(text: str, out: Path) -> None:
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 22)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 20)
     bold = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
     lines = text.splitlines()
-    img = Image.new("RGB", (1240, 120 + 34 * len(lines)), "white")
+    img = Image.new("RGB", (1280, 120 + 34 * len(lines)), "white")
     d = ImageDraw.Draw(img)
     for i, line in enumerate(lines):
-        f = bold if i == 0 or line.startswith(("Notice of", "MEDICARE SUMMARY", "SOCIAL SECURITY")) else font
+        f = bold if i == 0 or line.startswith(("Notice of", "MEDICARE SUMMARY", "SOCIAL SECURITY", "Explanation of", "PATIENT STATEMENT")) else font
         d.text((60, 60 + 34 * i), line, fill="black", font=f)
     img.save(out)
 

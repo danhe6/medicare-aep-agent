@@ -1,0 +1,13 @@
+BAYVIEW ORTHOPEDIC ASSOCIATES
+450 Harbor Blvd, Tampa, FL 33602        Billing office: 1-813-555-0177
+
+PATIENT STATEMENT                    Statement date: 10/01/2026
+Patient: Walter Chen                 Account: [REDACTED]
+
+Date of service   Description                         Charges   Insurance paid   Amount due
+08/12/2026        Office visit, established patient   $210.00   $170.00          $40.00
+08/12/2026        X-ray, knee, 3 views                $145.00   $70.00           $75.00
+
+AMOUNT DUE: $115.00        Please pay this amount by 10/31/2026
+
+SAMPLE BILL FOR TESTING - NOT A REAL BILL

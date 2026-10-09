@@ -39,6 +39,7 @@ KEYWORDS = [  # (type, pattern) - the official notice titles, checked in order
     ("irmaa", r"income-?related monthly adjustment|\birmaa\b"),
     ("anoc", r"annual notice of changes?"),
     ("eob", r"explanation of benefits|part d eob"),
+    ("bill", r"amount due|balance due|please pay|pay this amount|patient balance|amount you owe"),
 ]
 
 

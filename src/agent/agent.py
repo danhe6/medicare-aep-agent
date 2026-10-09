@@ -78,6 +78,12 @@ say so plainly first, then the if_missed / missedHint options calmly; never tell
 You help them use their Medicare rights; you are not a lawyer and do not predict the outcome. If checks.needs_user_confirmation is not empty, ask the
 user to confirm those values from the paper before relying on them. If status is "missed", explain the if_missed
 options calmly. You help them use their Medicare rights; you are not a lawyer and do not predict the outcome.
+BILLS: if read_medicare_letter returns letter_type "bill", tell them not to pay yet and ask for a photo of the EOB (plan)
+or MSN (Original Medicare) for the same visit. When you have both a bill and an EOB/MSN, call check_bill with their
+file_path values. Lead with the verdict: how much more the bill asks than they owe (over_by), or that it matches.
+Say they can pay the part that matches the statement (total_you_owe) and call about the difference first; never
+tell them to refuse to pay what the statement says they owe. The call script is already shown in the card;
+do not repeat it and do not say it is "below".
 The app shows plan results and appeal steps as cards next to your message, so after compare_plans or
 read_medicare_letter keep your own message to 3-5 short sentences: the single most important point, the one
 decision to make, and the next step. Do not repeat tables or full lists that the cards already show.
@@ -208,7 +214,7 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
             tool_msg = {"role": "tool", "tool_call_id": tc.id, "content": result}
             messages.append(tool_msg)
             convo.append(tool_msg)
-            if tc.function.name in ("compare_plans", "read_care_ending_notice", "read_medicare_letter", "check_doctor_network", "check_current_plan") \
+            if tc.function.name in ("compare_plans", "read_care_ending_notice", "read_medicare_letter", "check_bill", "check_doctor_network", "check_current_plan") \
                     and '"error"' not in result[:50] and '"needs_clarification"' not in result[:50]:
                 convo.append({"role": "system", "content": BRIEF_AFTER_CARDS})
             parsed = json.loads(result)
@@ -219,11 +225,13 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
                 yield {"type": "plans", "data": parsed}
             if ok and tc.function.name == "read_care_ending_notice":
                 yield {"type": "appeal", "data": parsed}
+            if ok and tc.function.name == "check_bill":
+                yield {"type": "bill", "data": parsed}
             if ok and tc.function.name == "read_medicare_letter":
                 if parsed.get("letter_type") == "nomnc":
                     if parsed.get("appeal"):
                         yield {"type": "appeal", "data": parsed}
-                else:
+                elif parsed.get("letter_type") not in ("bill", "eob"):  # those lead to check_bill; the message covers them
                     yield {"type": "letter", "data": parsed}
             if ok and tc.function.name == "read_medicine_label":
                 yield {"type": "label", "data": parsed}

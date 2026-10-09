@@ -27,7 +27,8 @@ TASKS = {
     "letter.transcribe": "v1",     # vision model: any Medicare letter -> text
     "letter.classify": "v1",       # keywords first; Lightning only when no official title is found
     "letter.extract": "v1",        # Lightning: fields per letter type
-    "letter.draft": "v1",          # Super: one argument paragraph, checked by code (numbers, promises)
+    "letter.draft": "v1",
+    "bill.extract": "v1",          # Lightning: bill lines + EOB/MSN lines; compared by code          # Super: one argument paragraph, checked by code (numbers, promises)
 }
 
 _state = threading.local()

@@ -11,6 +11,7 @@ import { LabelCard, SavedCard } from "./components/SavedCard.jsx";
 import { applyPatch, clearProfile, forMode, loadProfile, markStatus, removeMedicine, removePerson, saveProfile, setAppeal, whoIsThis } from "./profile.js";
 import Dashboard from "./components/Dashboard.jsx";
 import LetterCard from "./components/LetterCard.jsx";
+import BillCard from "./components/BillCard.jsx";
 import { isYesNoQuestion } from "./yesno.js";
 import { Camera, Compass, Pill, Send, Shield, Speaker, User } from "./icons.jsx";
 import NextSteps from "./components/NextSteps.jsx";
@@ -140,6 +141,7 @@ export default function App() {
         if (ev.type === "doctor") setItems((xs) => [...xs, { kind: "doctor", data: ev.data }]);
         if (ev.type === "label") setItems((xs) => [...xs, { kind: "label", data: ev.data }]);
         if (ev.type === "letter") setItems((xs) => [...xs, { kind: "letter", data: ev.data }]);
+        if (ev.type === "bill") setItems((xs) => [...xs, { kind: "bill", data: ev.data }]);
         if (ev.type === "profile_update") {
           setProfile(applyPatch(profileRef.current, ev.patch));
           setItems((xs) => [...xs, { kind: "saved", patch: ev.patch }]);
@@ -270,6 +272,7 @@ export default function App() {
           if (it.kind === "doctor") return <DoctorCard key={i} data={it.data} t={t} />;
           if (it.kind === "label") return <LabelCard key={i} data={it.data} t={t} />;
           if (it.kind === "letter") return <LetterCard key={i} data={it.data} t={t} />;
+          if (it.kind === "bill") return <BillCard key={i} data={it.data} t={t} />;
           if (it.kind === "saved") return <SavedCard key={i} patch={it.patch} t={t} />;
           return null;
         })}
