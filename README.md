@@ -2,8 +2,9 @@
 
 **A free, neutral, privacy-first helper for people with Medicare and the families who help them.**
 It compares every plan in a county against the medicines someone actually takes, checks their current plan for next year,
-looks up doctors, screens for Extra Help, and, when a nursing home or rehab says Medicare will stop paying, turns the
-notice into a deadline and a phone script for a fast appeal.
+looks up doctors, screens for Extra Help, reads Medicare letters (denials, summary notices, care-ending notices) and
+turns them into a deadline, steps and a drafted appeal, checks a provider's bill against the plan's statement, and
+writes a short summary for the family in 18 languages.
 
 Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/) (Personal AI track ·
 Best Use of Tavily). Agent and extraction run on **NVIDIA Nemotron** models served by **Nebius Token Factory**.
@@ -30,18 +31,27 @@ paid by insurers. Families end up guessing, or not choosing at all.
 
 ## What it does
 
-1. **Tell it, or show it.** Type or speak naturally ("Mom takes Eliquis twice a day, lives in Orange County"), or take a
+1. **Tell it, or show it.** Type or speak naturally ("I take Eliquis twice a day and live in Orange County"), or take a
    photo of a pill bottle. It reads the label, matches the exact drug in RxNorm and asks only what it still needs.
-2. **See the best plans for *her* medicines.** Every plan in the county, ranked by a typical year's total
+2. **See the best plans for *these* medicines.** Every plan in the county, ranked by a typical year's total
    (premium + drugs + expected medical costs) and a bad year's ceiling, with star ratings, drugs not covered,
    prior-authorization / step-therapy flags, cheaper generic switches, and IRA negotiated drug prices.
-3. **Check what she has now.** "Should she stay?" compares her current plan's next-year premium and out-of-pocket max
+3. **Check the current plan.** "Should I stay?" compares the current plan's next-year premium and out-of-pocket max
    with the best alternative, and shows the insurer's track record: how many drugs it dropped or restricted last year
    versus the national median.
-4. **Keep going.** Is her doctor in network (NPPES + Tavily search of insurer directories, never claimed as certain)?
-   Could she get Extra Help? What if she uses mail order or has a hospital stay?
+4. **Keep going.** Is the doctor in network (NPPES + Tavily search of insurer directories, never claimed as certain)?
+   Could they get Extra Help? What if they use mail order or have a hospital stay?
 5. **Defend care.** Photo of a "Notice of Medicare Non-Coverage" → appeal deadline to the hour, the right Quality
    Improvement Organization's phone number, what to say, and what happens next.
+6. **Understand any Medicare letter.** Part D and Medicare Advantage denials, Medicare Summary Notices, IRMAA
+   (higher premium) letters, Annual Notices of Change: what it is, the deadline computed from the official rules
+   (e.g. 65 days from the notice date for a Part D redetermination), numbered steps, how long they have to decide, and
+   a drafted appeal letter plus a request for the doctor. The person fills in the medical details; the draft never
+   invents them.
+7. **Check a bill before paying.** Photo of the bill and of the plan's EOB (or Medicare's MSN): matched line by line,
+   the overcharge shown, and a call script for the billing office. Pay what matches; ask about the rest.
+8. **Keep family in the loop.** One tap writes a short summary of the results in any of 18 languages (Chinese,
+   Vietnamese, Haitian Creole, Korean, Arabic, …), ready to text or email.
 
 Plus: two modes (a big-text, one-question-at-a-time senior mode and a family mode with a people sidebar and table
 view), full Spanish, a home page per person with a checklist, and a calendar file (.ics) with enrollment deadlines.
@@ -59,10 +69,12 @@ flowchart LR
     T --> V[Photo reader<br/>Gemma 3 vision → Nemotron Lightning JSON]
     T --> D[Doctor check<br/>NPPES + Tavily]
     T --> R[Appeal rules<br/>deadlines · QIO lookup]
+    T --> L[Letter reader + bill check<br/>keyword router · per-type workflow]
     E --> DB[(CMS public data<br/>DuckDB / Parquet)]
     P[CMS Part D PUFs<br/>monthly + quarterly] --> PL[Weekly pipeline<br/>GitHub Actions] --> DB
-    E & V & D & R -- facts --> A
+    E & V & D & R & L -- facts --> A
     A --> C[Cards + plain-language answer]
+    C --> S[Family summary<br/>any language · numbers checked]
 ```
 
 - **Engine (`src/engine/`)**: no LLM. Implements the Part D benefit for 2026/2027 (deductible, $2,100 / $2,400
@@ -70,8 +82,29 @@ flowchart LR
   maximum fair prices for negotiated drugs. Scoped per request to one county; most comparisons take a few seconds.
 - **Agent (`src/agent/`)**: Nemotron Super with tool calling. It decides what to ask and which tool to call; it is
   instructed never to state a number that did not come from a tool, and to lead with a verdict in plain words.
-- **Models used**: `nvidia/nemotron-3-super-120b-a12b` (agent), `nvidia/Nemotron-3_5-Lightning` (structured
-  extraction, thinking off), `google/gemma-3-27b-it` (transcribing photos).
+- **Letters and bills (`src/letters/`)**: the router reads the official notice title with keywords (no LLM), and falls
+  back to Lightning only for unknown letters. Each letter type then runs a fixed workflow: extract fields → verify
+  dates and phone numbers against the transcript → compute the deadline in code → draft one argument paragraph.
+  The bill check is plain code (date + description matching, amounts compared).
+- **Models used**: `nvidia/nemotron-3-super-120b-a12b` (agent, letter drafts), `nvidia/Nemotron-3_5-Lightning`
+  (structured extraction, thinking off), `google/gemma-3-27b-it` (transcribing photos),
+  `nvidia/Nemotron-3-Ultra-550b-a55b` (family summaries in other languages).
+
+### Design: workflows where we can, an agent where we must
+
+Following Anthropic's [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents):
+start with the simplest thing that works and add model calls only where they earn their place.
+
+- **Code decides, models describe.** Costs, deadlines, overcharges and plan rankings are computed in code. Models
+  listen, read, extract and explain.
+- **Routing without an LLM when possible.** Official notice titles are matched by keyword; the model is the fallback.
+- **Prompt chaining per task.** A denial letter, a bill and a care-ending notice each have their own short, testable
+  pipeline instead of one open-ended prompt.
+- **Evaluator in code.** Every drafted paragraph and family summary is checked by code: any number not found in the
+  facts, a promised outcome, made-up medical history, or the wrong language → one rewrite, then a plain fallback.
+- **The agent loop only for the open-ended part:** the conversation, deciding what to ask and which tool to call.
+- **Tools that are hard to misuse.** Exact RxNorm names only, `needs_clarification` instead of guessing a plan,
+  visible step lines so people see what was checked.
 - **Data (`pipeline/`)**: CMS monthly and quarterly Part D public use files, MA/PDP landscape, CMS negotiated-price
   file, 2025→2026 formulary history. Built weekly into a versioned release; the app picks up new releases on its own.
   See [docs/data-architecture.md](docs/data-architecture.md).
@@ -95,7 +128,8 @@ ours $0 premium + $0 drugs, $3,500 max, 4.5 stars, ranked #1; Plan Finder shows 
 
 - **No accounts, no server-side profiles.** Saved people, medicines and current plans live only in the browser
   (localStorage) and are sent with each message for that turn only.
-- **No conversation logs in production** (`TRACE_LOG=0`). Uploaded photos are deleted as soon as they are read.
+- **No conversation logs in production** (`TRACE_LOG=0`). Uploaded photos are deleted as soon as they are read; a
+  bill or statement is kept at most 30 minutes, only to compare it with the second document.
 - **Never asks for** Medicare or Social Security numbers. Income for the Extra Help check is never saved.
 - Metrics record task names, token counts and latency only, never health content.
 
@@ -132,8 +166,9 @@ Production runs on a small Nebius AI Cloud CPU VM behind Caddy (automatic HTTPS)
 | Path | Contents |
 | --- | --- |
 | `src/engine/` | Deterministic cost engine, data access, RxNorm, Extra Help screen |
-| `src/agent/` | Nemotron agent, tool definitions, metrics |
+| `src/agent/` | Nemotron agent, tool definitions, family summary, metrics |
 | `src/defend/` | Care-ending notice reader and appeal rules |
+| `src/letters/` | Letter router, per-type rules and drafts, code evaluator, bill vs EOB/MSN check |
 | `src/meds/` | Pill-bottle label reader |
 | `src/network/` | Doctor / network check (NPPES + Tavily) |
 | `src/api/` | FastAPI server (streaming chat, uploads) |
@@ -148,6 +183,8 @@ Production runs on a small Nebius AI Cloud CPU VM behind Caddy (automatic HTTPS)
 - Medical costs use plan copays and out-of-pocket maximums with a typical-use estimate; drug costs are exact to the
   public files, not to a specific pharmacy's contract.
 - Network status from web search is a lead to confirm with the plan, never a guarantee.
+- Letter drafts are a starting point, not legal advice. Summaries in less common languages are checked for numbers and
+  language, not for style; a native speaker should review them.
 - Plan data is only as current as CMS's public files (refreshed weekly).
 
 ## License

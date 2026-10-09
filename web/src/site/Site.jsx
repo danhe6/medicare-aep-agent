@@ -211,6 +211,17 @@ function Features({ t }) {
           <span className="font-bold text-muted">{d.before}</span><span className="font-display text-2xl font-[650]">{d.when}</span>
           <span className="font-display text-4xl font-[650] text-urgent">{d.left}</span><span className="text-sm text-muted">{d.sampleNotice}</span>
         </div></Feature>
+        <Feature f={F.letter}><div className="flex flex-col gap-1 rounded-3xl bg-gold-soft p-5">
+          <span className="text-sm font-bold tracking-[0.06em] text-warn">{d.ltTag}</span><span className="font-display text-3xl font-[650]">{d.ltWhen}</span>
+          <span className="text-sm text-muted">{d.ltDays}</span>
+        </div></Feature>
+        <Feature f={F.bill}><div className="flex flex-col gap-1 rounded-3xl bg-warn-soft p-5">
+          <span className="font-display text-4xl font-[650] text-warn">{d.blOver}</span><span className="text-lg">{d.blLine}</span>
+        </div></Feature>
+        <Feature f={F.family}><div className="flex flex-col gap-2 rounded-3xl bg-brand-soft p-5">
+          <span lang="zh-Hans" className="max-w-sm self-end rounded-[20px] rounded-br-md bg-brand px-4 py-3 text-white">账单多收了 $60.00。先付 $55.00，再打电话要求更正。</span>
+          <span className="text-sm text-muted">{d.fmLang}</span>
+        </div></Feature>
       </div>
       <section className={`${wrap} pt-16`}><div className="flex flex-col items-start gap-6 rounded-[32px] bg-brand px-8 py-10 text-white md:flex-row md:items-center md:justify-between md:px-14">
         <span className="font-display text-4xl font-[650]">{t.ctaTitle}</span>
