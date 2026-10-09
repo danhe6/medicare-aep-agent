@@ -273,8 +273,9 @@ export default function App() {
           if (it.kind === "saved") return <SavedCard key={i} patch={it.patch} t={t} />;
           return null;
         })}
-        {!busy && items.some((x) => x.kind === "plans") && items[items.length - 1]?.kind === "assistant" && (
-          <NextSteps t={t} onPick={send} />
+        {!busy && items.some((x) => x.kind === "plans") && items[items.length - 1]?.kind === "assistant"
+          && !/\?/.test(items[items.length - 1].text.slice(-240)) && (  // the helper is waiting for an answer: no menu
+          <NextSteps t={t} onPick={send} used={items.filter((x) => x.kind === "user").map((x) => x.text)} />
         )}
         {!busy && mode === "senior" && items[items.length - 1]?.kind === "assistant" && isYesNoQuestion(items[items.length - 1].text) && (
           <div className="my-4 grid grid-cols-2 gap-3">
