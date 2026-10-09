@@ -17,7 +17,9 @@ import { Camera, Compass, Pill, Send, Shield, Speaker, User } from "./icons.jsx"
 import NextSteps from "./components/NextSteps.jsx";
 import DoctorCard from "./components/DoctorCard.jsx";
 import CurrentPlanCard from "./components/CurrentPlanCard.jsx";
+import ShareSummary from "./components/ShareSummary.jsx";
 
+const RESULT_KINDS = ["plans", "current_plan", "doctor", "appeal", "letter", "bill"];  // results worth sending to family
 const pref = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
 
@@ -279,6 +281,9 @@ export default function App() {
         {!busy && items.some((x) => x.kind === "plans") && items[items.length - 1]?.kind === "assistant"
           && !/\?/.test(items[items.length - 1].text.slice(-240)) && (  // the helper is waiting for an answer: no menu
           <NextSteps t={t} onPick={send} used={items.filter((x) => x.kind === "user").map((x) => x.text)} />
+        )}
+        {!busy && items.some((x) => RESULT_KINDS.includes(x.kind)) && items[items.length - 1]?.kind === "assistant" && (
+          <ShareSummary key={sid} sid={sid} lang={lang} t={t} />
         )}
         {!busy && mode === "senior" && items[items.length - 1]?.kind === "assistant" && isYesNoQuestion(items[items.length - 1].text) && (
           <div className="my-4 grid grid-cols-2 gap-3">

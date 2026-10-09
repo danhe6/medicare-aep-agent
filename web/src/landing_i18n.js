@@ -57,7 +57,7 @@ export const L = {
       ["How accurate is it?", "We use Medicare's official plan files and test our results against Medicare's own Plan Finder. Always confirm your doctors and pharmacy with the plan before enrolling."],
       ["What happens to what I tell you?", "Your medicines and county are saved only on your own device, and used only to answer you. We never sell it. Please don't share Medicare or Social Security numbers."],
       ["¿Funciona en español?", "Sí. Toque «Español» arriba. Puede escribir o hablar en español."],
-      ["Is this medical or legal advice?", "No. Ask her doctor before changing any medicine. For complex cases, a free SHIP counselor can help."],
+      ["Is this medical or legal advice?", "No. Talk with the doctor before changing any medicine. For complex cases, a free SHIP counselor can help."],
     ],
     finalTitle: "Start with one question.",
     finalSub: "It takes about three minutes. No account needed.",

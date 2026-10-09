@@ -5,6 +5,7 @@
 POST /api/session            -> {"session_id"}
 POST /api/chat   (SSE)       {session_id, message, lang} -> stream of agent events (see agent.run_turn_events)
 POST /api/upload (multipart) session_id + file -> {"path"}  (photo/PDF of a notice)
+POST /api/summary            {session_id, lang, ui_lang} -> {text, language, checked}
 GET  /api/meta               -> data release info
 """
 from __future__ import annotations
@@ -22,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from agent.agent import SYSTEM, run_turn_events
+from agent import summary
 from agent.llm import client
 from engine import data, datasync, rxnorm
 from engine.estimate import friendly_name
@@ -196,6 +198,25 @@ def chat(body: ChatIn, request: Request) -> StreamingResponse:
         yield "data: {\"type\": \"done\"}\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+class SummaryIn(BaseModel):
+    session_id: str
+    lang: str = "en"      # language to write the summary in (any code in summary.LANGS)
+    ui_lang: str = "en"   # language of the app, for messages and the fallback
+
+
+@app.post("/api/summary")
+def family_summary(body: SummaryIn, request: Request) -> dict:
+    """A short summary of this conversation's results to send to family, in any language (numbers checked)."""
+    limits.check(request, "chat", body.ui_lang)
+    msgs = SESSIONS.get(body.session_id)
+    if msgs is None:
+        raise HTTPException(404, "Unknown session")
+    out = summary.write(msgs, lang=body.lang, ui_lang=body.ui_lang, llm=LLM)
+    if out.get("error") == "nothing_yet":
+        raise HTTPException(400, "Nothing to summarize yet." if body.ui_lang != "es" else "Todavía no hay nada que resumir.")
+    return out
 
 
 @app.post("/api/upload")

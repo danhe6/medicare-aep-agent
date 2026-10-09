@@ -47,3 +47,21 @@ export async function chat(sessionId, message, lang, onEvent, profile = null, mo
     }
   }
 }
+
+/** A short summary of this conversation's results, in any language, to send to family. */
+export async function summarize(sessionId, lang, uiLang) {
+  const r = await fetch("/api/summary", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: sessionId, lang, ui_lang: uiLang }),
+  });
+  if (!r.ok) {
+    let detail = "";
+    try { detail = (await r.json()).detail || ""; } catch { /* not JSON */ }
+    const err = new Error(detail || `summary failed: ${r.status}`);
+    err.status = r.status;
+    err.detail = detail;
+    throw err;
+  }
+  return r.json();
+}

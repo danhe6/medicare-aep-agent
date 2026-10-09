@@ -75,8 +75,8 @@ SCHEMAS = [
                                                   "Used only to check eligibility for condition-specific plans (C-SNPs)."},
             "hospital_stay_last_year": {"type": "boolean", "description": "Only if the user said so"},
             "pharmacy": {"type": "string", "enum": ["preferred_retail", "standard_retail", "preferred_mail"],
-                         "description": "Where she fills prescriptions. Default preferred_retail. Use preferred_mail "
-                                        "for 'what if she uses mail order'."},
+                         "description": "Where the person fills prescriptions. Default preferred_retail. Use preferred_mail "
+                                        "for 'what if they use mail order'."},
             "top_n": {"type": "integer", "description": "How many plans to return (default 5)"}},
             "required": ["state", "county", "drugs"]}}},
     {"type": "function", "function": {
@@ -93,8 +93,8 @@ SCHEMAS = [
             "required": ["doctor_name", "state", "organizations"]}}},
     {"type": "function", "function": {
         "name": "check_current_plan",
-        "description": "Use when the user names the plan she is in NOW (or asks 'should she stay?', or has her "
-                       "Annual Notice of Change). Shows what that plan costs her this year, its published changes "
+        "description": "Use when the user names the plan the person is in NOW (or asks 'should I stay?', or has their "
+                       "Annual Notice of Change). Shows what that plan costs them this year, its published changes "
                        "for next year (premium, out-of-pocket max, whether it continues), its track record, and "
                        "the best alternative with the savings. Same inputs as compare_plans plus current_plan.",
         "parameters": {"type": "object", "properties": {
@@ -108,8 +108,8 @@ SCHEMAS = [
             "required": ["current_plan", "state", "county", "drugs"]}}},
     {"type": "function", "function": {
         "name": "screen_extra_help",
-        "description": "Quick check whether she may qualify for Extra Help (Medicare's Part D low-income subsidy), "
-                       "and roughly what her medicines would cost with it. Ask for yearly income and savings only "
+        "description": "Quick check whether the person may qualify for Extra Help (Medicare's Part D low-income subsidy), "
+                       "and roughly what their medicines would cost with it. Ask for yearly income and savings only "
                        "if the user wants this check; never save them.",
         "parameters": {"type": "object", "properties": {
             "married": {"type": "boolean", "description": "Married and living together"},
@@ -117,7 +117,7 @@ SCHEMAS = [
             "yearly_income": {"type": "number", "description": "Before taxes, all sources (Social Security, pensions...)"},
             "resources": {"type": "number", "description": "Savings, checking, stocks, bonds. NOT the home or one car"},
             "has_medicaid_ssi_or_msp": {"type": "boolean"},
-            "drugs": {"type": "array", "items": {"type": "string"}, "description": "rxnorm_name of her medicines, if known"}},
+            "drugs": {"type": "array", "items": {"type": "string"}, "description": "rxnorm_name of their medicines, if known"}},
             "required": []}}},
     {"type": "function", "function": {
         "name": "read_medicine_label",
@@ -137,7 +137,7 @@ SCHEMAS = [
             "state": {"type": "string"}, "county": {"type": "string"}, "medicaid": {"type": "boolean"},
             "conditions": {"type": "array", "items": {"type": "string"}},
             "hospital_stay_last_year": {"type": "boolean"},
-            "current_plan": {"type": "string", "description": "plan_key of the plan she is in now, e.g. H1019-057-000"},
+            "current_plan": {"type": "string", "description": "plan_key of the plan the person is in now, e.g. H1019-057-000"},
             "current_plan_name": {"type": "string", "description": "That plan's name as shown in the results"},
             "add_medicines": {"type": "array", "items": {"type": "object", "properties": {
                 "rxnorm_name": {"type": "string"}, "qty_per_30d": {"type": "number"},
@@ -195,10 +195,10 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
             ranking_notes.append(
                 (f"{a['plan_name']} aparece antes que {b['plan_name']} aunque cuesta ${a['total'] - b['total']:,.0f} más en "
                  f"un año típico, porque su límite de gastos médicos es más bajo (${a['moop']:,.0f} frente a "
-                 f"${b['moop']:,.0f}): la protege mejor si tiene un año de salud difícil.") if lang == "es" else
+                 f"${b['moop']:,.0f}): protege mejor en un año de salud difícil.") if lang == "es" else
                 (f"{a['plan_name']} is listed above {b['plan_name']} even though its typical year costs "
                  f"${a['total'] - b['total']:,.0f} more, because its medical out-of-pocket max is lower "
-                 f"(${a['moop']:,.0f} vs ${b['moop']:,.0f}) - safer if she has a bad health year."))
+                 f"(${a['moop']:,.0f} vs ${b['moop']:,.0f}) - safer in a bad health year."))
     snp = [slim(r) for r in out["results"] if r.get("snp_type")][:2]
     everything_covered = any(not r["not_covered"] for r in out["results"] if not r.get("snp_type"))
 
@@ -218,11 +218,11 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
             "best_if_doctor_approves_generics": best_generics,
             "field_guide": {
                 "plain_summary": "accurate plain-language summary of each plan - base your explanation on it",
-                "part_b_monthly_premium": "standard Part B premium she pays on top of any plan premium",
+                "part_b_monthly_premium": "standard Part B premium the person pays on top of any plan premium",
                 "total": "typical year = 12 months of premium + drug out-of-pocket",
-                "bad_year_total": "typical year + medical out-of-pocket max (moop): the most she'd pay if she had "
+                "bad_year_total": "typical year + medical out-of-pocket max (moop): the most they'd pay if they had "
                                   "a very bad health year (hospital stays etc.)",
-                "with_generics": "the same plan if her doctor approves the listed generic switch(es)",
+                "with_generics": "the same plan if their doctor approves the listed generic switch(es)",
                 "best_if_doctor_approves_generics": "best plans assuming the doctor approves generic switches - "
                                                     "present as an option to discuss with the doctor",
                 "drug_oop_is_lower_bound": "true = a drug is not covered; real cost is at least this, often 2-3x",
@@ -233,8 +233,8 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
                 "track_record": "PAST behavior, not a prediction: formulary_record = share of the insurer's drugs "
                                 "removed or restricted 2025->2026 vs the national median, and any of HER drugs "
                                 "affected; next_year = the plan's published premium/MOOP for next year. Mention "
-                                "it when it separates close plans or when one of her drugs was affected.",
-                "special_needs_plan_options": "C-SNP/D-SNP plans she appears eligible for; eligibility must be "
+                                "it when it separates close plans or when one of their drugs was affected.",
+                "special_needs_plan_options": "C-SNP/D-SNP plans the person appears eligible for; eligibility must be "
                                               "confirmed by the plan",
             },
             "assumptions": out["assumptions"]}
@@ -319,7 +319,7 @@ def check_doctor_network(doctor_name: str, state: str, organizations: list[str],
 
 
 def _match_plan(results: list[dict], query: str) -> tuple[dict | None, list[dict]]:
-    """Find the plan she's in: exact plan ID first (H1019-057 / H1019-057-000), else closest plan name."""
+    """Find the plan the person is in: exact plan ID first (H1019-057 / H1019-057-000), else closest plan name."""
     import difflib
     import re
     q = query.strip()
@@ -360,7 +360,7 @@ def check_current_plan(current_plan: str, state: str, county: str, drugs: list[d
     cur, candidates = _match_plan(res, current_plan)
     if not cur:
         return {"needs_clarification": True,
-                "ask": "Which of these is her plan? (Or read the plan name/ID from her member card or ANOC letter.)",
+                "ask": "Which of these is the plan? (Or read the plan name/ID from the member card or ANOC letter.)",
                 "candidates": [{"plan_key": r["plan_key"], "plan_name": r["plan_name"], "organization": r.get("organization")}
                                for r in candidates]}
     tr = cur.get("track_record") or {}
@@ -376,11 +376,11 @@ def check_current_plan(current_plan: str, state: str, county: str, drugs: list[d
         "current_plan": {**{k: cur.get(k) for k in keep}, "rank_in_county": rank, "plans_in_county": len(res)},
         "next_year": tr.get("next_year") or {"published": False,
                                              "note": "No published next-year row under this plan ID: the plan may be "
-                                                     "ending or renumbered - check her Annual Notice of Change letter."},
+                                                     "ending or renumbered - check the Annual Notice of Change letter."},
         "track_record": tr.get("formulary_record"),
         "best_alternative": alt,
         "typical_year_savings_if_switching": savings,
-        "note": "Next year's drug list (formulary) for her plan is published in October; until then her drug costs "
+        "note": "Next year's drug list (formulary) for this plan is published in October; until then drug costs "
                 "are this year's. Premium and out-of-pocket max for next year are already official.",
     }
 
