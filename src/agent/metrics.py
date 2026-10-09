@@ -24,6 +24,10 @@ TASKS = {
     "notice.extract": "v3",        # Nemotron Lightning (fallback Super): notice text -> fields
     "label.transcribe": "v1",      # vision model: pill-bottle label photo -> text
     "label.extract": "v2",         # Nemotron Lightning (fallback Super): label text -> fields
+    "letter.transcribe": "v1",     # vision model: any Medicare letter -> text
+    "letter.classify": "v1",       # keywords first; Lightning only when no official title is found
+    "letter.extract": "v1",        # Lightning: fields per letter type
+    "letter.draft": "v1",          # Super: one argument paragraph, checked by code (numbers, promises)
 }
 
 _state = threading.local()

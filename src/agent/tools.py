@@ -9,6 +9,7 @@ from pathlib import Path
 from engine import data, rxnorm
 from engine.estimate import estimate
 from defend.notice import analyze as analyze_notice
+from letters.read import analyze as analyze_letter
 from meds.label import analyze as analyze_label
 from engine.usage import infer_health_usage
 from network.doctor import check as check_doctor
@@ -19,13 +20,14 @@ ROOT = Path(__file__).resolve().parents[2]
 
 SCHEMAS = [
     {"type": "function", "function": {
-        "name": "read_care_ending_notice",
-        "description": "Use when the user has a notice saying Medicare coverage of nursing home (SNF), home health, "
-                       "hospice or rehab care is ending (Notice of Medicare Non-Coverage). Reads the photo/PDF, "
-                       "computes the appeal deadline and returns the call script and checklist.",
+        "name": "read_medicare_letter",
+        "description": "Use for ANY photo or PDF of a Medicare-related letter or notice the user uploads: drug or medical "
+                       "coverage denial, prior authorization denial, Notice of Medicare Non-Coverage (care ending), "
+                       "Medicare Summary Notice, IRMAA (Social Security premium) letter, Annual Notice of Change, EOB. "
+                       "It identifies the letter, extracts the key facts, computes the deadline with Medicare's rules, "
+                       "lists the steps, and drafts an appeal letter and a request to the doctor where an appeal applies.",
         "parameters": {"type": "object", "properties": {
-            "file_path": {"type": "string", "description": "Path to the photo or PDF of the notice"},
-            "medicare_advantage": {"type": "boolean", "description": "true if in a Medicare Advantage plan, if known"}},
+            "file_path": {"type": "string", "description": "Path to the uploaded photo or PDF"}},
             "required": ["file_path"]}}},
     {"type": "function", "function": {
         "name": "find_drug",
@@ -242,6 +244,16 @@ def read_care_ending_notice(file_path: str, medicare_advantage: bool | None = No
         _discard(p)
 
 
+def read_medicare_letter(file_path: str, lang: str = "en") -> dict:
+    p = _safe_path(file_path)
+    if not p:
+        return {"error": "File not found. Ask the user to upload a photo of the letter."}
+    try:
+        return analyze_letter(str(p), lang=lang)
+    finally:
+        _discard(p)
+
+
 def _safe_path(file_path: str) -> Path | None:
     p = (ROOT / file_path).resolve() if not Path(file_path).is_absolute() else Path(file_path).resolve()
     return p if any(str(p).startswith(str(d.resolve())) for d in ALLOWED_DIRS) and p.exists() else None
@@ -356,7 +368,7 @@ def screen_extra_help(drugs: list[str] | None = None, **kw) -> dict:
     return out
 
 
-IMPL = {"check_current_plan": check_current_plan, "screen_extra_help": screen_extra_help, "check_doctor_network": check_doctor_network, "read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
+IMPL = {"read_medicare_letter": read_medicare_letter, "check_current_plan": check_current_plan, "screen_extra_help": screen_extra_help, "check_doctor_network": check_doctor_network, "read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
         "update_profile": update_profile, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
 
 

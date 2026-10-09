@@ -166,11 +166,12 @@ def verify(fields: dict, text: str) -> dict:
 
 
 def analyze(path: str, now: datetime | None = None, tz: str = "America/New_York",
-            medicare_advantage: bool | None = None, llm=None, lang: str = "en") -> dict:
+            medicare_advantage: bool | None = None, llm=None, lang: str = "en", text: str | None = None) -> dict:
     llm = llm or client()
     from agent import metrics
-    with metrics.task("notice.transcribe"):
-        text = transcribe(Path(path), llm)
+    if text is None:  # letters.read passes the transcript it already has
+        with metrics.task("notice.transcribe"):
+            text = transcribe(Path(path), llm)
     with metrics.task("notice.extract"):
         fields = extract(text, llm)
     fields["qio_name"] = normalize_qio(fields.get("qio_name"))

@@ -65,13 +65,21 @@ EXTRA HELP: if someone may have limited income, or asks, offer the Extra Help ch
 the result plainly ("you may qualify" - Social Security decides), the rough drug cost with Extra Help if given, and
 how to apply (online or phone from the tool). Plan comparisons do not yet include Extra Help pricing - don't
 offer to re-run them "with Extra Help". Income and savings are private: never call update_profile with them.
-CARE ENDING (Defend mode): if the user says nursing home / rehab / home health care is being stopped, or shares a
-Notice of Medicare Non-Coverage, call read_care_ending_notice. Then lead with the DEADLINE and hours left, then
-the QIO phone number and call script, then the checklist. If checks.needs_user_confirmation is not empty, ask the
+LETTERS AND NOTICES (Defend mode): for any uploaded letter or notice (denial, prior authorization, care ending,
+Medicare Summary Notice, IRMAA, Annual Notice of Change), call read_medicare_letter. If the user describes a denial or
+care ending without a photo, ask them to take a photo of the letter. After it returns, lead with WHAT the letter is
+and the DEADLINE (days or hours left), then the one next step. The card shows the steps and the drafted letters, so
+don't repeat them. Do NOT switch to comparing plans or ask for county or medicines after reading a letter; the
+user's question is the letter. If needs_user_confirmation (or checks.needs_user_confirmation) is not empty, ask the user to
+confirm those values from the paper. If needs_date is set, ask for the date printed on the letter. For an Annual
+Notice of Change with a plan_id, offer to check that plan for next year (check_current_plan). For care-ending
+notices also give the QIO phone number. If the deadline has passed (appeal.status "missed" or deadline.days_left < 0),
+say so plainly first, then the if_missed / missedHint options calmly; never tell them to "call now to appeal" as if on time.
+You help them use their Medicare rights; you are not a lawyer and do not predict the outcome. If checks.needs_user_confirmation is not empty, ask the
 user to confirm those values from the paper before relying on them. If status is "missed", explain the if_missed
 options calmly. You help them use their Medicare rights; you are not a lawyer and do not predict the outcome.
 The app shows plan results and appeal steps as cards next to your message, so after compare_plans or
-read_care_ending_notice keep your own message to 3-5 short sentences: the single most important point, the one
+read_medicare_letter keep your own message to 3-5 short sentences: the single most important point, the one
 decision to make, and the next step. Do not repeat tables or full lists that the cards already show.
 Keep answers short and warm. Use simple language (8th-grade reading level).
 HOW TO ASK QUESTIONS (the reader may be 80 years old, on a phone, or listening to your answer read aloud):
@@ -200,7 +208,7 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
             tool_msg = {"role": "tool", "tool_call_id": tc.id, "content": result}
             messages.append(tool_msg)
             convo.append(tool_msg)
-            if tc.function.name in ("compare_plans", "read_care_ending_notice", "check_doctor_network", "check_current_plan") \
+            if tc.function.name in ("compare_plans", "read_care_ending_notice", "read_medicare_letter", "check_doctor_network", "check_current_plan") \
                     and '"error"' not in result[:50] and '"needs_clarification"' not in result[:50]:
                 convo.append({"role": "system", "content": BRIEF_AFTER_CARDS})
             parsed = json.loads(result)
@@ -211,6 +219,12 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
                 yield {"type": "plans", "data": parsed}
             if ok and tc.function.name == "read_care_ending_notice":
                 yield {"type": "appeal", "data": parsed}
+            if ok and tc.function.name == "read_medicare_letter":
+                if parsed.get("letter_type") == "nomnc":
+                    if parsed.get("appeal"):
+                        yield {"type": "appeal", "data": parsed}
+                else:
+                    yield {"type": "letter", "data": parsed}
             if ok and tc.function.name == "read_medicine_label":
                 yield {"type": "label", "data": parsed}
             if ok and tc.function.name == "check_current_plan" and parsed.get("current_plan"):

@@ -10,6 +10,7 @@ import ProfilePanel from "./components/ProfilePanel.jsx";
 import { LabelCard, SavedCard } from "./components/SavedCard.jsx";
 import { applyPatch, clearProfile, forMode, loadProfile, markStatus, removeMedicine, removePerson, saveProfile, setAppeal, whoIsThis } from "./profile.js";
 import Dashboard from "./components/Dashboard.jsx";
+import LetterCard from "./components/LetterCard.jsx";
 import { isYesNoQuestion } from "./yesno.js";
 import { Camera, Compass, Pill, Send, Shield, Speaker, User } from "./icons.jsx";
 import NextSteps from "./components/NextSteps.jsx";
@@ -138,6 +139,7 @@ export default function App() {
         if (ev.type === "current_plan") setItems((xs) => [...xs, { kind: "current_plan", data: ev.data }]);
         if (ev.type === "doctor") setItems((xs) => [...xs, { kind: "doctor", data: ev.data }]);
         if (ev.type === "label") setItems((xs) => [...xs, { kind: "label", data: ev.data }]);
+        if (ev.type === "letter") setItems((xs) => [...xs, { kind: "letter", data: ev.data }]);
         if (ev.type === "profile_update") {
           setProfile(applyPatch(profileRef.current, ev.patch));
           setItems((xs) => [...xs, { kind: "saved", patch: ev.patch }]);
@@ -267,6 +269,7 @@ export default function App() {
           if (it.kind === "current_plan") return <CurrentPlanCard key={i} data={it.data} t={t} />;
           if (it.kind === "doctor") return <DoctorCard key={i} data={it.data} t={t} />;
           if (it.kind === "label") return <LabelCard key={i} data={it.data} t={t} />;
+          if (it.kind === "letter") return <LetterCard key={i} data={it.data} t={t} />;
           if (it.kind === "saved") return <SavedCard key={i} patch={it.patch} t={t} />;
           return null;
         })}
@@ -305,7 +308,7 @@ export default function App() {
             <MicButton lang={lang} onText={send} label={t.talk} listeningLabel={t.listening} />
             <button type="submit" disabled={busy} aria-label={t.send} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand text-white disabled:opacity-50"><Send className="h-6 w-6" /></button>
           </form>
-          {meta && <p className="mt-2 text-center text-sm text-muted">{t.dataAsOf(meta.coverage_as_of)}</p>}
+          {meta && <p className="mt-2 text-center text-sm text-muted">{t.dataAsOf(String(meta.coverage_as_of).replace(/^(\d{4})(\d{2})(\d{2})$/, "$2/$3/$1"))}</p>}
         </footer>
       )}
     {showProfile && (
