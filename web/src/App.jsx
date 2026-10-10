@@ -78,7 +78,7 @@ export default function App() {
     if (sid && start && !started_.current) {
       started_.current = true;
       window.history.replaceState(null, "", "/app");
-      send(start === "defend" ? t.startDefend : t.startChoose);
+      send(start === "defend" ? t.startDefend : start === "recheck" ? t.startRecheck : t.startChoose);
     }
   }, [sid]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { document.documentElement.classList.toggle("big-text", big); save("big", big ? "1" : "0"); }, [big]);

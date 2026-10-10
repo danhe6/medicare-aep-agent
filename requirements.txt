@@ -4,3 +4,6 @@ pypdf>=4.0
 fastapi>=0.110
 uvicorn[standard]>=0.29
 python-multipart>=0.0.9
+
+# reminders (Web Push encryption + VAPID signing)
+cryptography>=42

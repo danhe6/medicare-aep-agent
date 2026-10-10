@@ -1,3 +1,4 @@
+import RemindButton from "./RemindButton.jsx";
 import { useEffect, useState } from "react";
 import { Phone } from "../icons.jsx";
 
@@ -30,6 +31,8 @@ export default function AppealCard({ data, receivedAt, t }) {
           </div>
         )}
         <div className="mt-2 text-base text-muted">{t.careEnds}: {new Date(a.effective_date + "T12:00:00").toLocaleDateString(document.documentElement.lang === "es" ? "es-US" : "en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</div>
+        {!missed && a.effective_date && (() => { const d = new Date(a.effective_date + "T12:00:00"); d.setDate(d.getDate() - 1);  // deadline: noon the day before care ends
+          return <RemindButton items={[{ kind: "nomnc", date: d.toISOString().slice(0, 10) }]} lang={document.documentElement.lang} t={t} className="mt-4" />; })()}
       </div>
 
       {need.length > 0 && <div className="rounded-2xl border-2 border-warn bg-card p-4 text-base"><b>{t.confirm}</b> {need.map((k) => t.confirmFields[k] || k).join(", ")}</div>}

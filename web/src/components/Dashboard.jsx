@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Camera, Check, Pill, Shield, Alert, Arrow } from "../icons.jsx";
 import DrugPicker from "./DrugPicker.jsx";
+import RemindButton from "./RemindButton.jsx";
 import { season, daysUntil, windows, buildIcs, downloadIcs } from "../dates.js";
 
 /** Home page for a saved person: what we know, what's next, and one-tap actions into the chat.
@@ -66,6 +67,7 @@ export default function Dashboard({ profile, activeId, onPick, onSend, onPhoto, 
         <div className="rounded-3xl bg-gold-soft p-5">
           <div className="text-sm font-bold tracking-[0.08em] text-warn">{t.seasonLabel.toUpperCase()}</div>
           <div className="mt-1 text-xl font-bold">{seasonText}</div>
+          <RemindButton items={[{ kind: "enrollment" }]} planYear lang={lang} t={t} className="mt-3" />
         </div>
       )}
 

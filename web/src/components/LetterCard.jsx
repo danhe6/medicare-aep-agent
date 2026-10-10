@@ -1,3 +1,4 @@
+import RemindButton from "./RemindButton.jsx";
 import { useState } from "react";
 import { Alert, Check } from "../icons.jsx";
 
@@ -50,6 +51,7 @@ export default function LetterCard({ data, t }) {
           <div className="font-display mt-1 text-2xl">{dl.date_text}</div>
           {!missed && <div className={`font-display mt-2 text-5xl ${dl.status === "urgent" ? "text-warn" : "text-brand"}`}>{L.daysLeft(dl.days_left)}</div>}
           {missed && <p className="mt-2 text-base">{L.missedHint}</p>}
+          {!missed && dl.date && <RemindButton items={[{ kind: "deadline", date: dl.date }]} lang={document.documentElement.lang} t={t} className="mt-4" />}
         </div>
       )}
       {data.needs_date && <div className="rounded-2xl border-2 border-warn bg-card p-4 text-base"><Alert className="mr-2 inline h-5 w-5 text-warn" />{data.needs_date}</div>}

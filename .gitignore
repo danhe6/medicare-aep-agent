@@ -35,3 +35,6 @@ logs/
 uploads/
 web/.vite/
 web/public/_tmp/
+
+# reminder subscriptions (push addresses + dates only)
+data/state/*

@@ -27,7 +27,7 @@ from agent import summary
 from agent.llm import client
 from engine import data, datasync, rxnorm
 from engine.estimate import friendly_name
-from api import limits
+from api import limits, push
 
 ROOT = Path(__file__).resolve().parents[2]
 UPLOADS = ROOT / "uploads"
@@ -50,6 +50,7 @@ def _refresh_loop() -> None:
         time.sleep(REFRESH_HOURS * 3600)
         try:
             datasync.ensure_current()
+            push.plan_year_changed(int(data.manifest()["benefit_year"]))  # new plan year -> tell those who asked
         except Exception as e:
             print("datasync:", e)
 
@@ -69,6 +70,16 @@ def _purge_uploads_loop() -> None:
                 pass
 
 
+def _push_loop() -> None:
+    """Reminders: every 15 minutes, send what is due today (from 9 am Eastern)."""
+    while True:
+        try:
+            push.send_due()
+        except Exception as e:  # noqa: BLE001
+            print("push:", e)
+        time.sleep(900)
+
+
 @app.on_event("startup")
 def startup() -> None:
     global LLM
@@ -79,6 +90,13 @@ def startup() -> None:
     LLM = client()
     threading.Thread(target=_refresh_loop, daemon=True).start()
     threading.Thread(target=_purge_uploads_loop, daemon=True).start()
+    print("reminders:", "on" if push.configured() else "off (" + push.why_off() + ")")
+    if push.configured():
+        try:
+            push.plan_year_changed(int(data.manifest()["benefit_year"]))  # remembers the current year on first run
+        except Exception as e:  # noqa: BLE001
+            print("push:", e)
+        threading.Thread(target=_push_loop, daemon=True).start()
 
 
 class ChatIn(BaseModel):
@@ -219,6 +237,46 @@ def family_summary(body: SummaryIn, request: Request) -> dict:
     return out
 
 
+class RemindIn(BaseModel):
+    subscription: dict            # the browser's push address (endpoint + keys); no personal data
+    items: list[dict] = []        # [{kind: deadline|nomnc|enrollment, date?: YYYY-MM-DD}]
+    plan_year: bool = False       # also tell me when next year's plans are in
+    lang: str = "en"
+    id: str | None = None
+
+
+@app.get("/api/push/key")
+def push_key() -> dict:
+    key = push.public_key()
+    if not key:
+        raise HTTPException(404, "Reminders are not set up on this server.")
+    return {"key": key}
+
+
+@app.post("/api/reminders")
+def reminders(body: RemindIn, request: Request) -> dict:
+    limits.check(request, "lookup", body.lang)
+    if not push.configured():
+        raise HTTPException(404, "Reminders are not set up on this server.")
+    try:
+        return push.save(body.subscription, body.items, body.lang, body.plan_year, body.id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.post("/api/reminders/{rid}/test")
+def reminders_test(rid: str, request: Request) -> dict:
+    limits.check(request, "upload")
+    return {"result": push.send_test(rid)}
+
+
+@app.delete("/api/reminders/{rid}")
+def reminders_delete(rid: str, request: Request) -> dict:
+    limits.check(request, "lookup")
+    push.delete(rid)
+    return {"deleted": True}
+
+
 @app.post("/api/upload")
 async def upload(request: Request, session_id: str = Form(...), file: UploadFile = File(...)) -> dict:
     limits.check(request, "upload")
@@ -242,5 +300,9 @@ if WEB_DIST.exists():
 
     @app.get("/{full_path:path}")
     def spa(full_path: str):
-        f = WEB_DIST / full_path
-        return FileResponse(f if f.is_file() else WEB_DIST / "index.html")
+        f = (WEB_DIST / full_path).resolve()
+        if not (f.is_file() and f.is_relative_to(WEB_DIST.resolve())):  # never serve anything outside web/dist
+            f = WEB_DIST / "index.html"
+        media = "application/manifest+json" if f.suffix == ".webmanifest" else None
+        headers = {"Cache-Control": "no-cache"} if f.name in ("sw.js", "index.html") else None  # updates reach people
+        return FileResponse(f, media_type=media, headers=headers)
