@@ -16,6 +16,7 @@ export const STRINGS = {
     uploading: "Reading your photo…",
     uploadedMsg: (p) => `I uploaded a photo of a Medicare letter or notice: ${p}`,
     startChoose: "I want help choosing a Medicare plan for next year.",
+    startLetter: "I got a Medicare letter (or a bill). Can you help me understand it?",
     startRecheck: "Next year's plans are in. Is my current plan still the best one for my medicines?",
     startDefend: "The nursing home (or home health agency) says Medicare will stop paying for care. What do I do?",
     profileTitle: "Saved on this device",
@@ -149,6 +150,7 @@ export const STRINGS = {
     bigText: "Bigger text",
     home: "Start over",
     dataAsOf: (d) => `Plan data from Medicare, updated ${d}`,
+    disclaimer: "Estimates from Medicare's public data, not advice. Confirm with the plan before you enroll. Free, unbiased help: your state's SHIP (Florida: SHINE, 1-800-963-5337) or shiphelp.org.",
     steps: {
       find_drug: (a) => `Looking up ${a.query || "a medicine"}`,
       find_county: (a) => `Finding your county${a.contains ? `: ${a.contains}` : ""}`,
@@ -213,6 +215,7 @@ export const STRINGS = {
     uploading: "Leyendo su foto…",
     uploadedMsg: (p) => `Subí una foto de una carta o aviso de Medicare: ${p}`,
     startChoose: "Quiero ayuda para elegir un plan de Medicare para el próximo año.",
+    startLetter: "Recibí una carta de Medicare (o una factura). ¿Me ayuda a entenderla?",
     startRecheck: "Ya salieron los planes del próximo año. ¿Mi plan actual sigue siendo el mejor para mis medicinas?",
     startDefend: "El asilo de ancianos (o la agencia de cuidado en casa) dice que Medicare dejará de pagar. ¿Qué hago?",
     profileTitle: "Guardado en este dispositivo",
@@ -332,6 +335,7 @@ export const STRINGS = {
     bigText: "Letra más grande",
     home: "Empezar de nuevo",
     dataAsOf: (d) => `Datos de planes de Medicare, actualizados ${d}`,
+    disclaimer: "Estimaciones con datos públicos de Medicare, no son consejo. Confirme con el plan antes de inscribirse. Ayuda gratuita e imparcial: el SHIP de su estado (Florida: SHINE, 1-800-963-5337) o shiphelp.org.",
     steps: {
       find_drug: (a) => `Buscando ${a.query || "una medicina"}`,
       find_county: (a) => `Buscando su condado${a.contains ? `: ${a.contains}` : ""}`,

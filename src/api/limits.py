@@ -2,7 +2,8 @@
 
 One process, no database: counters reset on restart, which is fine for a single small VM.
   * per visitor (IP): a burst limit per minute and a daily limit, per kind of request
-  * whole site: a daily cap on AI chat turns (a budget guard)
+  * whole site: a daily cap on AI chat turns, and a hard daily cap on model spend (DAILY_SPEND_CAP_USD, from the
+    token counts the metrics wrapper already records and pipeline/model_prices.json)
 All numbers can be changed with environment variables (see LIMITS).
 """
 from __future__ import annotations
@@ -13,6 +14,8 @@ import time
 from collections import deque
 
 from fastapi import HTTPException, Request
+
+from agent import metrics
 
 
 def _env(name: str, default: int) -> int:
@@ -30,6 +33,12 @@ LIMITS = {
     "session": (_env("RL_SESSION_MIN", 10), _env("RL_SESSION_DAY", 200)),
 }
 SITE_CHAT_DAY = _env("RL_SITE_CHAT_DAY", 5000)   # all visitors together; ~$10/day at ~$0.002 a turn
+def spend_cap() -> float:
+    """Hard budget: model spend per UTC day, in USD (read on each call so .env changes apply after a restart)."""
+    try:
+        return float(os.environ.get("DAILY_SPEND_CAP_USD", "10"))
+    except ValueError:
+        return 10.0
 
 MESSAGES = {
     "en": {"visitor": "You're going a little fast. Please wait a minute and try again.",
@@ -69,6 +78,8 @@ def check(request: Request, kind: str, lang: str = "en") -> None:
         last_min = sum(1 for t in q if now - t < 60)
         if last_min >= per_min or len(q) >= per_day:
             raise HTTPException(429, msg["visitor"], headers={"Retry-After": "60"})
+        if kind in ("chat", "upload") and metrics.spend_today() >= spend_cap():
+            raise HTTPException(429, msg["site"], headers={"Retry-After": "3600"})
         if kind == "chat":
             if _site["chat"] >= SITE_CHAT_DAY:
                 raise HTTPException(429, msg["site"], headers={"Retry-After": "3600"})

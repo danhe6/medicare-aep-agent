@@ -7,7 +7,7 @@ const ICON = { compare: Star, label: Camera, current: Check, doctor: Stethoscope
  *  (Orange County FL compare = Plan Finder #1; Humana Gold Plus check; sample notice, denial letter, bill + EOB). */
 const P = {
   en: {
-    label: "TEN THINGS IT DOES · SAMPLE DATA", play: "Play all", pause: "Pause",
+    label: "TEN THINGS IT DOES · SAMPLE DATA", chooseLabel: "CHOOSING A PLAN, STEP BY STEP · SAMPLE DATA", play: "Play all", pause: "Pause",
     foot: "Every number comes from Medicare's public data and a rules engine, never from the AI. Bracketed items are examples.",
     scenes: [
       { key: "compare", short: "Compare plans", title: "Compare every plan", line: "Ranked for the medicines you take", tag: "COMPARE PLANS",
@@ -54,7 +54,7 @@ const P = {
     },
   },
   es: {
-    label: "DIEZ COSAS QUE HACE · DATOS DE EJEMPLO", play: "Ver todo", pause: "Pausa",
+    label: "DIEZ COSAS QUE HACE · DATOS DE EJEMPLO", chooseLabel: "ELEGIR UN PLAN, PASO A PASO · DATOS DE EJEMPLO", play: "Ver todo", pause: "Pausa",
     foot: "Cada número viene de los datos públicos de Medicare y de un motor de reglas, nunca de la IA. Lo que está entre corchetes es un ejemplo.",
     scenes: [
       { key: "compare", short: "Comparar", title: "Compare todos los planes", line: "Ordenados según sus medicinas", tag: "COMPARAR PLANES",
@@ -179,8 +179,9 @@ function Result({ k, r }) {
     </div>);
 }
 
-export default function DemoPlayer({ lang, compact = false }) {
-  const p = P[lang] || P.en;
+export default function DemoPlayer({ lang, compact = false, only = null }) {
+  const base = P[lang] || P.en;
+  const p = only ? { ...base, label: base.chooseLabel, scenes: only.map((k) => base.scenes.find((x) => x.key === k)).filter(Boolean) } : base;
   const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(!reduced);
@@ -215,7 +216,7 @@ export default function DemoPlayer({ lang, compact = false }) {
   if (compact) return (
     <div id="demo" className="flex min-w-0 flex-col gap-4">
       {windowEl}
-      <div role="tablist" aria-label={p.label} className="grid grid-cols-5 gap-2">
+      <div role="tablist" aria-label={p.label} className={`grid gap-2 ${p.scenes.length === 6 ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-5"}`}>
         {p.scenes.map((x, n) => {
           const Icon = ICON[x.key];
           return (

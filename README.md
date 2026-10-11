@@ -6,8 +6,8 @@ looks up doctors, screens for Extra Help, reads Medicare letters (denials, summa
 turns them into a deadline, steps and a drafted appeal, checks a provider's bill against the plan's statement, and
 writes a short summary for the family in 18 languages.
 
-Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/) (Personal AI track ·
-Best Use of Tavily). Agent and extraction run on **NVIDIA Nemotron** models served by **Nebius Token Factory**.
+Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/) (Best Apps and Agents
+track · Best Use of Tavily). Agent and extraction run on **NVIDIA Nemotron** models served by **Nebius Token Factory**.
 
 > Decision support only. Not an insurer, broker or enrollment service: no commissions, no ads, nothing to sell.
 > Always confirm with the plan or 1-800-MEDICARE before enrolling.
@@ -16,6 +16,22 @@ Best Use of Tavily). Agent and extraction run on **NVIDIA Nemotron** models serv
 files; the models only listen, read, extract and explain.
 
 ---
+
+## Built on NVIDIA Nemotron + Nebius
+
+Every answer runs through **Nebius Token Factory** at request time (OpenAI-compatible API, `NEBIUS_BASE_URL`), and the
+models that make decisions are **NVIDIA Nemotron** open models:
+
+| Job | Model on Token Factory | Why this one |
+|---|---|---|
+| The agent: what to ask, which tool to call, the plain-language answer | `nvidia/nemotron-3-super-120b-a12b` | Reliable tool calling at about $0.002 a turn |
+| Structured extraction (pill labels, letters, bills, statements) | `nvidia/Nemotron-3_5-Lightning`, thinking off | Fast, cheap JSON: a label read went from 31 s to 8 s with thinking off |
+| Family summaries in 18 languages | `nvidia/Nemotron-3-Ultra-550b-a55b` | Best at less common languages (Haitian Creole, Vietnamese); every number checked in code |
+| Reading photos (transcription only) | `google/gemma-3-27b-it` | Vision model available on Token Factory; Nemotron does all reasoning on its text |
+
+- Every model call goes through one metered client (`src/agent/metrics.py`): task name, model, tokens and latency,
+  never health content. The same counts drive a hard daily spend cap (`DAILY_SPEND_CAP_USD`).
+- Deployment: Docker + Caddy on a Nebius AI Cloud VM (`deploy/`). Doctor-network leads use the Tavily Search API.
 
 ## Why
 
@@ -130,6 +146,8 @@ ours $0 premium + $0 drugs, $3,500 max, 4.5 stars, ranked #1; Plan Finder shows 
   (localStorage) and are sent with each message for that turn only.
 - **No conversation logs in production** (`TRACE_LOG=0`). Uploaded photos are deleted as soon as they are read; a
   bill or statement is kept at most 30 minutes, only to compare it with the second document.
+- **Reminders are opt-in** (Web Push): the server keeps only the browser's push address and the dates; the message is
+  encrypted for that browser (RFC 8291) and deleted after the last date.
 - **Never asks for** Medicare or Social Security numbers. Income for the Extra Help check is never saved.
 - Metrics record task names, token counts and latency only, never health content.
 
@@ -138,6 +156,11 @@ ours $0 premium + $0 drugs, $3,500 max, 4.5 stars, ranked #1; Plan Finder shows 
 About **$0.002 per chat turn** at Nebius Token Factory public prices (median over logged turns; prices in
 [pipeline/model_prices.json](pipeline/model_prices.json), report via `python pipeline/metrics_report.py`).
 A full plan comparison is a few turns, roughly a cent, which is what lets this stay free.
+
+Guards for a public URL (`src/api/limits.py`, all set by environment variables): per-visitor limits per minute and per
+day for chat, photo uploads and lookups; a site-wide cap of chat turns per day; and a hard **daily spend cap**
+(`DAILY_SPEND_CAP_USD`, default $10) computed from the recorded token counts. When a cap is hit, people see a short
+message pointing to 1-800-MEDICARE instead of an error.
 
 ## Run it
 

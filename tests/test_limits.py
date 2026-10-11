@@ -46,5 +46,19 @@ class LimitsTest(unittest.TestCase):
         self.assertIn("busy", e.exception.detail)
 
 
+    def test_daily_spend_cap(self):
+        from agent import metrics
+        self.assertAlmostEqual(metrics.cost_usd("nvidia/nemotron-3-super-120b-a12b", 1_000_000, 1_000_000), 1.2)
+        os.environ["DAILY_SPEND_CAP_USD"] = "0.5"
+        try:
+            metrics._spend.update(day=metrics._today(), usd=0.6)  # pretend today's model calls cost $0.60
+            with self.assertRaises(HTTPException) as e:
+                limits.check(FakeRequest("9.9.9.9"), "upload")
+            self.assertEqual(e.exception.status_code, 429)
+            limits.check(FakeRequest("9.9.9.9"), "lookup")  # lookups use no model: still fine
+        finally:
+            os.environ.pop("DAILY_SPEND_CAP_USD")
+            metrics._spend.update(day=metrics._today(), usd=0.0)
+
 if __name__ == "__main__":
     unittest.main()

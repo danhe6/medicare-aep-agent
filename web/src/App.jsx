@@ -78,7 +78,7 @@ export default function App() {
     if (sid && start && !started_.current) {
       started_.current = true;
       window.history.replaceState(null, "", "/app");
-      send(start === "defend" ? t.startDefend : start === "recheck" ? t.startRecheck : t.startChoose);
+      send({ defend: t.startDefend, recheck: t.startRecheck, letter: t.startLetter }[start] || t.startChoose);
     }
   }, [sid]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { document.documentElement.classList.toggle("big-text", big); save("big", big ? "1" : "0"); }, [big]);
@@ -243,12 +243,15 @@ export default function App() {
               <span><span className="block text-2xl font-bold">{t.forOther}</span><span className="text-lg text-muted">{t.forOtherSub}</span></span>
             </button>
             <p className="rounded-2xl bg-brand-soft p-4 text-base">{t.whoPrivacy}</p>
+            <p className="text-sm text-muted">{t.disclaimer}</p>
           </div>
         )}
         {showDash && (
+          <>
           <Dashboard profile={forMode(profile, mode)} activeId={active?.id} onPick={setActiveId} onSend={send} t={t} lang={lang} big={big}
             onPhoto={() => { setPhotoFor(active?.name || null); fileRef.current?.click(); }}
             onAddMed={(pid, m) => { const who = profileRef.current.people.find((x) => x.id === pid); if (who) setProfile(applyPatch(profileRef.current, { person: who.name, add_medicines: [m] })); }} onOther={() => setOther(true)} />
+          <p className="mx-auto mt-6 max-w-3xl text-sm text-muted">{t.disclaimer}</p></>
         )}
         {!started && mode && !showDash && (
           <div className="mx-auto max-w-2xl space-y-5">
@@ -317,7 +320,8 @@ export default function App() {
             <MicButton lang={lang} onText={send} label={t.talk} listeningLabel={t.listening} />
             <button type="submit" disabled={busy} aria-label={t.send} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand text-white disabled:opacity-50"><Send className="h-6 w-6" /></button>
           </form>
-          {meta && <p className="mt-2 text-center text-sm text-muted">{t.dataAsOf(String(meta.coverage_as_of).replace(/^(\d{4})(\d{2})(\d{2})$/, "$2/$3/$1"))}</p>}
+          <p className="mt-1 text-center text-xs text-muted">{t.disclaimer}</p>
+          {meta && <p className="mt-1 text-center text-sm text-muted">{t.dataAsOf(String(meta.coverage_as_of).replace(/^(\d{4})(\d{2})(\d{2})$/, "$2/$3/$1"))}</p>}
         </footer>
       )}
     {showProfile && (

@@ -3,7 +3,7 @@ import { S } from "./site_i18n.js";
 import { L } from "../landing_i18n.js";
 import { CheckTool } from "../Landing.jsx";
 import DemoPlayer from "./DemoPlayer.jsx";
-import { Arrow, Check, Compass, Lock, Mic, Phone } from "../icons.jsx";
+import { Arrow, Check, Compass, Lock, Mic, Phone, Pill } from "../icons.jsx";
 
 const pref = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
@@ -60,11 +60,25 @@ function Home({ t, lang }) {
           <h1 className="text-5xl leading-[1.04] md:text-[3rem] 2xl:text-[3.5rem]">{t.h1[0]}<br /><span className="text-brand">{t.h1[1]}</span></h1>
           <p className="max-w-xl text-xl leading-relaxed text-muted">{t.sub}</p>
           <div className="flex flex-wrap gap-3">
-            <a href="/app" className="inline-flex min-h-14 items-center gap-3 rounded-full bg-brand px-7 text-lg font-bold text-white no-underline hover:bg-brand-dark"><Mic className="h-5 w-5" />{t.talk}</a>
+            <a href="/app?start=choose" className="inline-flex min-h-14 items-center gap-3 rounded-full bg-brand px-7 text-lg font-bold text-white no-underline hover:bg-brand-dark"><Pill className="h-5 w-5" />{t.compareCta}</a>
             <a href="/features" className="inline-flex min-h-14 items-center rounded-full border-2 border-ink px-7 text-lg font-bold text-ink no-underline">{t.seeAll}</a>
           </div>
         </div>
-        <DemoPlayer lang={lang} compact />
+        <DemoPlayer lang={lang} compact only={["compare", "label", "doctor", "extra", "family", "dates"]} />
+      </section>
+
+      <section className={`${wrap} pt-16`}>
+        <div className="rounded-[32px] border border-line bg-card p-8 md:p-12">
+          <h2 className="text-3xl md:text-4xl">{t.letterTitle}</h2>
+          <p className="mt-2 text-xl text-muted">{t.letterSub}</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {t.letterCards.map(([a, b, start]) => (
+              <a key={a} href={`/app?start=${start}`} className="flex flex-col gap-2 rounded-3xl bg-paper p-6 text-ink no-underline hover:bg-brand-soft">
+                <span className="text-xl font-bold">{a}</span><span className="text-lg text-muted">{b}</span>
+              </a>
+            ))}
+          </div>
+        </div>
       </section>
 
       <div className="pt-20"><Problem t={t} /></div>
