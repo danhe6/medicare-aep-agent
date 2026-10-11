@@ -6,7 +6,7 @@ import { season, daysUntil, windows, buildIcs, downloadIcs } from "../dates.js";
 
 /** Home page for a saved person: what we know, what's next, and one-tap actions into the chat.
  *  Everything shown here comes from the profile on this device. */
-export default function Dashboard({ profile, activeId, onPick, onSend, onPhoto, onAddMed, onOther, t, lang, big }) {
+export default function Dashboard({ profile, activeId, onPick, onSend, onPhoto, onPhotoLetter, onAddMed, onOther, t, lang, big }) {
   const [adding, setAdding] = useState(false);
   const [med, setMed] = useState(null);
   const [qty, setQty] = useState(30);
@@ -134,6 +134,13 @@ export default function Dashboard({ profile, activeId, onPick, onSend, onPhoto, 
           ))}
         </ul>
       </section>
+
+      {onPhotoLetter && (
+        <button onClick={onPhotoLetter} className={`${card} flex w-full items-center gap-4 text-left hover:border-brand`}>
+          <Camera className="h-8 w-8 shrink-0 text-brand" />
+          <span><span className="block text-xl font-bold text-brand">{t.letterStart}</span><span className="text-base text-muted">{t.letterStartSub}</span></span>
+        </button>
+      )}
 
       <button onClick={calendar} className={`${card} block w-full text-left hover:border-brand`}>
         <span className="block text-xl font-bold text-brand">{t.dashCalendar}</span>

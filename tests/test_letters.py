@@ -57,5 +57,36 @@ class DraftCheck(unittest.TestCase):
         self.assertEqual(check_draft("[Did you try metformin? What happened?] Please reconsider.", self.facts), [])
 
 
+
+
+class NotMedicare(unittest.TestCase):
+    def test_photo_without_text_is_not_a_letter(self):
+        from letters.read import analyze
+        out = analyze("x.jpg", llm=object(), text="  \n:) ")
+        self.assertEqual(out["letter_type"], "not_medicare")
+
+    def test_tool_errors_are_short(self):
+        import json as _j
+        from agent import tools
+        tools.IMPL["_boom"] = lambda: (_ for _ in ()).throw(ValueError("x" * 100000))
+        try:
+            out = _j.loads(tools.call("_boom", "{}"))
+            self.assertLess(len(out["error"]), 400)
+        finally:
+            tools.IMPL.pop("_boom")
+
+
+class StatedDays(unittest.TestCase):
+    def test_letter_days_win(self):
+        from datetime import date
+        from letters.checks import stated_days
+        from letters.rules import plan
+        self.assertEqual(stated_days("You have 60 calendar days from the date of this notice to ask"), 60)
+        self.assertIsNone(stated_days("Call us within 7 days"))
+        f = {"notice_date": "2026-10-02", "appeal_days_stated": 60}
+        self.assertEqual(plan("partd_denial", f, date(2026, 10, 12))["deadline"]["date"], "2026-12-01")
+        self.assertEqual(plan("partd_denial", {"notice_date": "2026-10-02"}, date(2026, 10, 12))["deadline"]["date"], "2026-12-06")
+
+
 if __name__ == "__main__":
     unittest.main()

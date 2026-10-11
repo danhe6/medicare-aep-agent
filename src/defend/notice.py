@@ -86,10 +86,10 @@ def regex_fields(text: str) -> dict:
     m = re.search(r"call\s+your\s+QIO\s+at\s*:?\s*(.+?)\s+(1?[-. (]*\d{3}[-. )]*\d{3}[-. ]*\d{4})", text, re.I | re.S)
     if m:
         out["qio_name"], out["qio_phone"] = " ".join(m.group(1).split()), m.group(2).strip()
-    m = re.search(r"current\s+(skilled nursing|home health|hospice|comprehensive outpatient)", text, re.I)
+    m = re.search(r"current\s+(skilled\s+nursing|home\s+health|hospice|comprehensive\s+outpatient|outpatient\s+rehabilitation)", text, re.I)
     if m:
         out["service"] = {"skilled nursing": "snf", "home health": "home_health", "hospice": "hospice",
-                          "comprehensive outpatient": "corf"}[m.group(1).lower()]
+                          "comprehensive outpatient": "corf", "outpatient rehabilitation": "corf"}[" ".join(m.group(1).lower().split())]
     if re.search(r"notice of medicare non-coverage", text, re.I):
         out["notice_type"] = "NOMNC"
     return out
@@ -105,14 +105,24 @@ def extract(text: str, llm=None) -> dict:
             fields, src = got, MODELS[role]
             source = {k: src for k, v in got.items() if v not in (None, "")}
             break
-    for k, v in regex_fields(text).items():
-        if not fields.get(k):
+    rx = regex_fields(text)
+    for k, v in rx.items():
+        if not fields.get(k) or k == "service":  # the service printed on the notice beats the model's guess
             fields[k] = v
             source[k] = "regex"
-    if not fields.get("effective_date") and fields.get("effective_date_as_written"):
-        d = _parse_date(fields["effective_date_as_written"])
-        fields["effective_date"] = d.isoformat() if d else None
-        source["effective_date"] = "regex"
+    # The end date decides the deadline, so code has the last word: the date printed after "will end" wins; else the
+    # model's as-written text if it really is in the transcript; the model's own ISO date only as a last resort.
+    # (Eval 10/12: the model returned invented ISO dates like 2024-01-15 for 4 of 5 notices.)
+    for written, src in ((rx.get("effective_date_as_written"), "regex"), (fields.get("effective_date_as_written"), "as_written")):
+        d = _parse_date(written) if written and written.lower() in text.lower() else None
+        if d:
+            fields["effective_date"], fields["effective_date_as_written"] = d.isoformat(), written
+            source["effective_date"] = src
+            break
+    else:  # nothing printed backs the model's date: never guess a deadline, ask the person instead
+        if not _date_in_text(_parse_date(fields.get("effective_date")), text):
+            fields["effective_date"] = None
+            source["effective_date"] = "not_found"
     fields["_source"] = source
     return fields
 
@@ -131,6 +141,18 @@ def _parse_date(s: str | None) -> date | None:
         mon = next(v for k, v in MONTHS.items() if k.startswith(m.group(1).lower()[:3]))
         return date(int(m.group(3)), mon, int(m.group(2)))
     return None
+
+
+def _date_in_text(d: date | None, text: str) -> bool:
+    """Is this date printed in the text in any common US form?"""
+    if not d:
+        return False
+    t = re.sub(r"\s+", " ", text.lower())
+    forms = {f"{d.month}/{d.day}/{d.year}", f"{d.month:02d}/{d.day:02d}/{d.year}", f"{d.month}/{d.day}/{d.year % 100:02d}",
+             f"{d.month:02d}/{d.day:02d}/{d.year % 100:02d}", d.isoformat()}
+    for name in [k for k, v in MONTHS.items() if v == d.month]:
+        forms |= {f"{name} {d.day}, {d.year}", f"{name[:3]}. {d.day}, {d.year}", f"{name[:3]} {d.day}, {d.year}", f"{name} {d.day} {d.year}"}
+    return any(f in t for f in forms)
 
 
 def _digits(s: str | None) -> str:

@@ -65,6 +65,10 @@ EXTRA HELP: if someone may have limited income, or asks, offer the Extra Help ch
 the result plainly ("you may qualify" - Social Security decides), the rough drug cost with Extra Help if given, and
 how to apply (online or phone from the tool). Plan comparisons do not yet include Extra Help pricing - don't
 offer to re-run them "with Extra Help". Income and savings are private: never call update_profile with them.
+NOT A MEDICARE DOCUMENT: if read_medicare_letter returns letter_type "not_medicare", say in one sentence what the photo
+looks like (looks_like), that it doesn't seem to be a Medicare letter, bill or statement, and what you can read: Medicare
+or plan letters and notices, bills with the plan's EOB or Medicare's MSN, and pill bottle labels. Ask for the right photo.
+Do not guess its contents.
 LETTERS AND NOTICES (Defend mode): for any uploaded letter or notice (denial, prior authorization, care ending,
 Medicare Summary Notice, IRMAA, Annual Notice of Change), call read_medicare_letter. If the user describes a denial or
 care ending without a photo, ask them to take a photo of the letter. After it returns, lead with WHAT the letter is
@@ -231,7 +235,7 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
                 if parsed.get("letter_type") == "nomnc":
                     if parsed.get("appeal"):
                         yield {"type": "appeal", "data": parsed}
-                elif parsed.get("letter_type") not in ("bill", "eob"):  # those lead to check_bill; the message covers them
+                elif parsed.get("letter_type") not in ("bill", "eob", "not_medicare"):  # those lead to check_bill; the message covers them
                     yield {"type": "letter", "data": parsed}
             if ok and tc.function.name == "read_medicine_label":
                 yield {"type": "label", "data": parsed}

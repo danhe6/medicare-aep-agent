@@ -140,6 +140,24 @@ The 8 misses: four are two stand-alone drug plans (S5921) that we underestimate,
 fees are not in the public files (see [docs/backlog.md](docs/backlog.md)); the other four are off by $105–$126 for the year. Spot check: DrSelect-CFL (HMO), Orange County FL, Eliquis + atorvastatin:
 ours $0 premium + $0 drugs, $3,500 max, 4.5 stars, ranked #1; Plan Finder shows the same.
 
+### Letters
+
+A second answer key for the letter reader (`evals/letters/`): 41 fictional letters built on the structure of CMS's
+public notice templates (Part D and Medicare Advantage denials, Medicare Summary Notices, IRMAA, care-ending notices,
+plan change notices, EOBs, bills, plus 4 photos that are not Medicare documents). Each is printed and "photographed"
+(tilted, shadowed, low light) and the right answers are computed independently of the app.
+
+| Check | Result |
+|---|---|
+| Letter type recognized (incl. "not a Medicare document") | **41 / 41** |
+| Appeal deadline exactly right | **28 / 28** |
+| Phone number read correctly | **19 / 19** |
+
+One of the 28 is a care-ending notice whose date is cut off in the photo: the right answer is to ask, not to guess.
+The eval caught exactly that bug: the model had been inventing an end date (e.g. 2024-01-15) when none was visible.
+Now a date must be found in the letter's own text, in code, before any deadline is computed.
+Run: `PYTHONPATH=src python evals/letters/run_eval.py`.
+
 ## Privacy
 
 - **No accounts, no server-side profiles.** Saved people, medicines and current plans live only in the browser

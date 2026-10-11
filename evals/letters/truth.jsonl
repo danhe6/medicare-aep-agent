@@ -1,0 +1,41 @@
+{"id": "partd_denial_01", "file": "set/partd_denial_01.jpg", "style": "photo", "type": "partd_denial", "deadline": "2026-10-30", "keyword": "Ozempic", "phone": "0138"}
+{"id": "partd_denial_02", "file": "set/partd_denial_02.jpg", "style": "dark", "type": "partd_denial", "deadline": "2026-12-02", "keyword": "Trelegy", "phone": "0147"}
+{"id": "partd_denial_03", "file": "set/partd_denial_03.jpg", "style": "photo", "type": "partd_denial", "deadline": "2026-11-23", "keyword": "Xarelto", "phone": "0147"}
+{"id": "partd_denial_04", "file": "set/partd_denial_04.jpg", "style": "dark", "type": "partd_denial", "deadline": "2026-11-18", "keyword": "Entresto", "phone": "0153"}
+{"id": "partd_denial_05", "file": "set/partd_denial_05.jpg", "style": "photo", "type": "partd_denial", "deadline": "2026-12-02", "keyword": "Eliquis", "phone": "0170"}
+{"id": "partd_denial_06", "file": "set/partd_denial_06.jpg", "style": "photo", "type": "partd_denial", "deadline": "2026-10-05", "keyword": "Eliquis", "phone": "0173"}
+{"id": "partd_denial_07", "file": "set/partd_denial_07.jpg", "style": "dark", "type": "partd_denial", "deadline": "2026-12-15", "keyword": "Ozempic", "phone": "0184"}
+{"id": "partd_denial_08", "file": "set/partd_denial_08.jpg", "style": "photo", "type": "partd_denial", "deadline": "2027-01-01", "keyword": "Xarelto", "phone": "0126"}
+{"id": "ma_denial_01", "file": "set/ma_denial_01.jpg", "style": "photo", "type": "ma_denial", "deadline": "2026-10-08", "keyword": "Physical", "phone": "0131"}
+{"id": "ma_denial_02", "file": "set/ma_denial_02.jpg", "style": "dark", "type": "ma_denial", "deadline": "2026-12-27", "keyword": "Power", "phone": "0181"}
+{"id": "ma_denial_03", "file": "set/ma_denial_03.jpg", "style": "photo", "type": "ma_denial", "deadline": "2026-12-22", "keyword": "Physical", "phone": "0192"}
+{"id": "ma_denial_04", "file": "set/ma_denial_04.jpg", "style": "scan", "type": "ma_denial", "deadline": "2026-11-08", "keyword": "Power", "phone": "0131"}
+{"id": "ma_denial_05", "file": "set/ma_denial_05.jpg", "style": "dark", "type": "ma_denial", "deadline": "2026-12-26", "keyword": "Skilled", "phone": "0174"}
+{"id": "ma_denial_06", "file": "set/ma_denial_06.jpg", "style": "dark", "type": "ma_denial", "deadline": "2026-12-25", "keyword": "Power", "phone": "0168"}
+{"id": "msn_01", "file": "set/msn_01.jpg", "style": "photo", "type": "msn", "deadline": "2026-11-14", "keyword": "appeal", "phone": null}
+{"id": "msn_02", "file": "set/msn_02.jpg", "style": "photo", "type": "msn", "deadline": "2026-12-03", "keyword": "appeal", "phone": null}
+{"id": "msn_03", "file": "set/msn_03.jpg", "style": "dark", "type": "msn", "deadline": "2026-12-16", "keyword": "appeal", "phone": null}
+{"id": "msn_04", "file": "set/msn_04.jpg", "style": "scan", "type": "msn", "deadline": "2027-01-06", "keyword": "appeal", "phone": null}
+{"id": "msn_05", "file": "set/msn_05.jpg", "style": "photo", "type": "msn", "deadline": "2027-01-20", "keyword": "appeal", "phone": null}
+{"id": "irmaa_01", "file": "set/irmaa_01.jpg", "style": "scan", "type": "irmaa", "deadline": "2026-11-26", "keyword": "IRMAA", "phone": null}
+{"id": "irmaa_02", "file": "set/irmaa_02.jpg", "style": "photo", "type": "irmaa", "deadline": "2027-01-28", "keyword": "IRMAA", "phone": null}
+{"id": "irmaa_03", "file": "set/irmaa_03.jpg", "style": "dark", "type": "irmaa", "deadline": "2027-01-07", "keyword": "IRMAA", "phone": null}
+{"id": "irmaa_04", "file": "set/irmaa_04.jpg", "style": "scan", "type": "irmaa", "deadline": "2026-12-23", "keyword": "IRMAA", "phone": null}
+{"id": "nomnc_01", "file": "set/nomnc_01.jpg", "style": "photo", "type": "nomnc", "effective_date": "2026-10-16", "keyword": "home_health", "phone": "0152"}
+{"id": "nomnc_02", "file": "set/nomnc_02.jpg", "style": "photo", "type": "nomnc", "effective_date": "2026-10-20", "keyword": "corf", "phone": "0127"}
+{"id": "nomnc_03", "file": "set/nomnc_03.jpg", "style": "photo", "type": "nomnc", "effective_date": "2026-10-20", "keyword": "snf", "phone": "0185"}
+{"id": "nomnc_04", "file": "set/nomnc_04.jpg", "style": "photo", "type": "nomnc", "effective_date": "2026-10-21", "keyword": "corf", "phone": "0178"}
+{"id": "nomnc_05", "file": "set/nomnc_05.jpg", "style": "scan", "type": "nomnc", "effective_date": null, "keyword": "home_health", "phone": "0124"}
+{"id": "anoc_01", "file": "set/anoc_01.jpg", "style": "dark", "type": "anoc", "keyword": "H8966-048", "phone": null}
+{"id": "anoc_02", "file": "set/anoc_02.jpg", "style": "dark", "type": "anoc", "keyword": "H8069-055", "phone": null}
+{"id": "anoc_03", "file": "set/anoc_03.jpg", "style": "scan", "type": "anoc", "keyword": "H3343-018", "phone": null}
+{"id": "eob_01", "file": "set/eob_01.jpg", "style": "photo", "type": "eob", "keyword": "Explanation", "phone": null}
+{"id": "eob_02", "file": "set/eob_02.jpg", "style": "dark", "type": "eob", "keyword": "Explanation", "phone": null}
+{"id": "eob_03", "file": "set/eob_03.jpg", "style": "photo", "type": "eob", "keyword": "Explanation", "phone": null}
+{"id": "bill_01", "file": "set/bill_01.jpg", "style": "photo", "type": "bill", "keyword": "115", "phone": null}
+{"id": "bill_02", "file": "set/bill_02.jpg", "style": "photo", "type": "bill", "keyword": "115", "phone": null}
+{"id": "bill_03", "file": "set/bill_03.jpg", "style": "photo", "type": "bill", "keyword": "115", "phone": null}
+{"id": "not_medicare_01", "file": "set/not_medicare_01.jpg", "style": "scan", "type": "not_medicare", "phone": null}
+{"id": "not_medicare_02", "file": "set/not_medicare_02.jpg", "style": "dark", "type": "not_medicare", "phone": null}
+{"id": "not_medicare_03", "file": "set/not_medicare_03.jpg", "style": "dark", "type": "not_medicare", "phone": null}
+{"id": "not_medicare_04", "file": "set/not_medicare_04.jpg", "style": "photo", "type": "not_medicare", "phone": null}

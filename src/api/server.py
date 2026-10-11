@@ -277,6 +277,28 @@ def reminders_delete(rid: str, request: Request) -> dict:
     return {"deleted": True}
 
 
+def _normalize_photo(body: bytes) -> bytes:
+    """Any phone photo (iPhone HEIC too) -> upright JPEG, at most 2000 px, without EXIF (no GPS location kept).
+    The vision model only accepts common formats, and smaller images are faster and cheaper to read."""
+    import io
+    from PIL import Image, ImageOps, UnidentifiedImageError
+    try:
+        import pillow_heif  # iPhone photos
+        pillow_heif.register_heif_opener()
+    except ImportError:
+        pass
+    try:
+        im = ImageOps.exif_transpose(Image.open(io.BytesIO(body)))
+    except (UnidentifiedImageError, OSError) as e:
+        raise HTTPException(400, "We couldn't open this photo. Please send a JPG or PNG (on iPhone: Settings > Camera > "
+                                 "Formats > Most Compatible).") from e
+    im = im.convert("RGB")
+    im.thumbnail((2000, 2000))
+    out = io.BytesIO()
+    im.save(out, "JPEG", quality=88)
+    return out.getvalue()
+
+
 @app.post("/api/upload")
 async def upload(request: Request, session_id: str = Form(...), file: UploadFile = File(...)) -> dict:
     limits.check(request, "upload")
@@ -288,6 +310,8 @@ async def upload(request: Request, session_id: str = Form(...), file: UploadFile
     body = await file.read()
     if len(body) > MAX_UPLOAD:
         raise HTTPException(400, "File too large (max 15 MB)")
+    if ext != ".pdf":
+        body, ext = _normalize_photo(body), ".jpg"
     d = UPLOADS / session_id
     d.mkdir(parents=True, exist_ok=True)
     dest = d / f"{uuid.uuid4().hex[:8]}{ext}"

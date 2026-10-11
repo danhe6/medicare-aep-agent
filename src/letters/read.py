@@ -18,22 +18,35 @@ from zoneinfo import ZoneInfo
 
 from agent.llm import MODELS, NO_THINK, client
 from defend.notice import _json, _parse_date, transcribe
-from letters.checks import check_draft, keyword_type
+from letters.checks import check_draft, keyword_type, stated_days
 from letters.rules import fmt, plan
 
-TYPES = ["nomnc", "partd_denial", "ma_denial", "msn", "irmaa", "anoc", "eob", "bill", "other"]
-def classify(text: str, llm=None) -> tuple[str, str]:
-    """(type, how): 'keyword' when an official title is found, else 'llm'."""
+COVERAGE_WORDS = re.compile(r"\b(medicare|medicaid|insurance|insurer|coverage|covered|claim|benefits?|premium|member|"
+                            r"plan|social security|prescription|pharmacy|deductible|copay|appeal)\b", re.I)
+TYPES = ["nomnc", "partd_denial", "ma_denial", "msn", "irmaa", "anoc", "eob", "bill", "other", "not_medicare"]
+def classify(text: str, llm=None, info: dict | None = None) -> tuple[str, str]:
+    """(type, how): 'keyword' when an official title is found, else 'llm'. `info` gets a few words on what it is."""
     kind = keyword_type(text)
     if kind:
         return kind, "keyword"
+    if len(re.sub(r"\W", "", text)) < 30:  # almost no text: a photo of something, not a document
+        if info is not None:
+            info["what"] = "a photo with little or no text"
+        return "not_medicare", "rule"
     llm = llm or client()
     resp = llm.chat.completions.create(model=MODELS["extract"], temperature=0, max_tokens=200, extra_body=NO_THINK, messages=[{
         "role": "user", "content": "Which kind of US Medicare letter is this? Answer with JSON {\"type\": one of "
-        + json.dumps(TYPES) + "}. partd_denial = a drug plan refused a prescription; ma_denial = a Medicare Advantage plan "
+        + json.dumps(TYPES) + ", \"what\": a few plain words on what the document is}. not_medicare = not about Medicare or "
+        "health coverage at all (a store receipt, a utility bill, a menu, a photo of a person or place); other = about "
+        "Medicare or health coverage but none of the listed kinds. partd_denial = a drug plan refused a prescription; ma_denial = a Medicare Advantage plan "
         "refused medical care or payment; msn = Original Medicare claim summary; irmaa = Social Security income-related "
         "premium; anoc = plan changes for next year; eob = plan's explanation of benefits.\n\nLetter:\n" + text[:6000]}])
-    kind = _json(resp.choices[0].message.content).get("type")
+    j = _json(resp.choices[0].message.content)
+    kind = j.get("type")
+    if kind in (None, "other") and not COVERAGE_WORDS.search(text):  # a menu or a note: nothing about health coverage
+        kind = "not_medicare"
+    if info is not None:
+        info["what"] = str(j.get("what") or "")[:120]
     return (kind if kind in TYPES else "other"), "llm"
 
 
@@ -160,8 +173,11 @@ def analyze(path: str, today: date | None = None, lang: str = "en", llm=None, te
     if text is None:
         with metrics.task("letter.transcribe"):
             text = transcribe(Path(path), llm)
+    info: dict = {}
     with metrics.task("letter.classify"):
-        kind, how = classify(text, llm)
+        kind, how = classify(text, llm, info)
+    if kind == "not_medicare":  # nothing to extract or draft; the agent says what it looks like and what we can read
+        return {"letter_type": "not_medicare", "looks_like": info.get("what") or "not a Medicare letter", "classified_by": how}
     if kind == "nomnc":  # the care-ending pipeline already exists; reuse it on the same transcript
         from defend.notice import analyze as analyze_nomnc
         out = analyze_nomnc(path, llm=llm, lang=lang, text=text)
@@ -169,6 +185,8 @@ def analyze(path: str, today: date | None = None, lang: str = "en", llm=None, te
         return out
     with metrics.task("letter.extract"):
         f = extract(kind, text, llm)
+    if kind in ("partd_denial", "ma_denial") and stated_days(text):
+        f["appeal_days_stated"] = stated_days(text)
     out = plan(kind, f, today, lang)
     out.update(fields=f, classified_by=how, needs_user_confirmation=verify(f, text))
     if kind in ("partd_denial", "ma_denial", "msn", "irmaa"):

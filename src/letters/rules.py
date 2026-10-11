@@ -138,11 +138,12 @@ def plan(kind: str, f: dict, today: date, lang: str = "en") -> dict:
     t = T.get(lang, T["en"])
     notice = date.fromisoformat(f["notice_date"]) if f.get("notice_date") else None
     out = {"letter_type": kind, "title": t["titles"].get(kind, t["titles"]["other"]), "sources": SOURCES.get(kind, [])}
+    days = f.get("appeal_days_stated") or 65  # what the letter prints wins; else the current rule (65)
     if kind == "partd_denial":
-        out.update(deadline=_deadline(notice + timedelta(days=65) if notice else None, today, lang),
+        out.update(deadline=_deadline(notice + timedelta(days=days) if notice else None, today, lang),
                    steps=t["partd"], decision_time=t["partd_time"])
     elif kind == "ma_denial":
-        out.update(deadline=_deadline(notice + timedelta(days=65) if notice else None, today, lang),
+        out.update(deadline=_deadline(notice + timedelta(days=days) if notice else None, today, lang),
                    steps=t["ma"], decision_time=t["ma_time"])
     elif kind == "msn":
         printed = date.fromisoformat(f["appeal_by"]) if f.get("appeal_by") else None

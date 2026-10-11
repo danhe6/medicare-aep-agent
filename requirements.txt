@@ -7,3 +7,5 @@ python-multipart>=0.0.9
 
 # reminders (Web Push encryption + VAPID signing)
 cryptography>=42
+pillow>=10
+pillow-heif>=0.16   # iPhone HEIC photos

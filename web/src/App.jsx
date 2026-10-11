@@ -167,14 +167,18 @@ export default function App() {
     }
   }
 
+  const photoKind = useRef(null);  // set when the person already said what the photo is (e.g. "photo a letter")
+  function photoLetter() { photoKind.current = "notice"; fileRef.current?.click(); }
   function onFile(e) {
     const f = e.target.files?.[0];
     e.target.value = "";
-    if (f && sid) setPendingFile(f);
+    const kind = photoKind.current;
+    photoKind.current = null;
+    if (f && sid) { if (kind) uploadAs(kind, f); else setPendingFile(f); }
   }
 
-  async function uploadAs(kind) {
-    const f = pendingFile;
+  async function uploadAs(kind, file = null) {
+    const f = file || pendingFile;
     setPendingFile(null);
     if (!f) return;
     setUploading(true);
@@ -249,7 +253,7 @@ export default function App() {
         {showDash && (
           <>
           <Dashboard profile={forMode(profile, mode)} activeId={active?.id} onPick={setActiveId} onSend={send} t={t} lang={lang} big={big}
-            onPhoto={() => { setPhotoFor(active?.name || null); fileRef.current?.click(); }}
+            onPhoto={() => { setPhotoFor(active?.name || null); fileRef.current?.click(); }} onPhotoLetter={photoLetter}
             onAddMed={(pid, m) => { const who = profileRef.current.people.find((x) => x.id === pid); if (who) setProfile(applyPatch(profileRef.current, { person: who.name, add_medicines: [m] })); }} onOther={() => setOther(true)} />
           <p className="mx-auto mt-6 max-w-3xl text-sm text-muted">{t.disclaimer}</p></>
         )}
@@ -259,6 +263,9 @@ export default function App() {
             <p className="text-lg text-muted">{t.tagline}</p>
             <button onClick={() => send(t.startChoose)} className="w-full rounded-3xl border-2 border-line bg-card p-6 text-left shadow-sm hover:border-brand">
               <div className="flex items-center gap-3 text-2xl font-bold"><Pill className="h-8 w-8 text-brand" />{t.choose}</div><div className="text-lg text-muted">{t.chooseSub}</div>
+            </button>
+            <button onClick={photoLetter} className="w-full rounded-3xl border-2 border-line bg-card p-6 text-left shadow-sm hover:border-brand">
+              <div className="flex items-center gap-3 text-2xl font-bold"><Camera className="h-8 w-8 text-brand" />{t.letterStart}</div><div className="text-lg text-muted">{t.letterStartSub}</div>
             </button>
             <button onClick={() => send(t.startDefend)} className="w-full rounded-3xl border-2 border-line bg-card p-6 text-left shadow-sm hover:border-urgent">
               <div className="flex items-center gap-3 text-2xl font-bold"><Shield className="h-8 w-8 text-brand" />{t.defend}</div><div className="text-lg text-muted">{t.defendSub}</div>

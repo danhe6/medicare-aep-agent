@@ -31,6 +31,19 @@ def check_draft(par: str, facts: dict) -> list[str]:
 
 
 
+STATED_DAYS = re.compile(r"(?:within|have|has)\s+(\d{2,3})\s+(?:calendar\s+)?days\s+(?:from|of|after)\s+the\s+date", re.I)
+
+
+def stated_days(text: str) -> int | None:
+    """The appeal window the letter itself prints ("You have 60 days from the date of this notice"), if any.
+    Older notices print 60 days; current rules give 65. The letter in the person's hands is what they will read."""
+    for m in STATED_DAYS.finditer(text or ""):
+        n = int(m.group(1))
+        if 30 <= n <= 180:
+            return n
+    return None
+
+
 KEYWORDS = [  # (type, pattern) - the official notice titles, checked in order
     ("nomnc", r"notice of medicare non-?coverage"),
     ("partd_denial", r"notice of denial of medicare prescription drug coverage|request for redetermination of medicare prescription drug"),
@@ -39,7 +52,8 @@ KEYWORDS = [  # (type, pattern) - the official notice titles, checked in order
     ("irmaa", r"income-?related monthly adjustment|\birmaa\b"),
     ("anoc", r"annual notice of changes?"),
     ("eob", r"explanation of benefits|part d eob"),
-    ("bill", r"amount due|balance due|please pay|pay this amount|patient balance|amount you owe"),
+    ("bill", r"(?=[\s\S]*\b(?:patient|provider|physician|clinic|hospital|medical|office visit|x-ray|cpt|date of service)\b)"
+             r"[\s\S]*(?:amount due|balance due|please pay|pay this amount|patient balance|amount you owe)"),
 ]
 
 

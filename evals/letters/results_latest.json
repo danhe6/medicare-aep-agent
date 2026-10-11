@@ -1,0 +1,75 @@
+{
+ "today": "2026-10-12",
+ "results": [
+  {
+   "id": "nomnc_01",
+   "style": "photo",
+   "type": "nomnc",
+   "got_type": "nomnc",
+   "type_ok": true,
+   "secs": 4.8,
+   "error": null,
+   "want": "2026-10-16",
+   "got": "2026-10-16",
+   "date_ok": true,
+   "keyword_ok": true,
+   "phone_ok": true
+  },
+  {
+   "id": "nomnc_02",
+   "style": "photo",
+   "type": "nomnc",
+   "got_type": "nomnc",
+   "type_ok": true,
+   "secs": 4.9,
+   "error": null,
+   "want": "2026-10-20",
+   "got": "2026-10-20",
+   "date_ok": true,
+   "keyword_ok": true,
+   "phone_ok": true
+  },
+  {
+   "id": "nomnc_03",
+   "style": "photo",
+   "type": "nomnc",
+   "got_type": "nomnc",
+   "type_ok": true,
+   "secs": 5.5,
+   "error": null,
+   "want": "2026-10-20",
+   "got": "2026-10-20",
+   "date_ok": true,
+   "keyword_ok": true,
+   "phone_ok": true
+  },
+  {
+   "id": "nomnc_04",
+   "style": "photo",
+   "type": "nomnc",
+   "got_type": "nomnc",
+   "type_ok": true,
+   "secs": 4.8,
+   "error": null,
+   "want": "2026-10-21",
+   "got": "2026-10-21",
+   "date_ok": true,
+   "keyword_ok": false,
+   "phone_ok": true
+  },
+  {
+   "id": "nomnc_05",
+   "style": "scan",
+   "type": "nomnc",
+   "got_type": "nomnc",
+   "type_ok": true,
+   "secs": 5.2,
+   "error": null,
+   "want": null,
+   "got": null,
+   "date_ok": true,
+   "keyword_ok": true,
+   "phone_ok": true
+  }
+ ]
+}

@@ -397,6 +397,9 @@ IMPL = {"check_bill": check_bill, "read_medicare_letter": read_medicare_letter, 
         "update_profile": update_profile, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
 
 
+MAX_RESULT_CHARS = 60000
+
+
 def call(name: str, args_json: str, lang: str = "en") -> str:
     """Run a tool. The UI language is passed to tools that produce user-facing text (never chosen by the LLM)."""
     try:
@@ -405,6 +408,9 @@ def call(name: str, args_json: str, lang: str = "en") -> str:
         fn = IMPL[name]
         if "lang" in inspect.signature(fn).parameters:
             args["lang"] = lang
-        return json.dumps(fn(**args), default=str)
-    except Exception as e:  # tool errors go back to the model so it can recover
-        return json.dumps({"error": f"{type(e).__name__}: {e}"})
+        out = json.dumps(fn(**args), default=str)
+        if len(out) > MAX_RESULT_CHARS:  # a runaway result must never fill the agent's context window
+            return json.dumps({"error": "That result was too large to read. Ask the user to try again with one page or a clearer photo."})
+        return out
+    except Exception as e:  # tool errors go back to the model so it can recover (short: no request bodies echoed)
+        return json.dumps({"error": f"{type(e).__name__}: {str(e)[:300]}"})
