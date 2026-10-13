@@ -14,7 +14,7 @@ from pathlib import Path
 
 RXNAV = "https://rxnav.nlm.nih.gov/REST"
 CACHE = Path(__file__).resolve().parents[2] / "data" / "processed" / "rxnav_cache.json"
-CACHE_VERSION = 2
+CACHE_VERSION = 3  # 3: exact name match first (search=2 sent an IR metformin name to the ER product)
 
 
 def _get(url: str) -> dict:
@@ -55,7 +55,9 @@ def lookup(name: str) -> dict:
     if hit and hit.get("v") == CACHE_VERSION:
         return hit
     q = urllib.parse.quote(name)
-    ids = _get(f"{RXNAV}/rxcui.json?name={q}&search=2").get("idGroup", {}).get("rxnormId") or []
+    ids = _get(f"{RXNAV}/rxcui.json?name={q}&search=0").get("idGroup", {}).get("rxnormId") or []
+    if not ids:  # not an exact RxNorm name: normalized match, then approximate
+        ids = _get(f"{RXNAV}/rxcui.json?name={q}&search=2").get("idGroup", {}).get("rxnormId") or []
     if not ids:
         cands = _get(f"{RXNAV}/approximateTerm.json?term={q}&maxEntries=1") \
             .get("approximateGroup", {}).get("candidate") or []

@@ -400,11 +400,24 @@ IMPL = {"check_bill": check_bill, "read_medicare_letter": read_medicare_letter, 
 MAX_RESULT_CHARS = 60000
 
 
+def _full_state(state):
+    """'FL' / 'fl' -> 'Florida' (the plan data uses full state names); anything else unchanged."""
+    from network.doctor import STATE_CODES
+    if isinstance(state, str) and len(state.strip()) == 2:
+        names = {v: k for k, v in STATE_CODES.items() if k != "washington d.c."}
+        full = names.get(state.strip().upper())
+        if full:
+            return "District of Columbia" if full == "district of columbia" else full.title()
+    return state
+
+
 def call(name: str, args_json: str, lang: str = "en") -> str:
     """Run a tool. The UI language is passed to tools that produce user-facing text (never chosen by the LLM)."""
     try:
         args = json.loads(args_json or "{}")
         args.pop("lang", None)
+        if name in ("find_county", "compare_plans", "check_current_plan") and "state" in args:
+            args["state"] = _full_state(args["state"])
         fn = IMPL[name]
         if "lang" in inspect.signature(fn).parameters:
             args["lang"] = lang

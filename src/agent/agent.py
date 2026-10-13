@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -17,9 +18,16 @@ SYSTEM = """You are a neutral, privacy-first Medicare helper for older adults an
 You are NOT an insurance agent or broker, you earn nothing from any plan, and you do not enroll anyone.
 
 How you work:
-1. Gather: where they live (state + county), each medication with strength and how many per month, and whether they
-   have Medicaid. Do NOT ask people to rate their health care use as low/medium/high - compare_plans estimates it
-   from their medicines and conditions. You may ask once, simply: "Any hospital stays in the past year?"
+0. ALWAYS answer the user's latest question or request first, in one or two sentences, even while details are
+   still missing (e.g. "I can't enroll you, but ..."; "I'll check that doctor once we have the plans"). Then ask
+   only for what you still need.
+1. Gather: where they live (state + county), each medication with strength and how many per month.
+   The county tells you the state (Broward or Miami-Dade = Florida): never ask for the state then.
+   Medicaid: if they didn't mention it, assume no Medicaid, say so in a few words ("assuming no Medicaid"), and go on.
+   Hospital stays: don't hold up the comparison for it. Run compare_plans first; you may ask afterwards, once:
+   "Any hospital stays in the past year?" Do NOT ask people to rate their health care use as low/medium/high -
+   compare_plans estimates it from their medicines and conditions.
+   NEVER ask the user to confirm what they just told you ("Is that correct?", "Just to confirm..."): use it.
    Ask for what's missing, a few questions at a time, in plain words.
    A SAVED PROFILE may be provided (kept on the user's own device). Use it and don't ask again for anything in it;
    just confirm in one sentence ("I have Mom's 4 medicines and Miami-Dade - still right?").
@@ -61,7 +69,8 @@ with the verdict in one sentence (stay / worth switching and the typical-year sa
 changes (premium, out-of-pocket max; say plainly if the plan is not continuing), then any of their drugs the insurer
 dropped last year. If needs_clarification, show the candidates and ask which one. Once identified, save it with
 update_profile (current_plan = the plan_key, current_plan_name = its name) so nobody has to say it again.
-EXTRA HELP: if someone may have limited income, or asks, offer the Extra Help check (screen_extra_help). Explain
+EXTRA HELP: if someone may have limited income, or asks, offer the Extra Help check (screen_extra_help). If they
+already gave income and savings, call screen_extra_help right away; medicines are optional for it. Explain
 the result plainly ("you may qualify" - Social Security decides), the rough drug cost with Extra Help if given, and
 how to apply (online or phone from the tool). Plan comparisons do not yet include Extra Help pricing - don't
 offer to re-run them "with Extra Help". Income and savings are private: never call update_profile with them.
@@ -102,7 +111,11 @@ HOW TO ASK QUESTIONS (the reader may be 80 years old, on a phone, or listening t
   number, use it and go straight to the tools. "Twice a day" / "once a day" / "at night" is a count: one pill each
   time (twice a day = 60 a month) unless they said otherwise; don't ask again.
 - Never show internal plan keys like "H1036-054-000"; say the plan name and its ID "H1036-054".
-- Briefly confirm what you already know in one sentence before asking, e.g. "Got it: Tampa, no Medicaid." """
+- Briefly state what you already know in one sentence before asking, e.g. "Got it: Tampa, no Medicaid." - a statement,
+  never a question.
+- Only offer what your tools can do. You do not have plans' phone numbers or websites: for enrolling or plan contact
+  details, point to Medicare.gov Plan Finder or 1-800-MEDICARE.
+- Only call a plan "your current plan" if check_current_plan identified it. """
 
 BRIEF_AFTER_CARDS = (
     "The app is now showing the full results as cards. Your reply must be at most 5 short sentences, no headings, "
@@ -113,6 +126,43 @@ BRIEF_AFTER_CARDS = (
     "list the doctor, then: call the plan or the doctor's office to confirm. NEVER use tables.")
 
 MAX_STEPS = 8
+
+PLAN_ID = re.compile(r"\bH\d{4}-\d{3}\b", re.I)
+STAY = re.compile(r"\bstay\b.{0,40}\bplan\b|\bplan\b.{0,40}\bstay\b|\bkeep (my|her|his|their|our) plan\b|"
+                  r"\bcurrent plan\b|\bthe plan (i|she|he|they|we|mom|dad) (have|has|am in|is in)\b", re.I)
+RXNORM_NAME = re.compile(r'"rxnorm_name":\s*"((?:[^"\\]|\\.)*)"')
+
+
+def _tool_names(messages: list[dict]) -> dict:
+    return {tc["id"]: tc["function"]["name"] for m in messages if m.get("tool_calls") for tc in m["tool_calls"]}
+
+
+def guard(name: str, args: dict, messages: list[dict], profile: dict | None = None) -> str | None:
+    """Rules the prompt states but the model sometimes skips, enforced in code. Returns an error for the model, or None.
+    Found by evals/agent: the model typed 'metformin 500 MG Oral Tablet' without find_drug (3 of 4 runs), and answered
+    'should I stay in H1019-006?' with compare_plans, then called the top-ranked plan 'your current plan'."""
+    if name in ("compare_plans", "check_current_plan"):
+        ids = _tool_names(messages)
+        known = set()
+        for m in messages:
+            if m.get("role") == "tool" and ids.get(m.get("tool_call_id")) in ("find_drug", "read_medicine_label"):
+                known.update(json.loads(f'"{x}"') for x in RXNORM_NAME.findall(m.get("content") or ""))
+        for person in (profile or {}).get("people", []):
+            known.update(str(d.get("rxnorm_name")) for d in person.get("medicines", []))
+        missing = [d.get("rxnorm_name") for d in args.get("drugs") or [] if d.get("rxnorm_name") not in known]
+        if missing:
+            return ("Not run: call find_drug for each of these first and use an rxnorm_name it returns, exactly: "
+                    + "; ".join(map(str, missing)) + ". Never type a drug name yourself.")
+    if name == "compare_plans":
+        last_user = max((i for i, m in enumerate(messages) if m.get("role") == "user"), default=-1)
+        text = messages[last_user]["content"] if last_user >= 0 else ""
+        ids = _tool_names(messages[last_user:])
+        checked = any(ids.get(m.get("tool_call_id")) == "check_current_plan" for m in messages[last_user:] if m.get("role") == "tool")
+        if (PLAN_ID.search(text) or STAY.search(text)) and not checked:
+            return ("Not run: the user is asking about the plan they have now. Call check_current_plan first (it already "
+                    "includes the best alternative). Never call a plan 'your current plan' unless check_current_plan "
+                    "identified it.")
+    return None
 TRACE = Path(__file__).resolve().parents[2] / "logs" / "agent_trace.jsonl"
 
 
@@ -212,7 +262,8 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
             yield {"type": "tool_start", "id": tc.id, "name": tc.function.name, "args": args}
             metrics.set_run(run_id)
             t0 = time.perf_counter()
-            result = tools.call(tc.function.name, tc.function.arguments, lang=lang)
+            blocked = guard(tc.function.name, args, messages, profile)
+            result = json.dumps({"error": blocked}) if blocked else tools.call(tc.function.name, tc.function.arguments, lang=lang)
             metrics.record_tool(tc.function.name, (time.perf_counter() - t0) * 1000, '"error"' not in result[:50])
             trace({"tool": tc.function.name, "args": tc.function.arguments, "result": result[:200000]})
             tool_msg = {"role": "tool", "tool_call_id": tc.id, "content": result}
