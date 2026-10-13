@@ -145,3 +145,52 @@ def test_flatten_tables():
     t = "Plans:\n| Plan | Cost |\n|---|---|\n| Wellcare | $0 |\n| Humana | $0 |\nDone."
     assert flatten_tables(t) == "Plans:\n- Wellcare - $0\n- Humana - $0\nDone."
     assert flatten_tables("No table here.") == "No table here."
+
+
+def test_question_limit_offer_loop_and_income_routing():
+    from agent.agent import style_problem
+    two = "Which strength of Eliquis do you take? And what is the water pill called?"
+    assert style_problem(two, [], "senior") and style_problem(two, [], "family") is None
+    loop = [{"role": "assistant", "content": "Would you like me to check the quantity limit?"},
+            {"role": "user", "content": "Yes, please check."}]
+    assert style_problem("Would you like me to look up the quantity limit details?", loop)
+    assert style_problem("The plan limits atorvastatin to 30 tablets per fill.", loop) is None
+    es = [{"role": "user", "content": "Recibe como $1,300 al mes del seguro social. ¿Puede recibir ayuda para pagar sus medicinas?"}]
+    assert "screen_extra_help" in style_problem("¿Qué medicinas toma?", es)
+    done = es + [{"role": "assistant", "content": "", "tool_calls": [{"function": {"name": "screen_extra_help"}}]}]
+    assert style_problem("Es probable que califique.", done) is None
+    assert style_problem("Could you confirm the exact plan ID from your card?", [])
+
+
+def test_letter_rules_msn_not_a_bill_and_late_appeal():
+    from datetime import date
+    from letters.rules import plan
+    msn = plan("msn", {"appeal_by": "2026-12-16"}, date(2026, 10, 13))
+    assert "not a bill" in msn["title"] and "not a bill" in msn["steps"][0]
+    late = plan("ma_denial", {"notice_date": "2026-08-04"}, date(2026, 10, 13))
+    assert late["deadline"]["status"] == "missed" and "good cause" in late["steps"][0] and "true" in late["steps"][0]
+    ok = plan("ma_denial", {"notice_date": "2026-10-01"}, date(2026, 10, 13))
+    assert "late" not in ok
+
+
+def test_grounding_spanish_thousands_and_examples():
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evals" / "agent"))
+    from grounding import classify
+    out = classify("Tiene unos $5,000 en ahorros.", [], ["tiene unos 5 mil en el banco"])
+    assert out[0]["category"] == "exact"
+    ex = classify("Example: estimated income $18,000 for this year", [], [])
+    assert ex == []
+
+
+def test_current_plan_pinned_to_notice_id():
+    import json as _j
+    from agent.agent import pin_current_plan
+    msgs = [{"role": "assistant", "content": "", "tool_calls": [{"id": "a", "type": "function",
+             "function": {"name": "read_medicare_letter", "arguments": "{}"}}]},
+            {"role": "tool", "tool_call_id": "a", "content": _j.dumps({"letter_type": "anoc", "fields": {"plan_id": "H8069-055"}})}]
+    args = {"current_plan": "Palmetto RX Saver (PDP)", "state": "Florida"}
+    assert pin_current_plan("check_current_plan", args, msgs)["current_plan"] == "H8069-055"
+    assert pin_current_plan("check_current_plan", {"current_plan": "H1019-057"}, msgs)["current_plan"] == "H1019-057"
+    assert pin_current_plan("check_current_plan", args, [])["current_plan"] == "Palmetto RX Saver (PDP)"

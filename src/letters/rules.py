@@ -21,6 +21,13 @@ SOURCES = {
     "irmaa": ["https://secure.ssa.gov/poms.nsf/lnx/0601140001"],
 }
 
+LATE = {
+    "en": "The deadline has passed, but you can still ask for a late appeal if you had \"good cause\": in the letter, "
+          "explain the real reason you are late (they decide whether to accept it). Only give a reason that is true.",
+    "es": "La fecha límite ya pasó, pero aún puede pedir una apelación tardía si tuvo \"causa justificada\": en la carta "
+          "explique la razón real del retraso (ellos deciden si la aceptan). Dé solo una razón que sea verdad.",
+}
+
 MONTHS_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
              "noviembre", "diciembre"]
 
@@ -42,7 +49,7 @@ def _deadline(d: date | None, today: date, lang: str) -> dict | None:
 T = {
     "en": {
         "titles": {"partd_denial": "Drug coverage denied", "ma_denial": "Medical coverage denied",
-                   "msn": "Medicare Summary Notice (Original Medicare)", "irmaa": "Higher Part B / D premium (IRMAA)",
+                   "msn": "Medicare Summary Notice (a statement, not a bill)", "irmaa": "Higher Part B / D premium (IRMAA)",
                    "anoc": "Annual Notice of Change (your plan next year)", "nomnc": "Care is ending (Notice of Medicare Non-Coverage)",
                    "eob": "Explanation of Benefits (a statement, not a bill)", "bill": "A bill from a doctor or hospital", "other": "Medicare letter"},
         "partd": ["Ask the doctor who prescribed it to send the plan a supporting statement explaining why you need this drug "
@@ -59,7 +66,9 @@ T = {
                "Keep a copy and write down the date you sent it."],
         "ma_time": "The plan must decide within 30 days for care you haven't had yet, 60 days for a bill, 7 days for a Part B drug, "
                    "or 72 hours if fast.",
-        "msn": ["Circle the items you disagree with on the notice.",
+        "msn": ["This is not a bill: don't pay anything from this notice. If a doctor sends a bill later, compare it with "
+                "this notice, which shows the most you can be billed.",
+                "Circle the items you disagree with on the notice.",
                 "Fill out form CMS-20027 (Redetermination Request), or send the letter below with a copy of the notice.",
                 "Mail it to the Medicare contractor address on the last page of the notice.",
                 "Include any records from your doctor that help."],
@@ -87,7 +96,7 @@ T = {
     },
     "es": {
         "titles": {"partd_denial": "Le negaron la cobertura de una medicina", "ma_denial": "Le negaron cobertura médica",
-                   "msn": "Resumen de Medicare (Medicare Original)", "irmaa": "Prima más alta de la Parte B / D (IRMAA)",
+                   "msn": "Resumen de Medicare (un resumen, no una factura)", "irmaa": "Prima más alta de la Parte B / D (IRMAA)",
                    "anoc": "Aviso Anual de Cambios (su plan el próximo año)", "nomnc": "Fin de la atención (Aviso de No Cobertura de Medicare)",
                    "eob": "Explicación de Beneficios (un resumen, no una factura)", "bill": "Una factura de un médico u hospital", "other": "Carta de Medicare"},
         "partd": ["Pida al médico que recetó la medicina que envíe al plan una declaración explicando por qué la necesita "
@@ -104,7 +113,9 @@ T = {
                "Guarde una copia y anote la fecha en que la envió."],
         "ma_time": "El plan debe decidir en 30 días si aún no recibió la atención, 60 días si es una factura, 7 días para una "
                    "medicina de la Parte B, o 72 horas si es rápida.",
-        "msn": ["Marque en el aviso los servicios con los que no está de acuerdo.",
+        "msn": ["Esto no es una factura: no pague nada con este aviso. Si un médico le manda una factura después, compárela "
+                "con este aviso, que muestra lo máximo que le pueden cobrar.",
+                "Marque en el aviso los servicios con los que no está de acuerdo.",
                 "Llene el formulario CMS-20027 (Solicitud de Redeterminación) o envíe la carta de abajo con una copia del aviso.",
                 "Envíela a la dirección del contratista de Medicare que aparece en la última página del aviso.",
                 "Incluya cualquier registro de su médico que ayude."],
@@ -153,6 +164,9 @@ def plan(kind: str, f: dict, today: date, lang: str = "en") -> dict:
                    steps=t["irmaa"], decision_time=t["irmaa_time"])
     else:
         out.update(deadline=None, steps=t.get(kind, t["other"]), decision_time=None)
+    if kind in ("partd_denial", "ma_denial", "msn", "irmaa") and (out.get("deadline") or {}).get("status") == "missed":
+        out["late"] = LATE.get(lang, LATE["en"])
+        out["steps"] = [out["late"]] + list(out["steps"])
     if kind in ("partd_denial", "ma_denial", "msn", "irmaa") and not out["deadline"]:
         out["needs_date"] = t["no_date"]
     if kind in ("partd_denial", "ma_denial"):

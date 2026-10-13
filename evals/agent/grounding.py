@@ -24,14 +24,17 @@ MONEY = re.compile(r"\$\s?(\d[\d,]*(?:\.\d+)?)(?:\s?(k|K|thousand)\b)?")  # "$75
 PCT = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)\s?(?:%|percent)")
 # strengths only: quantities (units/day -> mL, pens, bottles) are conversions the prompt asks the model to state
 DOSE = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)\s?(mg|mcg)\b", re.I)
-EXAMPLE = re.compile(r"(like|e\.g\.|for example|for instance|such as|por ejemplo|como)\W[^.?!]*$|[\u201c\"][^\u201d\"]*$", re.I)
+EXAMPLE = re.compile(r"(like|e\.g\.|example|for instance|such as|ejemplo|como)\W[^.?!]*$|[\u201c\"][^\u201d\"]*$", re.I)
 STARS = re.compile(r"(?<![\w.])(\d(?:\.\d)?)\s?(?:-|\s)?stars?\b", re.I)
 NUM = re.compile(r"-?\d[\d,]*(?:\.\d+)?")
 APPROX = re.compile(r"(about|around|roughly|approximately|nearly|almost|close to|over|under|more than|less than|up to|~)\s*$", re.I)
 
 
+THOUSANDS = re.compile(r"(\d+(?:[.,]\d+)?)\s*(k|mil|thousand)\b", re.I)
+
+
 def numbers_in(text: str) -> list[float]:
-    out = []
+    out = [float(m.group(1).replace(",", ".")) * 1000 for m in THOUSANDS.finditer(text or "")]  # "5 mil", "22k"
     for m in NUM.finditer(text or ""):
         try:
             out.append(float(m.group().replace(",", "")))

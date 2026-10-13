@@ -46,6 +46,26 @@ Everything under "What I already said" is true: never contradict it or say you a
 Do not ask questions and do not add new requests."""
 
 
+def arg_has(obj, key: str, want) -> bool:
+    """key anywhere in the args (also inside drugs[]); strings match as case-insensitive substrings
+    ('bill_02' in 'uploads/eval/bill_02.jpg'), numbers within 0.5."""
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == key:
+                if isinstance(want, str) and isinstance(v, str) and want.lower() in v.lower():
+                    return True
+                if isinstance(want, (int, float)) and isinstance(v, (int, float)) and not isinstance(v, bool) \
+                        and abs(v - want) <= 0.5:
+                    return True
+                if v == want:
+                    return True
+            if arg_has(v, key, want):
+                return True
+    elif isinstance(obj, list):
+        return any(arg_has(x, key, want) for x in obj)
+    return False
+
+
 def simulate_user(llm, facts: str, reply: str) -> str:
     resp = llm.chat.completions.create(model=MODELS["agent"], temperature=0, max_tokens=400,
                                        messages=[{"role": "system", "content": SIM_PROMPT.format(facts=facts)},
@@ -133,7 +153,7 @@ def check(sc: dict, run: dict) -> dict:
     for n, k in exp.get("min_calls", {}).items():
         g[f"{n} x{k}+"] = (names.count(n) >= k, f"{names.count(n)} calls")
     for n, kv in exp.get("args_contain", {}).items():
-        ok = any(c["name"] == n and all(c["args"].get(k) == v for k, v in kv.items()) for c in calls)
+        ok = any(c["name"] == n and all(arg_has(c["args"], k, v) for k, v in kv.items()) for c in calls)
         g[f"{n} args {kv}"] = (ok, "")
     if exp.get("ask_first"):
         first = turns[0]

@@ -387,6 +387,9 @@ def check_current_plan(current_plan: str, state: str, county: str, drugs: list[d
 
 def screen_extra_help(drugs: list[str] | None = None, **kw) -> dict:
     out = extra_help.screen(**kw)
+    if out.get("result") in ("likely", "possible", "automatic"):
+        out["copays_with_extra_help_2026"] = {"generic": 5.10, "brand": 12.65,
+                                              "note": "Most a person pays per prescription with full Extra Help in 2026."}
     if drugs and out["result"] in ("likely", "possible", "automatic"):
         out["estimated_yearly_drug_cost_with_extra_help"] = extra_help.estimated_drug_cost_with_extra_help(drugs)
         out["estimate_note"] = "Rough: one fill per medicine per month at the 2026 Extra Help copays ($5.10 generic, $12.65 brand)."

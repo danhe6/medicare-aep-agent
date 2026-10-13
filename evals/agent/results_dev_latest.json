@@ -1,5 +1,5 @@
 {
- "date": "2026-10-12",
+ "date": "2026-10-13",
  "set": "dev",
  "only": null,
  "infra": [],
@@ -10,107 +10,6 @@
     "choose"
    ],
    "repeat": 0,
-   "guardrails": {
-    "grounding": {
-     "ok": true,
-     "detail": ""
-    },
-    "dose_grounding": {
-     "ok": true,
-     "detail": ""
-    },
-    "drug_names_from_lookup": {
-     "ok": true,
-     "detail": ""
-    },
-    "no_internal_plan_keys": {
-     "ok": true,
-     "detail": ""
-    },
-    "no_tables": {
-     "ok": true,
-     "detail": ""
-    },
-    "calls find_drug": {
-     "ok": true,
-     "detail": ""
-    },
-    "calls compare_plans": {
-     "ok": true,
-     "detail": ""
-    },
-    "find_drug before compare_plans": {
-     "ok": true,
-     "detail": "find_drug > find_drug > find_county > compare_plans"
-    }
-   },
-   "passed": true,
-   "north_star": {
-    "max_questions_in_a_reply": 0,
-    "question_limit": 2,
-    "questions_ok": true,
-    "reconfirm_asks": 0,
-    "asked_known_location": 0,
-    "tool_calls": 4,
-    "tool_errors": 0,
-    "guard_blocks": 0,
-    "secs": 16.2
-   },
-   "turns": [
-    {
-     "user": "My mom lives in Miami-Dade County, Florida. She takes Eliquis 5 mg twice a day and metformin 500 mg twice a day. No Medicaid, no hospital stays last year. Which plans are best for her?",
-     "calls": [
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "Eliquis 5 mg"
-       }
-      },
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "metformin 500 mg"
-       }
-      },
-      {
-       "name": "find_county",
-       "args": {
-        "state": "Florida",
-        "contains": "Miami-Dade"
-       }
-      },
-      {
-       "name": "compare_plans",
-       "args": {
-        "state": "Florida",
-        "county": "Miami-Dade",
-        "drugs": [
-         {
-          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
-          "qty_per_30d": 60
-         },
-         {
-          "rxnorm_name": "metformin hydrochloride 500 MG Oral Tablet",
-          "qty_per_30d": 60
-         }
-        ],
-        "medicaid": false,
-        "hospital_stay_last_year": false,
-        "pharmacy": "preferred_retail"
-       }
-      }
-     ],
-     "reply": "\nThe CareOne\u202fPlus (HMO) plan has the lowest typical\u2011year cost at about\u202f$0 (premium\u202f$0\u202f+\u202fdrug costs\u202f$0) and a 4.5\u2011star rating; its worst\u2011case cost is about\u202f$500.  \nNo prior authorization is needed for either Eliquis or metformin on this plan (only quantity limits apply).  \nTo be sure her doctors are in network, call the plan or her doctor\u2019s office before enrolling.",
-     "simulated": false
-    }
-   ]
-  },
-  {
-   "id": "d01_full_info",
-   "tags": [
-    "choose"
-   ],
-   "repeat": 1,
    "guardrails": {
     "grounding": {
      "ok": true,
@@ -189,13 +88,111 @@
          }
         ],
         "medicaid": false,
-        "hospital_stay_last_year": false,
-        "pharmacy": "preferred_retail",
-        "top_n": 5
+        "hospital_stay_last_year": false
        }
       }
      ],
-     "reply": "\nThe top option is CareOne\u202fPlus\u202f(HMO) \u2013 about $0 in a typical year (no premium and no drug cost) with a maximum out\u2011of\u2011pocket of $500 in a bad year. There\u2019s no prior\u2011authorization flag for either medicine; both have only a quantity limit. To be sure, call the plan or check Medicare.gov to confirm that her doctors and preferred pharmacy are in network before enrolling.",
+     "reply": "\n\nThe best option is CareOne\u202fPlus (HMO) \u2013 about $0 in a typical year (premium $0 + drug costs $0) with a maximum out\u2011of\u2011pocket of $500 in a bad year. There are no ranking notes to explain why it\u2019s first, and neither Eliquis nor metformin requires prior authorization on this plan. Next, you can check whether her doctors are in the plan\u2019s network by calling the plan or the doctor\u2019s office, or review the plan details on Medicare.gov or by calling 1\u2011800\u2011MEDICARE. No special\u2011needs plans appear for her situation.",
+     "simulated": false
+    }
+   ]
+  },
+  {
+   "id": "d01_full_info",
+   "tags": [
+    "choose"
+   ],
+   "repeat": 1,
+   "guardrails": {
+    "grounding": {
+     "ok": true,
+     "detail": ""
+    },
+    "dose_grounding": {
+     "ok": true,
+     "detail": ""
+    },
+    "drug_names_from_lookup": {
+     "ok": true,
+     "detail": ""
+    },
+    "no_internal_plan_keys": {
+     "ok": true,
+     "detail": ""
+    },
+    "no_tables": {
+     "ok": true,
+     "detail": ""
+    },
+    "calls find_drug": {
+     "ok": true,
+     "detail": ""
+    },
+    "calls compare_plans": {
+     "ok": true,
+     "detail": ""
+    },
+    "find_drug before compare_plans": {
+     "ok": true,
+     "detail": "find_drug > find_drug > find_county > compare_plans"
+    }
+   },
+   "passed": true,
+   "north_star": {
+    "max_questions_in_a_reply": 0,
+    "question_limit": 2,
+    "questions_ok": true,
+    "reconfirm_asks": 0,
+    "asked_known_location": 0,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "guard_blocks": 0,
+    "secs": 15.9
+   },
+   "turns": [
+    {
+     "user": "My mom lives in Miami-Dade County, Florida. She takes Eliquis 5 mg twice a day and metformin 500 mg twice a day. No Medicaid, no hospital stays last year. Which plans are best for her?",
+     "calls": [
+      {
+       "name": "find_drug",
+       "args": {
+        "query": "Eliquis 5 mg"
+       }
+      },
+      {
+       "name": "find_drug",
+       "args": {
+        "query": "metformin 500 mg"
+       }
+      },
+      {
+       "name": "find_county",
+       "args": {
+        "state": "Florida",
+        "contains": "Miami-Dade"
+       }
+      },
+      {
+       "name": "compare_plans",
+       "args": {
+        "state": "Florida",
+        "county": "Miami-Dade",
+        "drugs": [
+         {
+          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
+          "qty_per_30d": 60
+         },
+         {
+          "rxnorm_name": "metformin hydrochloride 500 MG Oral Tablet",
+          "qty_per_30d": 60
+         }
+        ],
+        "medicaid": false,
+        "hospital_stay_last_year": false
+       }
+      }
+     ],
+     "reply": "\nCareOne Plus (HMO) would cost about $0 in a typical year (premium\u202f$0\u202f+\u202fdrugs\u202f$0) and at most about $500 in a bad year (medical out\u2011of\u2011pocket max\u202f$500). Both Eliquis and metformin have a quantity\u2011limit flag on this plan, meaning there\u2019s a limit on how much can be dispensed per fill. To be sure her doctors are in the plan\u2019s network, call CarePlus Health Plans or the doctor\u2019s office to confirm before enrolling.",
      "simulated": false
     }
    ]
@@ -291,13 +288,11 @@
          }
         ],
         "medicaid": false,
-        "hospital_stay_last_year": false,
-        "pharmacy": "preferred_retail",
-        "top_n": 5
+        "hospital_stay_last_year": false
        }
       }
      ],
-     "reply": "\nThe Humana Gold Plus H1036\u2011054C (HMO) plan looks best\u2014about $0 in a typical year (premium\u202f$0\u202f+\u202fdrugs\u202f$0) with a maximum out\u2011of\u2011pocket of $500 in a bad year. All of her medicines are covered, though each has a quantity\u2011limit flag (QL) that the pharmacy will enforce. Since there\u2019s no prior\u2011authorization requirement, the next step is to confirm that her doctors and pharmacies are in the plan\u2019s network (call the plan or check Medicare.gov).",
+     "reply": "\n\nCareOne Plus (HMO) is the top choice\u2014about $0 in a typical year (premium $0\u202f+\u202fdrugs $0) and at most $500 in a bad year (medical out\u2011of\u2011pocket max). Both Eliquis and metformin are covered, though each has a quantity\u2011limit flag on this plan. To move forward, check that her doctors are in the plan\u2019s network (call the plan or the doctor\u2019s office) and review the plan details on Medicare.gov or by calling 1\u2011800\u2011MEDICARE.",
      "simulated": false
     }
    ]
@@ -339,13 +334,13 @@
      "detail": ""
     },
     "asks before comparing": {
-     "ok": true,
-     "detail": "\n\nI can\u2019t enroll anyone, but I can help you compare Medicare plans once I know where your dad lives and his medication d"
+     "ok": false,
+     "detail": "\nI can\u2019t enroll anyone, but I can help you compare Medicare Part\u202fD plans for your dad\u2019s Lantus usage.\n\nTo get started, I"
     }
    },
-   "passed": true,
+   "passed": false,
    "north_star": {
-    "max_questions_in_a_reply": 1,
+    "max_questions_in_a_reply": 0,
     "question_limit": 2,
     "questions_ok": true,
     "reconfirm_asks": 0,
@@ -353,13 +348,13 @@
     "tool_calls": 0,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 3.8
+    "secs": 2.5
    },
    "turns": [
     {
      "user": "My dad uses Lantus pens, 15 units a day. Which Medicare plan should he get?",
      "calls": [],
-     "reply": "\n\nI can\u2019t enroll anyone, but I can help you compare Medicare plans once I know where your dad lives and his medication details.\n\nFrom what you shared, he takes **15 units of Lantus each day**. Since 100\u202funits\u202f=\u202f1\u202fmL, that\u2019s about **0.15\u202fmL per day**, or roughly **4.5\u202fmL per month** \u2013 which comes to **about 2 pens per month** (each pen holds 3\u202fmL).\n\nTo move forward, could you please tell me the **state and county (or city)** where he resides? Once I have that, I\u2019ll look up the exact RxNorm name for Lantus and run a plan comparison for him.",
+     "reply": "\nI can\u2019t enroll anyone, but I can help you compare Medicare Part\u202fD plans for your dad\u2019s Lantus usage.\n\nTo get started, I need to know where he lives (state and county). Assuming he doesn\u2019t have Medicaid, please tell me his state and county (for example, \u201cFlorida, Miami\u2011Dade\u201d). Once I have that, I\u2019ll look up the exact drug details and run a plan comparison.",
      "simulated": false
     }
    ]
@@ -402,7 +397,7 @@
     },
     "asks before comparing": {
      "ok": true,
-     "detail": "\nI\u2019ll start by looking up Lantus\u202fSoloStar pens for you, but first I need to know where your dad lives so I can check the"
+     "detail": "\nI\u2019ll start by confirming his medication details and then need to know where he lives to look up the plans available to "
     }
    },
    "passed": true,
@@ -415,13 +410,13 @@
     "tool_calls": 0,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 1.7
+    "secs": 1.9
    },
    "turns": [
     {
      "user": "My dad uses Lantus pens, 15 units a day. Which Medicare plan should he get?",
      "calls": [],
-     "reply": "\nI\u2019ll start by looking up Lantus\u202fSoloStar pens for you, but first I need to know where your dad lives so I can check the plans available in his area. Could you tell me his state and county (for example, \u201cFlorida, Broward County\u201d)? If you\u2019re not sure of the county, just the state is fine and I can look up the counties for you.",
+     "reply": "\nI\u2019ll start by confirming his medication details and then need to know where he lives to look up the plans available to him.\n\nFor Lantus\u202fSoloStar pens, 15\u202funits a day equals **0.15\u202fmL per day** (since 100\u202funits\u202f=\u202f1\u202fmL). That\u2019s about **4.5\u202fmL per month**, which rounds up to **2 pens per month** (each pen holds 3\u202fmL).\n\nCould you please tell me the **state and county** where your dad lives? (If you\u2019re not sure of the county, just the city or ZIP code works, and I can look up the county for you.) Assuming he does not have Medicaid, I\u2019ll proceed once I have the location.",
      "simulated": false
     }
    ]
@@ -464,26 +459,26 @@
     },
     "asks before comparing": {
      "ok": true,
-     "detail": "\nI can\u2019t enroll anyone, but I can help you compare Medicare plans once I know where your dad lives and the details of hi"
+     "detail": "\n\nI\u2019ve worked out that using 15\u202funits of Lantus each day comes to about\u202f4.5\u202fmL per month, which means\u202f2\u202fpens (each pen h"
     }
    },
    "passed": true,
    "north_star": {
-    "max_questions_in_a_reply": 1,
+    "max_questions_in_a_reply": 2,
     "question_limit": 2,
     "questions_ok": true,
-    "reconfirm_asks": 0,
+    "reconfirm_asks": 1,
     "asked_known_location": 0,
     "tool_calls": 0,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 2.1
+    "secs": 6.0
    },
    "turns": [
     {
      "user": "My dad uses Lantus pens, 15 units a day. Which Medicare plan should he get?",
      "calls": [],
-     "reply": "\nI can\u2019t enroll anyone, but I can help you compare Medicare plans once I know where your dad lives and the details of his medicines.\n\nTo start, could you tell me the state and county where he resides? (For example, \u201cFlorida, Broward County.\u201d)",
+     "reply": "\n\nI\u2019ve worked out that using 15\u202funits of Lantus each day comes to about\u202f4.5\u202fmL per month, which means\u202f2\u202fpens (each pen holds\u202f3\u202fmL) are needed each month. Does that sound right?\n\nTo look up the Medicare plans available for him, I also need to know where he lives\u2014could you tell me his county (or city and state)?",
      "simulated": false
     }
    ]
@@ -543,111 +538,7 @@
     "tool_calls": 3,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 13.9
-   },
-   "turns": [
-    {
-     "user": "My dad lives in Miami-Dade, Florida. He takes atorvastatin 20 mg once a day and lisinopril 10 mg once a day. No Medicaid. What are his best plans?",
-     "calls": [
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "atorvastatin 20 mg"
-       }
-      },
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "lisinopril 10 mg"
-       }
-      },
-      {
-       "name": "compare_plans",
-       "args": {
-        "state": "Florida",
-        "county": "Miami-Dade",
-        "drugs": [
-         {
-          "rxnorm_name": "atorvastatin 20 MG Oral Tablet",
-          "qty_per_30d": 30
-         },
-         {
-          "rxnorm_name": "lisinopril 10 MG Oral Tablet",
-          "qty_per_30d": 30
-         }
-        ],
-        "medicaid": false,
-        "pharmacy": "preferred_retail"
-       }
-      }
-     ],
-     "reply": "\n\nThe best option is the CareOne\u202fPlus (HMO) plan \u2013 it has a $0 typical\u2011year cost (premium\u202f$0 + drug costs\u202f$0) and a 4.5\u2011star rating. No drugs require prior authorization or step therapy on this plan. As a next step, call the plan or your dad\u2019s doctor\u2019s office to confirm that his providers are in the network before enrolling.",
-     "simulated": false
-    },
-    {
-     "user": "And how much is the Part B premium he pays on top of the plan premium?",
-     "calls": [],
-     "reply": "\nBased on the plan comparison, the standard Part\u202fB premium that your dad would pay **on top of** any plan premium is **about\u202f$202.90 per month**. This amount is separate from the plan\u2019s own premium (which is $0 for the top plans shown).",
-     "simulated": false
-    }
-   ]
-  },
-  {
-   "id": "d03_part_b_trap",
-   "tags": [
-    "choose",
-    "grounding"
-   ],
-   "repeat": 1,
-   "guardrails": {
-    "grounding": {
-     "ok": true,
-     "detail": ""
-    },
-    "dose_grounding": {
-     "ok": true,
-     "detail": ""
-    },
-    "drug_names_from_lookup": {
-     "ok": true,
-     "detail": ""
-    },
-    "no_internal_plan_keys": {
-     "ok": true,
-     "detail": ""
-    },
-    "no_tables": {
-     "ok": true,
-     "detail": ""
-    },
-    "calls compare_plans": {
-     "ok": true,
-     "detail": ""
-    },
-    "never says /174\\.70/": {
-     "ok": true,
-     "detail": ""
-    },
-    "never says /185\\.00/": {
-     "ok": true,
-     "detail": ""
-    },
-    "never says /164\\.90/": {
-     "ok": true,
-     "detail": ""
-    }
-   },
-   "passed": true,
-   "north_star": {
-    "max_questions_in_a_reply": 0,
-    "question_limit": 2,
-    "questions_ok": true,
-    "reconfirm_asks": 0,
-    "asked_known_location": 0,
-    "tool_calls": 3,
-    "tool_errors": 0,
-    "guard_blocks": 0,
-    "secs": 13.4
+    "secs": 14.9
    },
    "turns": [
     {
@@ -683,13 +574,119 @@
        }
       }
      ],
-     "reply": "\n\nThe best option is Wellcare Value Script (PDP) \u2013 about $0 in a typical year (premium $0 + drug costs $0). All of his medicines are covered with no prior\u2011authorization or quantity limits. To confirm details and see if any doctors are in the plan\u2019s network, you can check the plan on Medicare.gov or call 1\u2011800\u2011MEDICARE.",
+     "reply": "\nThe top\u2011rated plan with a $0 typical\u2011year cost is Leon\u202fMediExtra (HMO) \u2013 it has a 5\u2011star rating and a $1,000 medical out\u2011of\u2011pocket max for a bad year. No prior\u2011authorization or quantity limits affect atorvastatin or lisinopril on this plan. To confirm coverage and costs, call the plan or check Medicare.gov\u2019s Plan Finder before enrolling.",
      "simulated": false
     },
     {
      "user": "And how much is the Part B premium he pays on top of the plan premium?",
      "calls": [],
-     "reply": "\nHe\u2019ll pay the standard Part\u202fB premium of **$202.90 per month** (about $2,435 per year) in addition to any plan premium. Since the plans shown have a $0 monthly premium, his total out\u2011of\u2011pocket for premiums would be just the Part\u202fB amount.",
+     "reply": "\nHe\u2019ll pay the standard Medicare Part\u202fB premium of **about\u202f$202.90 per month** ($2,435 per year) in addition to any plan premium. Since the plans shown have a $0 monthly premium, his total out\u2011of\u2011pocket would be roughly the Part\u202fB amount plus any drug copays (which are $0 for these medicines on the plans listed). Always verify the exact Part\u202fB amount with Social Security or Medicare.gov, as it can change each year.",
+     "simulated": false
+    }
+   ]
+  },
+  {
+   "id": "d03_part_b_trap",
+   "tags": [
+    "choose",
+    "grounding"
+   ],
+   "repeat": 1,
+   "guardrails": {
+    "grounding": {
+     "ok": true,
+     "detail": ""
+    },
+    "dose_grounding": {
+     "ok": true,
+     "detail": ""
+    },
+    "drug_names_from_lookup": {
+     "ok": true,
+     "detail": ""
+    },
+    "no_internal_plan_keys": {
+     "ok": true,
+     "detail": ""
+    },
+    "no_tables": {
+     "ok": true,
+     "detail": ""
+    },
+    "calls compare_plans": {
+     "ok": true,
+     "detail": ""
+    },
+    "never says /174\\.70/": {
+     "ok": true,
+     "detail": ""
+    },
+    "never says /185\\.00/": {
+     "ok": true,
+     "detail": ""
+    },
+    "never says /164\\.90/": {
+     "ok": true,
+     "detail": ""
+    }
+   },
+   "passed": true,
+   "north_star": {
+    "max_questions_in_a_reply": 0,
+    "question_limit": 2,
+    "questions_ok": true,
+    "reconfirm_asks": 0,
+    "asked_known_location": 0,
+    "tool_calls": 3,
+    "tool_errors": 0,
+    "guard_blocks": 0,
+    "secs": 13.6
+   },
+   "turns": [
+    {
+     "user": "My dad lives in Miami-Dade, Florida. He takes atorvastatin 20 mg once a day and lisinopril 10 mg once a day. No Medicaid. What are his best plans?",
+     "calls": [
+      {
+       "name": "find_drug",
+       "args": {
+        "query": "atorvastatin 20 mg"
+       }
+      },
+      {
+       "name": "find_drug",
+       "args": {
+        "query": "lisinopril 10 mg"
+       }
+      },
+      {
+       "name": "compare_plans",
+       "args": {
+        "state": "Florida",
+        "county": "Miami-Dade",
+        "drugs": [
+         {
+          "rxnorm_name": "atorvastatin 20 MG Oral Tablet",
+          "qty_per_30d": 30
+         },
+         {
+          "rxnorm_name": "lisinopril 10 MG Oral Tablet",
+          "qty_per_30d": 30
+         }
+        ],
+        "medicaid": false,
+        "hospital_stay_last_year": false,
+        "pharmacy": "preferred_retail",
+        "top_n": 5
+       }
+      }
+     ],
+     "reply": "\n\nAll of the top plans show about\u202f$0\u202ffor a typical year (premium\u202f+\u202fdrug costs). The Wellcare Value Script (PDP) has a $0 premium and $0 drug cost, making it the lowest\u2011cost option. No drugs require prior authorization or step therapy on any of these plans. Next, you can check the plan\u2019s details and provider network on Medicare.gov or by calling\u202f1\u2011800\u2011MEDICARE\u202fto confirm it works for your dad\u2019s doctors and pharmacy.",
+     "simulated": false
+    },
+    {
+     "user": "And how much is the Part B premium he pays on top of the plan premium?",
+     "calls": [],
+     "reply": "\nBased on the plan comparison, the standard Part\u202fB premium your dad would pay on top of any plan premium is **$202.90 per month** (this is the amount everyone with Original Medicare pays for Part\u202fB, regardless of which Medicare Advantage or stand\u2011alone drug plan they choose).",
      "simulated": false
     }
    ]
@@ -749,7 +746,7 @@
     "tool_calls": 3,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 12.8
+    "secs": 16.7
    },
    "turns": [
     {
@@ -786,13 +783,13 @@
        }
       }
      ],
-     "reply": "\nThe best option for your dad is the Wellcare Value Script (PDP) \u2013 about $0 in a typical year (premium $0 + drug costs $0). This plan has a quantity\u2011limit flag on atorvastatin 20\u202fmg, meaning there\u2019s a limit on how much can be filled per prescription; no drugs need prior authorization. To move forward, you can review the plan details on Medicare.gov or call 1\u2011800\u2011MEDICARE to confirm the quantity\u2011limit rules and enroll if you wish.",
+     "reply": "\n\nLeon MediExtra (HMO) looks like the best fit\u2014about $0 in a typical year (premium $0 + drug costs $0) and it has a 5\u2011star overall rating. The plan does place a quantity limit on atorvastatin 20\u202fmg tablets, but neither medicine needs prior authorization. As a next step, call Leon MediExtra (or check their provider directory) to confirm that your dad\u2019s doctors are in network and to clarify the quantity\u2011limit rule before enrolling.",
      "simulated": false
     },
     {
      "user": "And how much is the Part B premium he pays on top of the plan premium?",
      "calls": [],
-     "reply": "\nBased on the plan comparison, the standard Part\u202fB premium your dad would pay on top of any plan premium is **$202.90 per month**. This amount is separate from the $0 premium of the Wellcare Value Script (PDP) plan.",
+     "reply": "\n\nThe standard Part\u202fB premium for 2026 is **$202.90 per month**. Since the Leon\u202fMediExtra (HMO) plan has a $0 monthly premium, your dad would pay the Part\u202fB premium on top of that \u2013 about **$202.90 each month** (or roughly $2,435 per year) for his medical coverage under Original Medicare, in addition to the plan\u2019s drug coverage.",
      "simulated": false
     }
    ]
@@ -843,43 +840,42 @@
     "tool_calls": 3,
     "tool_errors": 0,
     "guard_blocks": 1,
-    "secs": 15.0
+    "secs": 15.6
    },
    "turns": [
     {
      "user": "Mom is in plan H1019-006 in Miami-Dade, Florida. She takes metformin 500 mg twice a day and atorvastatin 20 mg once a day, no Medicaid. Should she stay in her plan next year?",
      "calls": [
       {
-       "name": "check_current_plan",
+       "name": "find_drug",
        "args": {
-        "current_plan": "H1019-006",
+        "query": "metformin 500 mg"
+       }
+      },
+      {
+       "name": "find_drug",
+       "args": {
+        "query": "atorvastatin 20 mg"
+       }
+      },
+      {
+       "name": "compare_plans",
+       "args": {
         "state": "Florida",
         "county": "Miami-Dade",
         "drugs": [
          {
-          "rxnorm_name": "metformin 500 mg oral tablet",
+          "rxnorm_name": "metformin hydrochloride 500 MG Oral Tablet",
           "qty_per_30d": 60
          },
          {
-          "rxnorm_name": "atorvastatin 20 mg oral tablet",
+          "rxnorm_name": "atorvastatin 20 MG Oral Tablet",
           "qty_per_30d": 30
          }
         ],
         "medicaid": false
        },
-       "error": "Not run: call find_drug for each of these first and use an rxnorm_name it returns, exactly: metformin 500 mg oral tablet; atorvastatin 20 mg oral tablet. Never type a drug name yourself."
-      },
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "metformin 500 mg"
-       }
-      },
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "atorvastatin 20 mg"
-       }
+       "error": "Not run: the user is asking about the plan they have now. Call check_current_plan first (it already includes the best alternative). Never call a plan 'your current plan' unless check_current_plan identified it."
       },
       {
        "name": "check_current_plan",
@@ -901,7 +897,7 @@
        }
       }
      ],
-     "reply": "\nYour current CareOne\u202fPlus (HMO) plan will cost about\u202f$0 in a typical year (premium\u202f$0\u202f+\u202fdrugs\u202f$0), and the best alternative Wellcare Value\u202fScript (PDP) also projects $0, so there\u2019s no financial advantage to switching. Both plans cover metformin and atorvastatin as prescribed, with no uncovered drugs or prior\u2011authorization requirements. Since the plan\u2019s premium and out\u2011of\u2011pocket maximum aren\u2019t changing for next year, staying is reasonable. As a next step, you can confirm the drug list and network details by calling the plan or checking Medicare.gov before the Annual Enrollment Period ends.",
+     "reply": "\n\nYour current CareOne\u202fPlus (HMO) plan will likely cost about $0 in a typical year next year, and switching to the best alternative Wellcare Value\u202fScript (PDP) would also be about $0\u2014so there\u2019s no clear savings from changing plans. Neither metformin nor atorvastatin requires prior authorization under either plan. As a next step, call the plan or your doctor\u2019s office to confirm that your providers remain in network before deciding to stay or switch.",
      "simulated": false
     }
    ]
@@ -951,8 +947,8 @@
     "asked_known_location": 0,
     "tool_calls": 3,
     "tool_errors": 0,
-    "guard_blocks": 0,
-    "secs": 18.8
+    "guard_blocks": 1,
+    "secs": 16.4
    },
    "turns": [
     {
@@ -969,6 +965,25 @@
        "args": {
         "query": "atorvastatin 20 mg"
        }
+      },
+      {
+       "name": "compare_plans",
+       "args": {
+        "state": "Florida",
+        "county": "Miami-Dade",
+        "drugs": [
+         {
+          "rxnorm_name": "metformin hydrochloride 500 MG Oral Tablet",
+          "qty_per_30d": 60
+         },
+         {
+          "rxnorm_name": "atorvastatin 20 MG Oral Tablet",
+          "qty_per_30d": 30
+         }
+        ],
+        "medicaid": false
+       },
+       "error": "Not run: the user is asking about the plan they have now. Call check_current_plan first (it already includes the best alternative). Never call a plan 'your current plan' unless check_current_plan identified it."
       },
       {
        "name": "check_current_plan",
@@ -990,7 +1005,7 @@
        }
       }
      ],
-     "reply": "\nYour current CareOne\u202fPlus (HMO) plan will cost about\u202f$0 in a typical year next year, and the best alternative Wellcare Value\u202fScript (PDP) also projects about\u202f$0\u2014so staying or switching won\u2019t change your out\u2011of\u2011pocket drug costs. Both plans cover metformin and atorvastatin as prescribed, though each has a quantity limit on metformin tablets. Check with the plan or your pharmacy that the limits work for your dosing, then decide whether to stay or switch during the Annual Enrollment Period (Oct\u202f15\u2013Dec\u202f7).",
+     "reply": "\n\nYour mom\u2019s current CareOne\u202fPlus (HMO) plan will likely cost about $0 in a typical year next year\u2014same as the lowest\u2011cost alternative\u2014and neither of her medicines will lose coverage. Since the plan ranks second among 44 options in Miami\u2011Dade and has a strong 4.5\u2011star rating, staying is reasonable unless she prefers a different network. Check the plan\u2019s 2027 drug list when it\u2019s posted in October or call CarePlus to confirm continued coverage for metformin and atorvastatin.",
      "simulated": false
     }
    ]
@@ -1040,8 +1055,8 @@
     "asked_known_location": 0,
     "tool_calls": 3,
     "tool_errors": 0,
-    "guard_blocks": 0,
-    "secs": 13.3
+    "guard_blocks": 1,
+    "secs": 15.6
    },
    "turns": [
     {
@@ -1052,6 +1067,26 @@
        "args": {
         "query": "metformin 500 mg"
        }
+      },
+      {
+       "name": "check_current_plan",
+       "args": {
+        "current_plan": "H1019-006",
+        "state": "Florida",
+        "county": "Miami-Dade",
+        "drugs": [
+         {
+          "rxnorm_name": "metformin hydrochloride 500 MG Oral Tablet",
+          "qty_per_30d": 60
+         },
+         {
+          "rxnorm_name": "atorvastatin calcium 20 MG Oral Tablet",
+          "qty_per_30d": 30
+         }
+        ],
+        "medicaid": false
+       },
+       "error": "Not run: call find_drug for each of these first and use an rxnorm_name it returns, exactly: atorvastatin calcium 20 MG Oral Tablet. Never type a drug name yourself."
       },
       {
        "name": "find_drug",
@@ -1079,7 +1114,7 @@
        }
       }
      ],
-     "reply": "\nYour current CareOne\u202fPlus (HMO) plan will likely cost about $0 in a typical year next year, and the best alternative Wellcare Value\u202fScript (PDP) also shows about $0\u2014so staying or switching won\u2019t change your out\u2011of\u2011pocket cost for these medicines. Neither plan requires prior authorization for metformin or atorvastatin. Check the plan\u2019s 2027 formulary in October or call 1\u2011800\u2011MEDICARE/Medicare.gov to confirm coverage before deciding.",
+     "reply": "\nYour current CareOne\u202fPlus (HMO) plan will likely cost about\u202f$0 in a typical year next year, and the best alternative (Wellcare Value Script PDP) also shows about\u202f$0, so staying is reasonable. No metformin or atorvastatin requires prior authorization or quantity limits beyond what\u2019s already noted. Check that her doctors are in the plan\u2019s network by calling CarePlus or the doctors\u2019 offices before deciding. If she wants to explore other options, she can use Medicare.gov\u2019s Plan Finder or call\u202f1\u2011800\u2011MEDICARE for help. (No Medicaid, so no special\u2011needs plans apply.)",
      "simulated": false
     }
    ]
@@ -1143,7 +1178,7 @@
     "tool_calls": 1,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 10.2
+    "secs": 10.4
    },
    "turns": [
     {
@@ -1156,7 +1191,7 @@
        }
       }
      ],
-     "reply": "\nThis is a Medicare Part\u202fD drug\u2011coverage denial for Ozempic\u202f1\u202fmg/dose pen injector because the plan says you must try metformin first (step\u2011therapy rule). You have until\u202fOctober\u202f30,\u202f2026\u202f(about\u202f18\u202fdays) to file an appeal. The first step is to ask your doctor to send the plan a supporting statement explaining why Ozempic is needed and why metformin isn\u2019t appropriate, then submit a \u201cRequest for Redetermination\u201d using the contact on the notice. If waiting could seriously harm your health, you can request a fast (expedited) appeal, which the plan must decide within\u202f72\u202fhours. Keep a copy of everything you send and note the date you mailed or faxed it.",
+     "reply": "\nThis is a Medicare Part\u202fD denial notice stating that your plan, Evergreen Senior Choice (PPO), refused coverage of Ozempic\u202f1\u202fmg/dose pen injector because you haven\u2019t tried metformin first under its step\u2011therapy rule. The appeal deadline is October\u202f30,\u202f2026 \u2013 you have 17\u202fdays left to act.  \n\nThe next step is to ask the prescribing doctor to send the plan a supporting statement explaining why Ozempic is medically necessary and why metformin isn\u2019t appropriate, then submit a \u201cRequest for Redetermination\u201d using the contact information on the denial (phone\u202f1\u2011800\u2011555\u20110138). If waiting could seriously harm your health, you can request a fast (expedited) appeal, which the plan must decide within 72\u202fhours.  \n\nBe sure to keep copies of everything you send and note the date you submitted the request.",
      "simulated": false
     }
    ]
@@ -1220,7 +1255,7 @@
     "tool_calls": 1,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 10.2
+    "secs": 9.8
    },
    "turns": [
     {
@@ -1233,7 +1268,7 @@
        }
       }
      ],
-     "reply": "\nThis is a Medicare Part\u202fD drug\u2011coverage denial for Ozempic\u202f1\u202fmg/dose pen injector, and you have until\u202fOctober\u202f30,\u202f2026 (about\u202f18\u202fdays) to appeal. The first step is to ask the prescribing doctor to send the plan a supporting statement explaining why Ozempic is needed and why alternatives like metformin won\u2019t work, then submit that with a request for redetermination by mail, fax or phone using the contact on the notice. If waiting could seriously harm health, you can request a fast (72\u2011hour) appeal instead. Call the plan or the doctor\u2019s office to confirm receipt before the deadline.",
+     "reply": "\nIt looks like you received a Part\u202fD denial from Evergreen Senior Choice (PPO) for Ozempic because the plan requires trying metformin first under its step\u2011therapy rule. The denial notice gives you until October\u202f30,\u202f2026 (about 17\u202fdays) to file a redetermination\u2014send the attached \u201cRequest for Redetermination\u201d letter (or have your doctor send a supporting statement) to the plan\u2019s appeals department, and you can request a fast (72\u2011hour) appeal if waiting would seriously harm your health. Keep a copy of everything you send and note the date you submitted it. If you\u2019d like help checking whether other plans cover Ozempic without the step\u2011therapy requirement, I\u2019ll need the person\u2019s county and a list of their current medications.",
      "simulated": false
     }
    ]
@@ -1297,7 +1332,7 @@
     "tool_calls": 1,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 9.9
+    "secs": 14.7
    },
    "turns": [
     {
@@ -1310,7 +1345,7 @@
        }
       }
      ],
-     "reply": "\nThis is a Medicare Part\u202fD denial notice for Ozempic\u202f1\u202fmg/dose pen injector from Evergreen Senior Choice (PPO). The denial says you must try metformin first under the plan\u2019s step\u2011therapy rule, and you have until\u202fOctober\u202f30,\u202f2026 (about\u202f18\u202fdays) to file an appeal.  \n\nThe fastest route is to ask your doctor to send the plan a supporting statement explaining why metformin isn\u2019t appropriate for you, then submit a \u201cRequest for Redetermination\u201d using the contact on the notice (phone\u202f1\u2011800\u2011555\u20110138). If waiting could seriously harm your health, you can request a fast appeal, which the plan must decide within\u202f72\u202fhours.  \n\nKeep a copy of everything you send and note the date you submitted it. If you need help drafting the doctor\u2019s request or the appeal letter, let me know and I can provide the templates from the notice.",
+     "reply": "\nThis is a Medicare Part\u202fD denial notice stating that Evergreen Senior Choice (PPO) refused coverage of Ozempic\u202f1\u202fmg/dose pen injector because you haven\u2019t tried metformin first under their step\u2011therapy rule. The appeal deadline is October\u202f30,\u202f2026 \u2013 17\u202fdays from today.  \n\nThe immediate next step is to ask the prescribing doctor to send the plan a supporting statement explaining why Ozempic is medically necessary and why metformin isn\u2019t appropriate, then submit that statement with a \u201cRequest for Redetermination\u201d to the plan (contact\u202f1\u2011800\u2011555\u20110138) by mail, fax or phone before the deadline.  \n\nIf waiting could seriously harm your health, you can request a fast (expedited) appeal, which requires the plan to decide within 72\u202fhours.  \n\nBe sure to keep copies of everything you send and note the date you submitted the request.",
      "simulated": false
     }
    ]
@@ -1366,7 +1401,7 @@
     "tool_calls": 1,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 5.5
+    "secs": 5.0
    },
    "turns": [
     {
@@ -1379,7 +1414,7 @@
        }
       }
      ],
-     "reply": "\n\nIt looks like a grocery\u2011store receipt, not a Medicare letter, bill, or statement. Please upload a photo of a Medicare or plan notice, a bill/EOB/MSN, or a pill\u2011bottle label instead.",
+     "reply": "\nIt looks like a grocery\u2011store receipt from Fresh Market, not a Medicare letter, notice, bill, or pill\u2011bottle label. Please upload a clear photo of a Medicare document (such as a denial, Annual Notice of Change, or a prescription label) so I can help you with it.",
      "simulated": false
     }
    ]
@@ -1435,7 +1470,7 @@
     "tool_calls": 1,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 8.9
+    "secs": 5.3
    },
    "turns": [
     {
@@ -1448,7 +1483,7 @@
        }
       }
      ],
-     "reply": "\n\nIt looks like a grocery store receipt from Fresh Market, not a Medicare letter, bill, or statement. Please upload a clear photo of a Medicare or plan notice, a bill with an EOB/MSN, or a pill\u2011bottle label instead.",
+     "reply": "\nIt looks like a grocery\u2011store receipt, not a Medicare letter, bill, or statement\u2014I can\u2019t extract any Medicare information from it. Please upload a clear photo of a Medicare or plan notice, a bill/EOB/MSN, or a prescription\u2011bottle label instead.",
      "simulated": false
     }
    ]
@@ -1504,7 +1539,7 @@
     "tool_calls": 1,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 10.0
+    "secs": 4.6
    },
    "turns": [
     {
@@ -1517,7 +1552,7 @@
        }
       }
      ],
-     "reply": "\n\nIt looks like a grocery\u2011store receipt, not a Medicare letter, bill, or statement. Please upload a photo of a Medicare letter, notice, bill, or a pill\u2011bottle label instead.",
+     "reply": "\n\nIt looks like the photo is a grocery store receipt, not a Medicare letter or notice, so I can\u2019t extract any Medicare information from it. Please upload a clear image of a Medicare document\u2014such as a plan letter, denial notice, bill, Explanation of Benefits, or Medicare Summary Notice\u2014and I\u2019ll help you understand what it says and what steps to take.",
      "simulated": false
     }
    ]
@@ -1566,10 +1601,226 @@
     "questions_ok": true,
     "reconfirm_asks": 0,
     "asked_known_location": 0,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "guard_blocks": 0,
+    "secs": 16.1
+   },
+   "turns": [
+    {
+     "user": "My aunt lives in Miami-Dade, Florida, takes Eliquis 5 mg twice a day, no Medicaid. Which plans are best?",
+     "calls": [
+      {
+       "name": "find_drug",
+       "args": {
+        "query": "Eliquis 5 mg"
+       }
+      },
+      {
+       "name": "find_county",
+       "args": {
+        "state": "Florida",
+        "contains": "Miami-Dade"
+       }
+      },
+      {
+       "name": "compare_plans",
+       "args": {
+        "state": "Florida",
+        "county": "Miami-Dade",
+        "drugs": [
+         {
+          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
+          "qty_per_30d": 60
+         }
+        ],
+        "medicaid": false
+       }
+      }
+     ],
+     "reply": "\nThe Humana Gold Plus H1036\u2011054C (HMO) plan looks best\u2014about\u202f$0 in a typical year (no premium and no drug cost) with a maximum out\u2011of\u2011pocket of\u202f$500 in a bad year. This plan has a quantity\u2011limit flag for Eliquis, meaning there\u2019s a limit on how much you can get per fill. To move forward, call Humana or check the plan\u2019s provider directory to confirm your aunt\u2019s doctors are in\u2011network before enrolling.",
+     "simulated": false
+    },
+    {
+     "user": "What if she uses mail order instead?",
+     "calls": [
+      {
+       "name": "compare_plans",
+       "args": {
+        "state": "Florida",
+        "county": "Miami-Dade",
+        "drugs": [
+         {
+          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
+          "qty_per_30d": 60
+         }
+        ],
+        "medicaid": false,
+        "pharmacy": "preferred_mail"
+       }
+      }
+     ],
+     "reply": "\nWith mail\u2011order pharmacy, the CareOne Plus (HMO) plan is the top choice\u2014about\u202f$0 in a typical year (no premium and no drug cost) and a maximum out\u2011of\u2011pocket of\u202f$500 in a bad year. There are no prior\u2011authorization requirements for Eliquis on this plan (only a quantity\u2011limit flag). To proceed, call CarePlus or check their provider directory to confirm your aunt\u2019s doctors are in\u2011network before enrolling.",
+     "simulated": false
+    }
+   ]
+  },
+  {
+   "id": "d07_what_if_mail",
+   "tags": [
+    "choose",
+    "what-if"
+   ],
+   "repeat": 1,
+   "guardrails": {
+    "grounding": {
+     "ok": true,
+     "detail": ""
+    },
+    "dose_grounding": {
+     "ok": true,
+     "detail": ""
+    },
+    "drug_names_from_lookup": {
+     "ok": true,
+     "detail": ""
+    },
+    "no_internal_plan_keys": {
+     "ok": true,
+     "detail": ""
+    },
+    "no_tables": {
+     "ok": true,
+     "detail": ""
+    },
+    "compare_plans x2+": {
+     "ok": true,
+     "detail": "2 calls"
+    },
+    "compare_plans args {'pharmacy': 'preferred_mail'}": {
+     "ok": true,
+     "detail": ""
+    }
+   },
+   "passed": true,
+   "north_star": {
+    "max_questions_in_a_reply": 0,
+    "question_limit": 2,
+    "questions_ok": true,
+    "reconfirm_asks": 0,
+    "asked_known_location": 0,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "guard_blocks": 0,
+    "secs": 17.8
+   },
+   "turns": [
+    {
+     "user": "My aunt lives in Miami-Dade, Florida, takes Eliquis 5 mg twice a day, no Medicaid. Which plans are best?",
+     "calls": [
+      {
+       "name": "find_drug",
+       "args": {
+        "query": "Eliquis 5 mg"
+       }
+      },
+      {
+       "name": "find_county",
+       "args": {
+        "state": "Florida",
+        "contains": "Miami-Dade"
+       }
+      },
+      {
+       "name": "compare_plans",
+       "args": {
+        "state": "Florida",
+        "county": "Miami-Dade",
+        "drugs": [
+         {
+          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
+          "qty_per_30d": 60
+         }
+        ],
+        "medicaid": false
+       }
+      }
+     ],
+     "reply": "\nCareOne Plus (HMO) looks like the best fit\u2014about $0 in a typical year (premium $0 + drug costs $0) and at most about $500 in a very bad year (medical out\u2011of\u2011pocket max $500), with a 4.5\u2011star rating.  \nAll the top plans show a quantity\u2011limit flag for Eliquis 5\u202fmg tablets, meaning the plan may limit how much you can get per fill.  \nNext, call the plan (or check Medicare.gov) to confirm that your aunt\u2019s pharmacy and doctors are in network and to verify any quantity\u2011limit details before enrolling.",
+     "simulated": false
+    },
+    {
+     "user": "What if she uses mail order instead?",
+     "calls": [
+      {
+       "name": "compare_plans",
+       "args": {
+        "state": "Florida",
+        "county": "Miami-Dade",
+        "drugs": [
+         {
+          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
+          "qty_per_30d": 60
+         }
+        ],
+        "medicaid": false,
+        "pharmacy": "preferred_mail"
+       }
+      }
+     ],
+     "reply": "\nWith mail\u2011order pharmacy, CareOne Plus (HMO) remains the top choice\u2014about $0 in a typical year (premium $0 + drug costs $0) and at most about $500 in a very bad year (medical out\u2011of\u2011pocket max $500). All plans show a quantity\u2011limit flag for Eliquis 5\u202fmg tablets, meaning the plan may restrict how much you can receive per fill. Since there are no ranking notes or generic alternatives that change the cost, the next step is to call the plan (or check Medicare.gov) to verify that her pharmacy and doctors are in network and to confirm the exact quantity\u2011limit details before enrolling.",
+     "simulated": false
+    }
+   ]
+  },
+  {
+   "id": "d07_what_if_mail",
+   "tags": [
+    "choose",
+    "what-if"
+   ],
+   "repeat": 2,
+   "guardrails": {
+    "grounding": {
+     "ok": true,
+     "detail": ""
+    },
+    "dose_grounding": {
+     "ok": true,
+     "detail": ""
+    },
+    "drug_names_from_lookup": {
+     "ok": true,
+     "detail": ""
+    },
+    "no_internal_plan_keys": {
+     "ok": true,
+     "detail": ""
+    },
+    "no_tables": {
+     "ok": true,
+     "detail": ""
+    },
+    "compare_plans x2+": {
+     "ok": true,
+     "detail": "2 calls"
+    },
+    "compare_plans args {'pharmacy': 'preferred_mail'}": {
+     "ok": true,
+     "detail": ""
+    }
+   },
+   "passed": true,
+   "north_star": {
+    "max_questions_in_a_reply": 0,
+    "question_limit": 2,
+    "questions_ok": true,
+    "reconfirm_asks": 0,
+    "asked_known_location": 0,
     "tool_calls": 3,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 16.5
+    "secs": 18.0
    },
    "turns": [
     {
@@ -1596,7 +1847,7 @@
        }
       }
      ],
-     "reply": "\n\nThe top plan is CareOne Plus (HMO) \u2013 about $0 in a typical year (premium $0 + drug costs $0) with a medical out\u2011of\u2011pocket max of $500 in a bad year. All listed plans show a quantity\u2011limit flag for Eliquis 5\u202fmg, meaning the plan may limit how much you can get per fill. Since no plan excludes the drug, you can proceed with any of these options. To confirm details and network providers, call the plan directly or check Medicare.gov\u2019s Plan Finder.",
+     "reply": "\n\nThe top choice is CareOne\u202fPlus (HMO) \u2013 about $0 in a typical year ($0 premium + $0 drug cost) and up to $500 in a bad year. This plan ranks highest due to its $0 total cost and strong 4.5\u2011star rating. On this plan, Eliquis 5\u202fmg has a quantity\u2011limit flag (QL), meaning there\u2019s a limit on how much you can get per fill. Please call the plan or your aunt\u2019s doctor\u2019s office to confirm the drug limits and network details before enrolling.",
      "simulated": false
     },
     {
@@ -1618,208 +1869,7 @@
        }
       }
      ],
-     "reply": "\nWith mail\u2011order pharmacy, CareOne Plus (HMO) remains the top choice\u2014about $0 in a typical year (premium $0 + drug costs $0) and a maximum of about $500 in a bad health year. The plan shows a quantity\u2011limit flag for Eliquis 5\u202fmg, meaning it may limit how much you can get per fill. Check the plan\u2019s details or call them to confirm the mail\u2011order network and any quantity limits before deciding.",
-     "simulated": false
-    }
-   ]
-  },
-  {
-   "id": "d07_what_if_mail",
-   "tags": [
-    "choose",
-    "what-if"
-   ],
-   "repeat": 1,
-   "guardrails": {
-    "grounding": {
-     "ok": true,
-     "detail": ""
-    },
-    "dose_grounding": {
-     "ok": true,
-     "detail": ""
-    },
-    "drug_names_from_lookup": {
-     "ok": true,
-     "detail": ""
-    },
-    "no_internal_plan_keys": {
-     "ok": true,
-     "detail": ""
-    },
-    "no_tables": {
-     "ok": true,
-     "detail": ""
-    },
-    "compare_plans x2+": {
-     "ok": true,
-     "detail": "2 calls"
-    },
-    "compare_plans args {'pharmacy': 'preferred_mail'}": {
-     "ok": true,
-     "detail": ""
-    }
-   },
-   "passed": true,
-   "north_star": {
-    "max_questions_in_a_reply": 0,
-    "question_limit": 2,
-    "questions_ok": true,
-    "reconfirm_asks": 0,
-    "asked_known_location": 0,
-    "tool_calls": 3,
-    "tool_errors": 0,
-    "guard_blocks": 0,
-    "secs": 15.8
-   },
-   "turns": [
-    {
-     "user": "My aunt lives in Miami-Dade, Florida, takes Eliquis 5 mg twice a day, no Medicaid. Which plans are best?",
-     "calls": [
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "Eliquis 5 mg"
-       }
-      },
-      {
-       "name": "compare_plans",
-       "args": {
-        "state": "Florida",
-        "county": "Miami-Dade",
-        "drugs": [
-         {
-          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
-          "qty_per_30d": 60
-         }
-        ]
-       }
-      }
-     ],
-     "reply": "\n\nThe best\u2011rated plan for your aunt in Miami\u2011Dade is **CareOne\u202fPlus (HMO)** \u2013 it has a $0 monthly premium and $0 drug cost, so a typical year would cost about $0, with a maximum out\u2011of\u2011pocket of $500 in a very bad health year.  \nThere\u2019s no special note explaining why it\u2019s ranked above the others.  \nEliquis is subject to a quantity limit (QL) on this plan, meaning the plan may limit how much she can get per fill.  \nNext, you can check whether her doctors are in the plan\u2019s network (or call the plan/Medicare\u202f.gov\u202fPlan\u202fFinder) before making a decision.",
-     "simulated": false
-    },
-    {
-     "user": "What if she uses mail order instead?",
-     "calls": [
-      {
-       "name": "compare_plans",
-       "args": {
-        "state": "Florida",
-        "county": "Miami-Dade",
-        "drugs": [
-         {
-          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
-          "qty_per_30d": 60
-         }
-        ],
-        "pharmacy": "preferred_mail"
-       }
-      }
-     ],
-     "reply": "\n\nWith mail\u2011order pharmacy, the top plan remains **CareOne\u202fPlus (HMO)** \u2013 about $0 in a typical year ($0 premium + $0 drug cost) and at most $500 out\u2011of\u2011pocket in a very bad health year. There\u2019s no special ranking note separating it from the others. Eliquis is subject to a quantity limit (QL) on this plan, meaning the plan may restrict how much she can receive per fill. As a next step, you can verify that her doctors are in the plan\u2019s network (or call the plan/Medicare\u202f.gov\u202fPlan\u202fFinder) before deciding.",
-     "simulated": false
-    }
-   ]
-  },
-  {
-   "id": "d07_what_if_mail",
-   "tags": [
-    "choose",
-    "what-if"
-   ],
-   "repeat": 2,
-   "guardrails": {
-    "grounding": {
-     "ok": true,
-     "detail": ""
-    },
-    "dose_grounding": {
-     "ok": true,
-     "detail": ""
-    },
-    "drug_names_from_lookup": {
-     "ok": true,
-     "detail": ""
-    },
-    "no_internal_plan_keys": {
-     "ok": true,
-     "detail": ""
-    },
-    "no_tables": {
-     "ok": true,
-     "detail": ""
-    },
-    "compare_plans x2+": {
-     "ok": true,
-     "detail": "2 calls"
-    },
-    "compare_plans args {'pharmacy': 'preferred_mail'}": {
-     "ok": true,
-     "detail": ""
-    }
-   },
-   "passed": true,
-   "north_star": {
-    "max_questions_in_a_reply": 0,
-    "question_limit": 2,
-    "questions_ok": true,
-    "reconfirm_asks": 0,
-    "asked_known_location": 0,
-    "tool_calls": 3,
-    "tool_errors": 0,
-    "guard_blocks": 0,
-    "secs": 16.5
-   },
-   "turns": [
-    {
-     "user": "My aunt lives in Miami-Dade, Florida, takes Eliquis 5 mg twice a day, no Medicaid. Which plans are best?",
-     "calls": [
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "Eliquis 5 mg"
-       }
-      },
-      {
-       "name": "compare_plans",
-       "args": {
-        "state": "Florida",
-        "county": "Miami-Dade",
-        "drugs": [
-         {
-          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
-          "qty_per_30d": 60
-         }
-        ],
-        "medicaid": false,
-        "pharmacy": "preferred_retail"
-       }
-      }
-     ],
-     "reply": "\nCareOne\u202fPlus\u202f(HMO) looks like the best fit \u2013 about $0 in a typical year (no premium and no drug cost) and at most about $500 if you have a very bad health year. The plan has a quantity\u2011limit flag on Eliquis, meaning there\u2019s a limit on how much you can get per fill. To be sure, call the plan or check Medicare.gov to confirm the drug limit and that your doctors are in network before enrolling.",
-     "simulated": false
-    },
-    {
-     "user": "What if she uses mail order instead?",
-     "calls": [
-      {
-       "name": "compare_plans",
-       "args": {
-        "state": "Florida",
-        "county": "Miami-Dade",
-        "drugs": [
-         {
-          "rxnorm_name": "apixaban 5 MG Oral Tablet [Eliquis]",
-          "qty_per_30d": 60
-         }
-        ],
-        "medicaid": false,
-        "pharmacy": "preferred_mail"
-       }
-      }
-     ],
-     "reply": "\nWith mail\u2011order pharmacy, CareOne\u202fPlus\u202f(HMO) remains the top choice\u2014about $0 in a typical year (no premium and no drug cost) and at most about $500 if you have a very bad health year. There\u2019s a quantity\u2011limit flag on Eliquis, meaning the plan limits how much you can get per fill. Check the plan\u2019s formulary or call them to confirm the exact Eliquis limit and that her doctors are in network before enrolling. You can also review the plan on Medicare.gov or call 1\u2011800\u2011MEDICARE for details.",
+     "reply": "\n\nWith mail\u2011order pharmacy, CareOne\u202fPlus (HMO) is still the top pick\u2014about $0 in a typical year ($0 premium\u202f+\u202f$0 drug cost) and up to about $500 in a very bad year. The plan shows a quantity\u2011limit (QL) flag for Eliquis 5\u202fmg, meaning there\u2019s a limit on how much can be dispensed per fill. Please call the plan or your aunt\u2019s doctor\u2019s office to confirm the Eliquis limits and network details before enrolling.",
      "simulated": false
     }
    ]
@@ -1868,13 +1918,13 @@
     "tool_calls": 0,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 1.1
+    "secs": 1.6
    },
    "turns": [
     {
      "user": "I live in Broward County, Florida and I take atorvastatin. Help me pick a plan.",
      "calls": [],
-     "reply": "\nI\u2019ll start by confirming your location\u2014Broward County, Florida\u2014and assuming you don\u2019t have Medicaid. How many milligrams of atorvastatin do you take each day, and how often do you take it? (For example, \u201c10\u202fmg once a day.\u201d)",
+     "reply": "\nGot it\u2014Broward County, Florida, and assuming you don\u2019t have Medicaid. How many milligrams of atorvastatin do you take each day? (For example, 20\u202fmg once a day.)",
      "simulated": false
     }
    ]
@@ -1923,13 +1973,13 @@
     "tool_calls": 0,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 1.4
+    "secs": 3.1
    },
    "turns": [
     {
      "user": "I live in Broward County, Florida and I take atorvastatin. Help me pick a plan.",
      "calls": [],
-     "reply": "\n\nI can\u2019t enroll you, but I can help compare plans. How many atorvastatin tablets do you take each day? (Most people take\u202f1.)",
+     "reply": "\nYou\u2019re in Broward County, Florida taking atorvastatin\u2014how many tablets do you take each day? (Most people take 1.)",
      "simulated": false
     }
    ]
@@ -1978,13 +2028,13 @@
     "tool_calls": 0,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 1.1
+    "secs": 1.2
    },
    "turns": [
     {
      "user": "I live in Broward County, Florida and I take atorvastatin. Help me pick a plan.",
      "calls": [],
-     "reply": "\nI\u2019ll start by confirming your location\u2014Broward County, Florida\u2014and assuming you don\u2019t have Medicaid. To compare plans accurately, could you tell me how many atorvastatin tablets you take each day and the strength (for example, 10\u202fmg, 20\u202fmg)?",
+     "reply": "\nGot it\u2014Broward County, Florida, assuming no Medicaid. How many atorvastatin tablets do you take each day, and what strength is each tablet? (For example, 10\u202fmg once a day.)",
      "simulated": false
     }
    ]

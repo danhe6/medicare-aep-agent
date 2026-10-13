@@ -163,7 +163,15 @@ STAY = re.compile(r"\bstay\b.{0,40}\bplan\b|\bplan\b.{0,40}\bstay\b|\bkeep (my|h
 PLAN_KEY = re.compile(r"\b([HSR]\d{4}[-\u2010-\u2011]\d{3})[-\u2010-\u2011]\d{3}\b")
 TABLE = re.compile(r"^\s*\|.*\|\s*$\n^\s*\|?\s*:?-{3,}", re.M)
 RECONFIRM = re.compile(r"(is that|is this|that's|are those|(does|do) (that|this|these|those) (sound|look)) (still )?"
-                       r"(correct|right|accurate)\b[^.?!\n]{0,60}\?|just to confirm|can you confirm\b", re.I)
+                       r"(correct|right|accurate)\b[^.?!\n]{0,60}\?|just to confirm|(can|could) you (please )?confirm\b", re.I)
+OFFER = re.compile(r"\b(would you like( me)? to|do you want me to|shall i|should i (go ahead|check|look)|want me to|"
+                   r"¿?(quiere|quieres|le gustar[ií]a|te gustar[ií]a) que|¿?te parece (bien )?que)\b", re.I)
+YES = re.compile(r"^\W*(yes|yeah|yep|sure|ok(ay)?|please|go ahead|s[ií]|claro|por favor|dale)\b", re.I)
+INCOME = re.compile(r"(\$\s?\d[\d,]*|\b\d+(?:[.,]\d+)?\s*(k|mil|thousand)\b)[^.?!]{0,60}"
+                    r"\b(a month|per month|monthly|a year|per year|yearly|al mes|mensual|al año|income|ingresos?|"
+                    r"social security|seguro social|pension|pensi[oó]n)\b", re.I)
+HELP_PAYING = re.compile(r"\b(help|ayuda|extra help|afford|pagar|paying|pay for|subsid)", re.I)
+Q_LIMIT = {"senior": 1, "family": 2}
 # asking where the PERSON lives (not where a doctor practices)
 ASKS_LOCATION = re.compile(r"\b(which|what) (specific )?(county|zip( code)?|city|town|area)\b[^.!?\n]*\b(you|she|he|they)\b[^.!?\n]*\blives?\b[^.!\n]*\?|"
                            r"\b(your|her|his|their) (county|zip( code)?|city|town)\b[^.!\n]*\?|"
@@ -223,9 +231,49 @@ def gave_county(messages: list[dict] | None) -> bool:
     return any(re.search(rf"\b{re.escape(c)}\b", text) for c in _known_counties() if len(c) > 3)
 
 
-def style_problem(text: str, messages: list[dict] | None = None) -> str | None:
+def _called(messages: list[dict] | None, name: str) -> bool:
+    return any(tc.get("function", {}).get("name") == name for m in messages or [] for tc in m.get("tool_calls") or [])
+
+
+def letter_plan_id(messages: list[dict] | None) -> str | None:
+    """Plan ID printed on an Annual Notice of Change the user uploaded in this conversation, if any."""
+    ids, pid = _tool_names(messages or []), None
+    for m in messages or []:
+        if m.get("role") == "tool" and ids.get(m.get("tool_call_id")) == "read_medicare_letter":
+            try:
+                out = json.loads(m.get("content") or "{}")
+            except json.JSONDecodeError:
+                continue
+            if isinstance(out, dict) and out.get("letter_type") == "anoc":
+                pid = (out.get("fields") or {}).get("plan_id") or out.get("plan_id") or pid
+    return pid
+
+
+def pin_current_plan(name: str, args: dict, messages: list[dict]) -> dict:
+    """check_current_plan by plan NAME can fuzzy-match the wrong plan (eval m05: 'Palmetto Rx Saver' -> an AARP plan).
+    When the user's notice printed the plan ID, use the ID."""
+    if name == "check_current_plan" and not PLAN_ID.search(str(args.get("current_plan") or "")):
+        pid = letter_plan_id(messages)
+        if pid:
+            return {**args, "current_plan": pid}
+    return args
+
+
+def style_problem(text: str, messages: list[dict] | None = None, mode: str | None = None) -> str | None:
     """Prompt rules the model breaks often enough to fix in code (found by evals/agent): one rewrite is requested."""
     text = (text or "").replace("\u2019", "'")
+    last = _last_user(messages)
+    if INCOME.search(last) and HELP_PAYING.search(last) and not _called(messages, "screen_extra_help"):
+        return ("The user gave income and asked about help paying for medicines. Call screen_extra_help now "
+                "(yearly_income = monthly amount x 12; resources = savings; married and Medicaid from what they said). "
+                "Do not ask for medicines or permission first.")
+    if OFFER.search(text) and YES.search(last) and OFFER.search(_prev_assistant(messages)):
+        return ("The user already said yes to your offer. Do it now with your tools; if no tool can do it, say so in one "
+                "sentence and give the next step (Medicare.gov, 1-800-MEDICARE, or the plan). Do not offer again.")
+    limit = Q_LIMIT.get(mode or "", 2)
+    if text.count("?") > limit:
+        return (f"It asks {text.count('?')} questions; ask at most {limit} (the single most important one). "
+                "Assume the usual default for the rest and say so in a few words.")
     if TABLE.search(text or ""):
         return "It uses a table. Never use tables: use short plain sentences or a short numbered list."
     if RECONFIRM.search(text or ""):
@@ -399,7 +447,7 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
         messages.append(entry)
         convo.append(entry)
         if not msg.tool_calls:
-            problem = style_problem(msg.content or "", messages[:-1])
+            problem = style_problem(msg.content or "", messages[:-1], mode)
             if problem and repairs < MAX_REPAIRS:  # bounded rewrites, never a loop
                 repairs += 1
                 messages.pop()
@@ -424,6 +472,10 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
             yield {"type": "tool_start", "id": tc.id, "name": tc.function.name, "args": args}
             metrics.set_run(run_id)
             t0 = time.perf_counter()
+            pinned = pin_current_plan(tc.function.name, args, messages)
+            if pinned is not args:
+                args = pinned
+                tc.function.arguments = json.dumps(args)
             blocked = guard(tc.function.name, args, messages, profile)
             if tc.function.name == "compare_plans" and not blocked:
                 priced = [d for d in args.get("drugs") or [] if isinstance(d, dict)]
