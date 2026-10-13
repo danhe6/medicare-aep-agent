@@ -12,16 +12,18 @@ from __future__ import annotations
 import re
 
 SPACES = dict.fromkeys(map(ord, "\u00a0\u202f\u2009\u2007\u200a"), " ")
+QUOTES = {ord("\u2019"): "'", ord("\u2018"): "'", ord("\u201c"): '"', ord("\u201d"): '"'}
 DASHES = dict.fromkeys(map(ord, "\u2010\u2011\u2012\u2013\u2014\u2015\u2212"), "-")
 
 
 def normalize(text: str) -> str:
     """Model output uses non-breaking spaces and non-ASCII hyphens ("Miami\u2011Dade", "October\u00a030")."""
-    return (text or "").translate(SPACES).translate(DASHES)
+    return (text or "").translate(SPACES).translate(DASHES).translate(QUOTES)
 
-MONEY = re.compile(r"\$\s?(\d[\d,]*(?:\.\d+)?)\s*(k|K|thousand)?")
+MONEY = re.compile(r"\$\s?(\d[\d,]*(?:\.\d+)?)(?:\s?(k|K|thousand)\b)?")  # "$75 knee X-ray" is $75, not $75k
 PCT = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)\s?(?:%|percent)")
-DOSE = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)\s?(mg|mcg|units?|mL)\b", re.I)
+# strengths only: quantities (units/day -> mL, pens, bottles) are conversions the prompt asks the model to state
+DOSE = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)\s?(mg|mcg)\b", re.I)
 EXAMPLE = re.compile(r"(like|e\.g\.|for example|for instance|such as|por ejemplo|como)\W[^.?!]*$|[\u201c\"][^\u201d\"]*$", re.I)
 STARS = re.compile(r"(?<![\w.])(\d(?:\.\d)?)\s?(?:-|\s)?stars?\b", re.I)
 NUM = re.compile(r"-?\d[\d,]*(?:\.\d+)?")

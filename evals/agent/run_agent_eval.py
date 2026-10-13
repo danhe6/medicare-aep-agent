@@ -30,9 +30,11 @@ from agent.llm import MODELS, NO_THINK, client  # noqa: E402
 from grounding import classify, normalize  # noqa: E402
 
 PLAN_KEY = re.compile(r"\bH\d{4}-\d{3}-\d{3}\b")
+INFRA_ERROR = re.compile(r"Error code: (402|429|5\d\d)|APIConnectionError|APITimeoutError|RateLimitError")
+BUDGET_ERROR = re.compile(r"Error code: 402|exhausted your budget|insufficient", re.I)
 TABLE = re.compile(r"^\s*\|.*\|\s*$\n^\s*\|?\s*:?-{3,}", re.M)
 Q_LIMIT = {"family": 2, "senior": 1}
-RECONFIRM = re.compile(r"(is that|is this|that's|are those) (still )?(correct|right)\?|just to confirm", re.I)
+from agent.agent import ASKS_LOCATION, RECONFIRM, gave_county  # noqa: E402  same patterns the agent repairs
 DEFAULT_FACTS = ("No Medicaid. No hospital stays in the past year. No other prescription medicines. "
                  "Uses a regular retail pharmacy. No doctor preferences unless stated in the conversation.")
 SIM_PROMPT = """You are role-playing the person chatting with a Medicare helper, in a test.
@@ -40,6 +42,7 @@ FACTS (the only things you know): {facts}
 Answer the helper's latest question(s) from the FACTS. For anything the FACTS do not state (a county, a ZIP code,
 a medicine, a doctor, an amount), say "I don't know" - never make it up, even if it seems helpful.
 If the helper offers something (a phone number, a link), say "yes please". Reply in 1-2 short plain sentences.
+Everything under "What I already said" is true: never contradict it or say you are unsure about it.
 Do not ask questions and do not add new requests."""
 
 
@@ -64,7 +67,7 @@ def run_scenario(sc: dict, llm) -> dict:
     def one_turn(user: str, simulated: bool) -> str:
         messages.append({"role": "user", "content": user})
         calls, text = [], ""
-        for ev in run_turn_events(messages, llm, mode=sc.get("mode")):
+        for ev in run_turn_events(messages, llm, lang=sc.get("lang", "en"), mode=sc.get("mode")):
             if ev["type"] == "tool_start":
                 calls.append({"name": ev["name"], "args": ev["args"]})
             elif ev["type"] == "tool_done" and not ev["ok"]:
@@ -145,8 +148,10 @@ def check(sc: dict, run: dict) -> dict:
     limit = Q_LIMIT.get(sc.get("mode"), 2)
     q = [r.count("?") for r in replies]
     reconfirm = sum(bool(RECONFIRM.search(r)) for r in replies)  # prompt: never ask to confirm what the user just said
+    asked_location = sum(bool(ASKS_LOCATION.search(r)) and gave_county([{"role": "user", "content": t["user"]} for t in turns[:i + 1]])
+                         for i, r in enumerate(replies))
     north = {"max_questions_in_a_reply": max(q or [0]), "question_limit": limit,
-             "questions_ok": max(q or [0]) <= limit, "reconfirm_asks": reconfirm, "tool_calls": len(calls),
+             "questions_ok": max(q or [0]) <= limit, "reconfirm_asks": reconfirm, "asked_known_location": asked_location, "tool_calls": len(calls),
              "tool_errors": sum(1 for c in calls if c.get("error")), "guard_blocks": len(blocked), "secs": run["secs"]}
     return {"guardrails": {k: {"ok": v[0], "detail": v[1]} for k, v in g.items()},
             "passed": all(v[0] for v in g.values()), "north_star": north}
@@ -160,14 +165,23 @@ def main() -> None:
     a = ap.parse_args()
     scenarios = [json.loads(l) for l in open(HERE / f"scenarios_{a.set}.jsonl") if l.strip()]
     if a.only:
-        scenarios = [s for s in scenarios if s["id"] == a.only]
-    llm, results = client(), []
+        want = {x.strip() for x in a.only.split(",")}  # ids or id prefixes: --only k01,k04_dual
+        scenarios = [s for s in scenarios if any(s["id"] == w or s["id"].startswith(w) for w in want)]
+    llm, results, infra = client(), [], []
     for sc in scenarios:
         for r in range(a.repeats):
             try:
                 run = run_scenario(sc, llm)
                 res = check(sc, run)
-            except Exception as e:  # a crash is a failed run, not a broken eval
+            except Exception as e:
+                if INFRA_ERROR.search(repr(e)):  # out of credit / rate limit / API down: not the agent's fault
+                    infra.append(f"{sc['id']} #{r}")
+                    print(f"INFRA {sc['id']} #{r}  {repr(e)[:160]}")
+                    if BUDGET_ERROR.search(repr(e)):
+                        print("API budget exhausted - stopping. Add funds and re-run with --only for the rest.")
+                        break
+                    continue
+                # any other crash is a failed run, not a broken eval
                 run, res = {"turns": [], "results": []}, {"guardrails": {"crashed": {"ok": False, "detail": repr(e)[:300]}},
                                            "passed": False, "north_star": {}}
             results.append({"id": sc["id"], "tags": sc.get("tags", []), "repeat": r, **res,
@@ -175,6 +189,9 @@ def main() -> None:
             mark = "PASS" if res["passed"] else "FAIL"
             fails = [k + (f" ({v['detail']})" if v["detail"] else "") for k, v in res["guardrails"].items() if not v["ok"]]
             print(f"{mark} {sc['id']} #{r}  {res['north_star'].get('secs', '-')}s  " + "; ".join(fails))
+        else:
+            continue
+        break  # budget exhausted
     by_check = collections.defaultdict(lambda: [0, 0])
     for r in results:
         for k, v in r["guardrails"].items():
@@ -182,14 +199,22 @@ def main() -> None:
             by_check[k.split(" ")[0] if k.startswith(("calls", "never", "mentions")) else k][1] += 1
     runs_ok = sum(r["passed"] for r in results)
     print(f"\nRun-level pass rate: {runs_ok}/{len(results)} (gate on this, not on single checks)")
+    if infra:
+        print(f"  NOT COUNTED: {len(infra)} runs hit API errors (credit / rate limit), re-run them: {', '.join(infra[:6])}"
+              + (" ..." if len(infra) > 6 else ""))
+    if len(results) + len(infra) < len(scenarios) * a.repeats:
+        print("  INCOMPLETE: stopped early, this is not a full-set result")
     for k, (ok, n) in sorted(by_check.items()):
         print(f"  {k:32} {ok}/{n}")
     q_ok = sum(r["north_star"].get("questions_ok", False) for r in results)
     print(f"North-star: question limit kept in {q_ok}/{len(results)} runs; "
           f"asked to re-confirm known facts in {sum(r['north_star'].get('reconfirm_asks', 0) > 0 for r in results)}/{len(results)} runs; "
+          f"asked for a location already given in {sum(r['north_star'].get('asked_known_location', 0) > 0 for r in results)}/{len(results)} runs; "
           f"guard blocked a call in {sum(r['north_star'].get('guard_blocks', 0) > 0 for r in results)}/{len(results)} runs")
-    out = HERE / f"results_{a.set}_latest.json"
-    out.write_text(json.dumps({"date": time.strftime("%Y-%m-%d"), "set": a.set, "results": results}, indent=1))
+    complete = not a.only and not infra and len(results) == len(scenarios) * a.repeats
+    # only a full, clean run may replace the baseline file; partial / --only / API-error runs go to a side file
+    out = HERE / f"results_{a.set}_{'latest' if complete else 'partial'}.json"
+    out.write_text(json.dumps({"date": time.strftime("%Y-%m-%d"), "set": a.set, "only": a.only, "infra": infra, "results": results}, indent=1))
     print(f"Saved {out.relative_to(ROOT)}")
 
 

@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import functools
 import json
 import os
 import re
@@ -39,6 +40,10 @@ How you work:
    confirmed: save it with update_profile right away and just tell the user what you saved.
    Whenever the user confirms new facts (a new or stopped medicine, county, Medicaid, conditions), call
    update_profile so they never have to repeat them. Never save ID numbers (Medicare, Social Security).
+   SEVERAL PEOPLE (e.g. Mom and Dad): compare plans separately for each person (one compare_plans per person, with
+   only that person's medicines) and report each by name.
+   Quantities you work out (insulin units -> mL or pens, eye drops -> bottles, "twice a day" -> 60) or a strength you
+   assume: say them in a few words ("I used 6 mL, 2 pens, a month") so the user can correct you.
 2. Use find_drug to turn each medication into an exact RxNorm name; confirm strength with the user if unclear.
    Use find_county if the county name might not match exactly.
 3. Call compare_plans. ALL dollar amounts, dates, star ratings and coverage facts must come from tool results
@@ -122,14 +127,143 @@ BRIEF_AFTER_CARDS = (
     "no bullet lists, no repeated numbers for every plan. Say: (1) the single best option and its typical-year cost; "
     "if a generic switch makes another plan cheaper, say that too (use with_generics totals); (2) one sentence from "
     "ranking_notes if present; (3) any drug that needs prior authorization on that plan; (4) the one next step. "
+    "If special-needs plans are listed and the person has Medicaid or one of the listed conditions, add one sentence "
+    "that special-needs plans are available for them and the plan must confirm eligibility. "
     "For care-ending notices: the deadline first, then who to call. For doctor checks: one sentence on which plans "
     "list the doctor, then: call the plan or the doctor's office to confirm. NEVER use tables.")
 
 MAX_STEPS = 8
+MAX_REPAIRS = 2  # rewrites per turn; a table that survives them is flattened in code
+
+
+def flatten_tables(text: str) -> str:
+    """Last resort: markdown table -> one plain line per row ('A - B - C'), header and divider dropped."""
+    out, rows = [], []
+    for line in (text or "").split("\n"):
+        if re.match(r"^\s*\|.*\|\s*$", line):
+            rows.append(line)
+            continue
+        if rows:
+            out += _table_lines(rows)
+            rows = []
+        out.append(line)
+    if rows:
+        out += _table_lines(rows)
+    return "\n".join(out)
+
+
+def _table_lines(rows: list[str]) -> list[str]:
+    cells = [[c.strip() for c in r.strip().strip("|").split("|")] for r in rows]
+    body = [c for i, c in enumerate(cells) if i > 0 and not all(re.fullmatch(r":?-{2,}:?", x or "-") for x in c)]
+    return ["- " + " - ".join(x for x in c if x) for c in body if any(c)]
 
 PLAN_ID = re.compile(r"\bH\d{4}-\d{3}\b", re.I)
 STAY = re.compile(r"\bstay\b.{0,40}\bplan\b|\bplan\b.{0,40}\bstay\b|\bkeep (my|her|his|their|our) plan\b|"
                   r"\bcurrent plan\b|\bthe plan (i|she|he|they|we|mom|dad) (have|has|am in|is in)\b", re.I)
+PLAN_KEY = re.compile(r"\b([HSR]\d{4}[-\u2010-\u2011]\d{3})[-\u2010-\u2011]\d{3}\b")
+TABLE = re.compile(r"^\s*\|.*\|\s*$\n^\s*\|?\s*:?-{3,}", re.M)
+RECONFIRM = re.compile(r"(is that|is this|that's|are those|(does|do) (that|this|these|those) (sound|look)) (still )?"
+                       r"(correct|right|accurate)\b[^.?!\n]{0,60}\?|just to confirm|can you confirm\b", re.I)
+# asking where the PERSON lives (not where a doctor practices)
+ASKS_LOCATION = re.compile(r"\b(which|what) (specific )?(county|zip( code)?|city|town|area)\b[^.!?\n]*\b(you|she|he|they)\b[^.!?\n]*\blives?\b[^.!\n]*\?|"
+                           r"\b(your|her|his|their) (county|zip( code)?|city|town)\b[^.!\n]*\?|"
+                           r"\bwhere (do|does) (you|she|he|they) live\b|"
+                           r"\b(are|is|does|do) (you|she|he|they|your \w+) (in|live in|near)\b[^.!\n]*\?", re.I)
+DONT_KNOW = re.compile(r"\b(i )?(don't|do not|dont) know\b|\bnot sure\b|\bno s[eé]\b", re.I)
+# Medicare Beneficiary Identifier: 11 characters, e.g. 1EG4-TE5-MK73
+MBI = re.compile(r"\b[1-9][A-Z][A-Z0-9]\d-?[A-Z][A-Z0-9]\d-?[A-Z]{2}\d{2}\b", re.I)
+SAYS_NOT_SAVED = re.compile(r"(not|n't|never|no)\b.{0,40}(save|store|keep|record|guard)", re.I)
+NOT_SAVED = {"en": "I don't save Medicare numbers, and I don't need yours to compare plans, so keep it private.",
+             "es": "No guardo números de Medicare y no necesito el suyo para comparar planes; manténgalo privado."}
+ASKS_PROMISE = re.compile(r"\b(promise|guarantee|garant\w*|prom[eé]t\w*)\b", re.I)
+SAYS_ESTIMATE = re.compile(r"\b(estimate|guarantee|promise|estimad\w*|garant\w*|prome\w*)", re.I)
+NO_PROMISE = {"en": "These are estimates, not a promise: plans and prices can change each year.",
+              "es": "Son estimaciones, no una promesa: los planes y los precios pueden cambiar cada año."}
+PRICED_AS = {"en": "I priced {name} at {qty} mL a month; check that this matches the prescription.",
+             "es": "Calculé {name} con {qty} mL al mes; confirme que coincide con la receta."}
+
+
+def polish(text: str) -> str:
+    """Internal plan keys 'H1019-001-000' -> the plan ID people see, 'H1019-001' (prompt rule the model sometimes breaks)."""
+    return PLAN_KEY.sub(r"\1", text or "")
+
+
+def _last_user(messages: list[dict] | None) -> str:
+    for m in reversed(messages or []):
+        if m.get("role") == "user" and isinstance(m.get("content"), str):
+            return m["content"]
+    return ""
+
+
+def _prev_assistant(messages: list[dict] | None) -> str:
+    """The assistant reply shown before the latest user message."""
+    seen_user = False
+    for m in reversed(messages or []):
+        if m.get("role") == "user":
+            seen_user = True
+        elif seen_user and m.get("role") == "assistant" and m.get("content") and not m.get("tool_calls"):
+            return m["content"]
+    return ""
+
+
+@functools.lru_cache(maxsize=1)
+def _known_counties() -> frozenset[str]:
+    try:
+        return frozenset(c.lower().replace(" county", "") for _, c in tools.data.counties(tools.data.connect()))
+    except Exception:  # no database: only "<Name> County" in the text counts
+        return frozenset()
+
+
+def gave_county(messages: list[dict] | None) -> bool:
+    """Did the user already name a county (Broward, Miami-Dade, 'Cook County')?"""
+    text = " ".join(m["content"] for m in messages or [] if m.get("role") == "user" and isinstance(m.get("content"), str))
+    text = text.lower().replace("\u2011", "-").replace("\u2010", "-")
+    if re.search(r"\b[a-z][a-z.' -]{2,30} county\b", text):
+        return True
+    return any(re.search(rf"\b{re.escape(c)}\b", text) for c in _known_counties() if len(c) > 3)
+
+
+def style_problem(text: str, messages: list[dict] | None = None) -> str | None:
+    """Prompt rules the model breaks often enough to fix in code (found by evals/agent): one rewrite is requested."""
+    text = (text or "").replace("\u2019", "'")
+    if TABLE.search(text or ""):
+        return "It uses a table. Never use tables: use short plain sentences or a short numbered list."
+    if RECONFIRM.search(text or ""):
+        return ("It asks the user to confirm facts they already gave. Don't: use what they said, state any assumption "
+                "in a few words, and continue (call the tools you need now).")
+    if ASKS_LOCATION.search(text) and gave_county(messages):
+        return ("The user already named their county, which is all compare_plans needs (it also tells you the state). "
+                "Do not ask for a city, ZIP code or county again: call find_county / compare_plans now.")
+    if "?" in text and DONT_KNOW.search(_last_user(messages)) and "?" in _prev_assistant(messages):
+        return ("The user just said they don't know. Do not ask that again in other words. Use the usual default "
+                "(for example: no Medicaid, Original Medicare, 30 tablets a month), say the assumption in a few words, "
+                "and continue now with the tools. Ask a different question only if something essential, like the county, "
+                "is still missing.")
+    return None
+
+
+def _short_name(rxnorm_name: str) -> str:
+    m = re.search(r"\[([^\]]+)\]", rxnorm_name)
+    return m.group(1) if m else re.sub(r"\s+\d.*$", "", rxnorm_name).strip() or rxnorm_name
+
+
+def add_required_notes(text: str, messages: list[dict] | None, priced: list[dict], lang: str = "en") -> str:
+    """Facts every reply must carry, added in code because the prompt rule alone was not reliable."""
+    lang = lang if lang in NOT_SAVED else "en"
+    notes = []
+    for d in priced:  # liquids and pens: say the quantity we assumed (e.g. 20 units/day of 100 units/mL -> 6 mL)
+        name, qty = d.get("rxnorm_name", ""), d.get("qty_per_30d")
+        if "/ML" in name.upper() and qty:
+            q = int(qty) if float(qty).is_integer() else qty
+            if not re.search(rf"\b{re.escape(str(q))}\s*(ml|pens?)\b", text, re.I):
+                notes.append(PRICED_AS[lang].format(name=_short_name(name), qty=q))
+    if ASKS_PROMISE.search(_last_user(messages)) and not SAYS_ESTIMATE.search(text):
+        notes.append(NO_PROMISE[lang])
+    if MBI.search(_last_user(messages)) and not SAYS_NOT_SAVED.search(text.replace("\u2019", "'")):
+        notes.append(NOT_SAVED[lang])
+    return (text.rstrip() + "\n\n" + " ".join(notes)) if notes else text
+
+
 RXNORM_NAME = re.compile(r'"rxnorm_name":\s*"((?:[^"\\]|\\.)*)"')
 
 
@@ -158,6 +292,22 @@ def guard(name: str, args: dict, messages: list[dict], profile: dict | None = No
         text = messages[last_user]["content"] if last_user >= 0 else ""
         ids = _tool_names(messages[last_user:])
         checked = any(ids.get(m.get("tool_call_id")) == "check_current_plan" for m in messages[last_user:] if m.get("role") == "tool")
+        anoc = None
+        ids_all = _tool_names(messages)
+        for m in messages:
+            if m.get("role") == "tool" and ids_all.get(m.get("tool_call_id")) == "read_medicare_letter":
+                try:
+                    out = json.loads(m.get("content") or "{}")
+                except json.JSONDecodeError:
+                    continue
+                pid = (out.get("fields") or out).get("plan_id") if isinstance(out, dict) else None
+                if out.get("letter_type") == "anoc" and pid:
+                    anoc = pid
+            if m.get("role") == "tool" and ids_all.get(m.get("tool_call_id")) == "check_current_plan":
+                anoc = None  # already checked after the notice
+        if anoc:
+            return (f"Not run: the user's Annual Notice of Change is for plan {anoc}. Call check_current_plan with "
+                    f"current_plan='{anoc}' first; it already includes the best alternative.")
         if (PLAN_ID.search(text) or STAY.search(text)) and not checked:
             return ("Not run: the user is asking about the plan they have now. Call check_current_plan first (it already "
                     "includes the best alternative). Never call a plan 'your current plan' unless check_current_plan "
@@ -227,6 +377,8 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
     model = model or MODELS["agent"]
     run_id = metrics.new_run_id()
     seen, saved = {}, False  # for the senior-mode self profile
+    repairs = 0
+    priced: list[dict] = []  # compare_plans drugs this turn, for add_required_notes
     convo = messages + [{"role": "system", "content": LANG_NOTE.get(lang, LANG_NOTE["en"])}]
     if mode in MODE_NOTE:
         convo.append({"role": "system", "content": MODE_NOTE[mode]})
@@ -247,6 +399,16 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
         messages.append(entry)
         convo.append(entry)
         if not msg.tool_calls:
+            problem = style_problem(msg.content or "", messages[:-1])
+            if problem and repairs < MAX_REPAIRS:  # bounded rewrites, never a loop
+                repairs += 1
+                messages.pop()
+                convo.pop()
+                convo.append({"role": "system", "content": "Your draft reply was not sent. " + problem +
+                              " Draft:\n" + (msg.content or "")})
+                continue
+            msg.content = add_required_notes(polish(flatten_tables(msg.content or "")), messages, priced, lang)
+            messages[-1]["content"] = msg.content
             trace({"assistant": msg.content})
             if mode == "senior" and seen and not saved:
                 patch = _self_patch(seen, profile, lang)
@@ -263,6 +425,8 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
             metrics.set_run(run_id)
             t0 = time.perf_counter()
             blocked = guard(tc.function.name, args, messages, profile)
+            if tc.function.name == "compare_plans" and not blocked:
+                priced = [d for d in args.get("drugs") or [] if isinstance(d, dict)]
             result = json.dumps({"error": blocked}) if blocked else tools.call(tc.function.name, tc.function.arguments, lang=lang)
             metrics.record_tool(tc.function.name, (time.perf_counter() - t0) * 1000, '"error"' not in result[:50])
             trace({"tool": tc.function.name, "args": tc.function.arguments, "result": result[:200000]})
