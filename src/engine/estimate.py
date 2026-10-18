@@ -367,7 +367,10 @@ def estimate(person: dict, year: int | None = None, con=None, lang: str = "en") 
         prev = _t0
         print("timing: " + ", ".join(f"{n} {t - p:.1f}s" for (n, t), p in zip(_marks, [_t0] + [t for _, t in _marks])),
               file=sys.stderr)
-    results.sort(key=lambda x: (len(x["not_covered"]), x["rank_score"], -(x.get("star_overall") or 0)))
+    # Same inputs must give the same order (judges and families re-run questions): after cost and stars, break ties
+    # by the lower bad-year total, then the plan key, instead of whatever order the database returned.
+    results.sort(key=lambda x: (len(x["not_covered"]), x["rank_score"], -(x.get("star_overall") or 0),
+                                x["bad_year_total"] if x.get("bad_year_total") is not None else float("inf"), x["plan_key"]))
     assumptions_extra = []
     if any(x.get("price_source", "").startswith("negotiated_price") for r in results for x in r.get("drugs", [])):
         assumptions_extra.append(f"Where Medicare negotiated a {year} price for a drug (Inflation Reduction Act), that "

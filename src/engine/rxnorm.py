@@ -80,18 +80,43 @@ def search(term: str, limit: int = 5) -> list[dict]:
     """Free-text drug search (e.g. 'eliquis 5', 'metformin 500mg'): best RxNorm clinical/brand drug matches."""
     q = urllib.parse.quote(term)
     cands = _get(f"{RXNAV}/approximateTerm.json?term={q}&maxEntries=25").get("approximateGroup", {}).get("candidate") or []
-    out, seen = [], set()
-    for c in cands:
-        if c["rxcui"] in seen:
-            continue
-        seen.add(c["rxcui"])
-        props = _get(f"{RXNAV}/rxcui/{c['rxcui']}/properties.json").get("properties") or {}
+    ids = list(dict.fromkeys(c["rxcui"] for c in cands))[:16]
+    # Look the candidates up in parallel (was one HTTP call after another: 2-3 s per medicine). Order is kept.
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(8) as pool:
+        props_list = list(pool.map(_props, ids))
+    out = []
+    for rxcui, props in zip(ids, props_list):
         if props.get("tty") in ("SCD", "SBD"):  # a specific strength + dose form
-            out.append({"rxnorm_name": props["name"], "rxcui": c["rxcui"],
+            out.append({"rxnorm_name": props["name"], "rxcui": rxcui,
                         "type": "brand" if props["tty"] == "SBD" else "generic"})
         if len(out) >= limit:
             break
     return out
+
+
+def strengths(term: str, limit: int = 12) -> list[str]:
+    """Every RxNorm strength/form of a bare name ('furosemide' -> 'furosemide 20 MG Oral Tablet', ...), so the agent
+    can offer the real choices instead of "common strengths are 20 or 40 mg" from memory (m02, 10/18)."""
+    try:
+        groups = _get(f"{RXNAV}/drugs.json?name={urllib.parse.quote(term)}").get("drugGroup", {}).get("conceptGroup") or []
+    except Exception:  # noqa: BLE001 - optional extra, never fails the lookup
+        return []
+    names = [c["name"] for g in groups if g.get("tty") in ("SCD", "SBD") for c in g.get("conceptProperties") or []]
+    names.sort(key=lambda n: ("oral tablet" not in n.lower() and "oral capsule" not in n.lower(), len(n), n))
+    return names[:limit]
+
+
+_PROPS: dict = {}
+
+
+def _props(rxcui: str) -> dict:
+    if rxcui not in _PROPS:
+        try:
+            _PROPS[rxcui] = _get(f"{RXNAV}/rxcui/{rxcui}/properties.json").get("properties") or {}
+        except Exception:  # noqa: BLE001 - one slow lookup must not sink the whole search
+            return {}
+    return _PROPS[rxcui]
 
 
 def exact_rxcui(name: str) -> str | None:
@@ -137,6 +162,18 @@ def _clean(n: str, names: set[str]) -> bool:
     return True
 
 
+# Widely used Part D drugs (generic and brand). When several names start with what was typed, these come first, so
+# "atorv" offers atorvastatin before the rare liquid brand Atorvaliq. Ordering only; every name stays reachable.
+COMMON = set("""atorvastatin amlodipine lisinopril metformin levothyroxine losartan omeprazole simvastatin gabapentin
+hydrochlorothiazide metoprolol rosuvastatin pravastatin furosemide tamsulosin sertraline escitalopram trazodone montelukast
+pantoprazole carvedilol clopidogrel donepezil finasteride meloxicam prednisone glipizide warfarin allopurinol alendronate
+spironolactone citalopram lovastatin atenolol bupropion duloxetine fluoxetine venlafaxine memantine valsartan olmesartan
+irbesartan glimepiride pioglitazone insulin famotidine ezetimibe diltiazem hydralazine isosorbide clonidine cyclobenzaprine
+tramadol oxybutynin latanoprost levetiracetam lamotrigine quetiapine aripiprazole mirtazapine buspirone apixaban rivaroxaban
+eliquis xarelto jardiance januvia trulicity ozempic farxiga entresto lantus humalog novolog symbicort breo trelegy spiriva
+synthroid tradjenta rybelsus mounjaro basaglar toujeo victoza linzess restasis vascepa""".split())
+
+
 def suggest(q: str, limit: int = 8) -> list[str]:
     """Names starting with what was typed first, then names containing it as a word ('glar' -> insulin glargine)."""
     q = q.strip().lower()
@@ -145,7 +182,7 @@ def suggest(q: str, limit: int = 8) -> list[str]:
     names = display_names()
     lower = {n.lower() for n in names}
     hits = [n for n in names if (n.lower().startswith(q) or f" {q}" in f" {n.lower()}") and _clean(n, lower)]
-    hits.sort(key=lambda n: (not n.lower().startswith(q), len(n), n.lower()))
+    hits.sort(key=lambda n: (not n.lower().startswith(q), n.lower().split()[0] not in COMMON, len(n), n.lower()))
     return [h[:1].upper() + h[1:].lower() for h in hits[:limit]]  # drop tall-man caps (metFORMIN)
 
 

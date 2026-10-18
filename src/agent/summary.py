@@ -31,7 +31,7 @@ DROP = {"field_guide", "assumptions", "sources", "draft", "drafts", "appeal_lett
         "transcript", "file_path", "plan_key", "drug_flags", "generic_alerts", "track_record", "snp_eligibility",
         "special_needs_plan_options", "best_if_doctor_approves_generics", "with_generics", "ranking_notes",
         "health_usage_used", "excluded_snp_plans", "medical_note", "patch", "candidates", "plain_summary",
-        "statement_description", "how", "checks", "plan_news", "warnings", "market", "pharmacy_used", "needs_snp_verification",
+        "statement_description", "how", "checks", "plan_news", "drug_only_plans", "warnings", "market", "pharmacy_used", "needs_snp_verification",
         "snp_type", "drug_oop_is_lower_bound", "data_as_of", "verified", "confirm", "estimate_note", "note"}
 
 

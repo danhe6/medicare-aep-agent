@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import re
 import os
 from pathlib import Path
 
@@ -40,13 +41,16 @@ SCHEMAS = [
             "required": ["bill_file_path", "statement_file_path"]}}},
     {"type": "function", "function": {
         "name": "find_drug",
-        "description": "REQUIRED for every medication before compare_plans. Look up a medication the user mentioned "
-                       "(brand or generic, with or without strength or device, e.g. 'Lantus SoloStar pen'). "
-                       "Returns exact RxNorm names with strength and form. Use the exact rxnorm_name in compare_plans. "
-                       "If several strengths match and the user did not say which, ask them.",
+        "description": "REQUIRED for every medication before compare_plans. Look up ALL the medications the user "
+                       "mentioned in ONE call with `queries` (brand or generic, with or without strength or device, e.g. "
+                       "'Lantus SoloStar pen'). Returns exact RxNorm names with strength and form per query. Use the "
+                       "exact rxnorm_name in compare_plans. If several strengths match and the user did not say which, ask - "
+                       "naming only strengths from all_strengths (never ones you remember), and ask about every "
+                       "missing strength in the same question.",
         "parameters": {"type": "object", "properties": {
-            "query": {"type": "string", "description": "What the user said, e.g. 'Eliquis 5 mg' or 'metformin 500'"}},
-            "required": ["query"]}}},
+            "queries": {"type": "array", "items": {"type": "string"},
+                        "description": "One entry per medicine, as the user said it, e.g. ['Eliquis 5 mg', 'metformin 500']"},
+            "query": {"type": "string", "description": "A single medicine (use queries for several)"}}}}},
     {"type": "function", "function": {
         "name": "find_county",
         "description": "List valid county names for a state (needed before compare_plans).",
@@ -158,8 +162,24 @@ SCHEMAS = [
 ]
 
 
-def find_drug(query: str) -> dict:
-    return {"matches": rxnorm.search(query)}
+def find_drug(query: str | None = None, queries: list[str] | None = None) -> dict:
+    """One medicine (query) or all of them at once (queries), looked up in parallel."""
+    qs = [q for q in (queries or []) if q] or ([query] if query else [])
+    from concurrent.futures import ThreadPoolExecutor
+    bare = [q for q in qs if not re.search(r"\d", q)]  # no strength given: also list every real strength to offer
+    with ThreadPoolExecutor(8) as pool:
+        found = list(pool.map(rxnorm.search, qs))
+        every = dict(zip(bare, pool.map(rxnorm.strengths, bare)))
+    def one(q, m):
+        out = {"matches": m}
+        if every.get(q):
+            # same shape as matches, so a name picked from here passes the guard (k02, 10/18: the right
+            # "latanoprost 0.05 MG/ML Ophthalmic Solution" was only in this list and the guard refused it)
+            out["all_strengths"] = [{"rxnorm_name": n} for n in every[q]]
+        return out
+    if len(qs) == 1 and not queries:
+        return one(qs[0], found[0])
+    return {"results": [{"query": q, **one(q, m)} for q, m in zip(qs, found)]}
 
 
 def find_county(state: str, contains: str | None = None) -> dict:
@@ -197,7 +217,15 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
         p["plain_summary"] = r.get("plain_summary")
         return p
 
-    regular = [slim(r) for r in out["results"] if not r.get("snp_type")][:top_n]
+    # Medicare Advantage plans (medical + drugs) and stand-alone drug plans (drugs only, for people who keep Original
+    # Medicare) answer different questions, so they are never ranked against each other (Plan Finder shows them apart
+    # too). Found 10/18: a $0 drug-only plan was named "the best plan" over $0-premium Advantage plans with a cap.
+    ma = [r for r in out["results"] if not r.get("snp_type") and r.get("type") != "PDP"]
+    pdp = [r for r in out["results"] if r.get("type") == "PDP"]
+    if not ma:  # a county with no Advantage plans: the drug plans are the answer
+        ma, pdp = pdp, []
+    regular = [slim(r) for r in ma][:top_n]
+    drug_only = [slim(r) for r in pdp][:3]
     # Explain when the list is not in order of typical-year cost (the ranking also weighs the medical max).
     ranking_notes = []
     for a, b in zip(regular, regular[1:]):
@@ -210,19 +238,24 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
                  f"${a['total'] - b['total']:,.0f} more, because its medical out-of-pocket max is lower "
                  f"(${a['moop']:,.0f} vs ${b['moop']:,.0f}) - safer in a bad health year."))
     snp = [slim(r) for r in out["results"] if r.get("snp_type")][:2]
-    everything_covered = any(not r["not_covered"] for r in out["results"] if not r.get("snp_type"))
+    everything_covered = any(not r["not_covered"] for r in ma)
 
     def wg_key(r):
         wg = r.get("with_generics") or {"not_covered": r["not_covered"], "rank_score": r["rank_score"]}
         return (len(wg["not_covered"]), wg["rank_score"], -(r.get("star_overall") or 0))
-    best_generics = [slim(r) for r in sorted((r for r in out["results"] if not r.get("snp_type") and r.get("with_generics")),
+    best_generics = [slim(r) for r in sorted((r for r in ma if r.get("with_generics")),
                                              key=wg_key)][:3]
     return {"plan_year": out["year"], "market": out["market"], "data_as_of": out["data_as_of"],
             "part_b_monthly_premium": out.get("part_b_monthly_premium"),
             "plans_considered": out["plans_ranked"], "excluded_snp_plans": out["plans_excluded_by_snp_eligibility"],
-            "top_plans": regular, "special_needs_plan_options": snp,
+            "top_plans": regular, "drug_only_plans": drug_only, "special_needs_plan_options": snp,
             "a_regular_plan_covers_every_drug_as_prescribed": everything_covered,
             "ranking_notes": ranking_notes,
+            "tied_at_top": [p["plan_name"] for p in regular if regular and p["total"] == regular[0]["total"]
+                            and p.get("bad_year_total") == regular[0].get("bad_year_total")
+                            and p.get("not_covered") == regular[0].get("not_covered")] if len(regular) > 1 and
+                           regular[1]["total"] == regular[0]["total"] and
+                           regular[1].get("bad_year_total") == regular[0].get("bad_year_total") else [],
             "health_usage_used": usage,
             "pharmacy_used": pharmacy,
             "best_if_doctor_approves_generics": best_generics,
@@ -244,6 +277,9 @@ def compare_plans(state: str, county: str, drugs: list[dict], health_usage: str 
                                 "removed or restricted 2025->2026 vs the national median, and any of HER drugs "
                                 "affected; next_year = the plan's published premium/MOOP for next year. Mention "
                                 "it when it separates close plans or when one of their drugs was affected.",
+                "drug_only_plans": "stand-alone Part D plans for people who keep Original Medicare (often with Medigap). "
+                                   "Their totals are drugs only: never compare them with top_plans totals or call one the "
+                                   "best plan overall",
                 "special_needs_plan_options": "C-SNP/D-SNP plans the person appears eligible for; eligibility must be "
                                               "confirmed by the plan",
             },

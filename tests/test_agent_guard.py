@@ -198,3 +198,103 @@ def test_current_plan_pinned_to_notice_id():
     assert pin_current_plan("check_current_plan", args, msgs)["current_plan"] == "H8069-055"
     assert pin_current_plan("check_current_plan", {"current_plan": "H1019-057"}, msgs)["current_plan"] == "H1019-057"
     assert pin_current_plan("check_current_plan", args, [])["current_plan"] == "Palmetto RX Saver (PDP)"
+
+
+def test_picked_names_must_be_used_exactly():
+    from agent.agent import guard, picked_medicines
+    msg = ("Compare plans in Miami-Dade, Florida. Medicines (exact names from the list): "
+           "apixaban 2.5 MG Oral Tablet [Eliquis], 60 a month; metformin hydrochloride 500 MG Oral Tablet, 60 a month.")
+    msgs = [{"role": "user", "content": msg}]
+    assert picked_medicines(msgs) == {"apixaban 2.5 MG Oral Tablet [Eliquis]", "metformin hydrochloride 500 MG Oral Tablet"}
+    ok = {"state": "Florida", "county": "Miami-Dade", "drugs": [
+        {"rxnorm_name": "apixaban 2.5 MG Oral Tablet [Eliquis]", "qty_per_30d": 60},
+        {"rxnorm_name": "metformin hydrochloride 500 MG Oral Tablet", "qty_per_30d": 60}]}
+    assert guard("compare_plans", ok, msgs) is None
+    swapped = {**ok, "drugs": [{"rxnorm_name": "apixaban 2.5 MG Oral Tablet", "qty_per_30d": 60},
+                               {"rxnorm_name": "metformin hydrochloride 500 MG Oral Tablet", "qty_per_30d": 60}]}
+    assert "[Eliquis]" in guard("compare_plans", swapped, msgs)
+
+
+def test_made_up_number_is_sent_back_for_rewrite():
+    # h14 (10/18): "the standard amount is around $174.70" with no tool call - a remembered, out-of-date premium.
+    from agent.agent import style_problem, ungrounded_numbers
+    msgs = [{"role": "user", "content": "How much is my Part B premium going to be next year?"}]
+    draft = "The standard amount is projected to be around $174.70 per month."
+    assert ungrounded_numbers(draft, msgs) == ["$174.70"]
+    assert "from memory" in style_problem(draft, msgs)
+    msgs += [{"role": "tool", "content": '{"part_b_monthly_premium": 202.9}'}]
+    assert ungrounded_numbers("Part B is $202.90 a month.", msgs) == []
+
+
+def test_no_extra_questions_once_county_and_medicine_known():
+    # h01 (10/18): county + "atorvastatin 20 mg" given, agent asked about other medicines and re-confirmed Medicaid.
+    from agent.agent import style_problem
+    msgs = [{"role": "user", "content": "She takes atorvastatin 20 mg once a day and lives in Miami-Dade County."}]
+    assert "compare_plans now" in style_problem("Does she take any other prescription medicines regularly?", msgs)
+    assert style_problem("Also, to confirm, she does not have Medicaid, correct?", msgs)
+
+
+def test_promise_without_tool_call_is_sent_back():
+    # h06 (10/18): "I'll start by looking up the plans..." and no tool call.
+    from agent.agent import style_problem
+    msgs = [{"role": "user", "content": "My aunt takes losartan. Show her the best plans."}]
+    assert "call the tools" in style_problem("I'll start by looking up the plans for Miami-Dade County.", msgs)
+    msgs += [{"role": "assistant", "content": "", "tool_calls": [{"function": {"name": "find_drug"}}]},
+             {"role": "tool", "content": "{}"}]
+    assert style_problem("I'll check the network next.", msgs) is None
+
+
+def test_letter_deadline_is_always_stated():
+    # m08 (10/18): the reply after reading a Part D denial gave steps but not the Dec 2 deadline the code computed.
+    import json
+    from agent.agent import add_required_notes, _mentions_date
+    dl = {"date": "2026-12-02", "date_text": "December 2, 2026", "days_left": 45, "status": "on_time"}
+    msgs = [{"role": "user", "content": "my drug plan said no"},
+            {"role": "assistant", "content": "", "tool_calls": [{"id": "t1", "function": {"name": "read_medicare_letter"}}]},
+            {"role": "tool", "tool_call_id": "t1", "content": json.dumps({"letter_type": "partd_denial", "deadline": dl})}]
+    out = add_required_notes("Ask your doctor for a supporting statement.", msgs, [])
+    assert "December 2, 2026" in out and "45 days" in out
+    assert add_required_notes("Send it by Dec 2.", msgs, []) == "Send it by Dec 2."
+    assert _mentions_date("antes del 2 de diciembre", "2026-12-02", None)
+    assert not _mentions_date("within 7 days", "2026-12-02", "December 2, 2026")
+
+
+def test_offer_again_after_yes_is_sent_back():
+    # m08 (10/18): "Yes please." -> "Sure, I'll prepare the letter. Does that sound good?"
+    from agent.agent import style_problem
+    msgs = [{"role": "assistant", "content": "Would you like me to prepare that letter for you?"},
+            {"role": "user", "content": "Yes please."}]
+    assert "already said yes" in style_problem("Sure, I'll prepare the appeal letter for you. Does that sound good?", msgs)
+
+
+def test_dose_from_memory_is_sent_back():
+    # m02 (10/18): "Common strengths are 20 mg or 40 mg" with no tool listing 40 mg.
+    from agent.agent import ungrounded_numbers
+    msgs = [{"role": "user", "content": "I take a water pill, furosemide."}]
+    assert "40 mg" in ungrounded_numbers("What strength? Common strengths are 20 mg or 40 mg.", msgs)
+    msgs.append({"role": "tool", "content": '{"all_strengths": [{"rxnorm_name": "furosemide 20 MG Oral Tablet"}, {"rxnorm_name": "furosemide 40 MG Oral Tablet"}]}'})
+    assert ungrounded_numbers("What strength? It comes in 20 mg or 40 mg.", msgs) == []
+
+
+def test_name_from_all_strengths_passes_guard():
+    # k02 (10/18): the generic eye drop was only in all_strengths, not in matches.
+    import json
+    from agent.agent import guard
+    name = "latanoprost 0.05 MG/ML Ophthalmic Solution"
+    msgs = [{"role": "user", "content": "latanoprost drops"},
+            {"role": "assistant", "content": "", "tool_calls": [{"id": "f1", "type": "function",
+                                                                "function": {"name": "find_drug", "arguments": "{}"}}]},
+            {"role": "tool", "tool_call_id": "f1", "content": json.dumps(
+                {"results": [{"query": "latanoprost", "matches": [], "all_strengths": [{"rxnorm_name": name}]}]})}]
+    assert guard("compare_plans", {"state": "FL", "county": "Broward",
+                                   "drugs": [{"rxnorm_name": name, "qty_per_30d": 2.5}]}, msgs) is None
+
+
+def test_no_question_about_dose_form_when_strength_known():
+    # k06 (10/18): asked tablet/capsule/disintegrating for "omeprazole 20 mg" three times; the person said "I don't know".
+    from agent.agent import style_problem
+    msgs = [{"role": "user", "content": "I take lisinopril 10 mg and omeprazole 20 mg, once a day each."},
+            {"role": "assistant", "content": "", "tool_calls": [{"id": "f", "function": {"name": "find_drug"}}]},
+            {"role": "tool", "tool_call_id": "f", "content": "{}"}]
+    draft = "Which form of omeprazole do you take: tablet, capsule, or disintegrating tablet?"
+    assert "form you priced" in style_problem(draft, msgs)

@@ -14,7 +14,7 @@ function Stars({ v }) {
     </span>);
 }
 
-function PlanCard({ p, t, rank }) {
+function PlanCard({ p, t, rank, tie }) {
   const [open, setOpen] = useState(false);
   const lb = p.drug_oop_is_lower_bound;
   const wg = p.with_generics;
@@ -22,7 +22,7 @@ function PlanCard({ p, t, rank }) {
     <article className="rounded-3xl border border-line bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-bold uppercase tracking-wide text-muted">#{rank} · {p.organization || p.type}</div>
+          <div className="text-sm font-bold uppercase tracking-wide text-muted">{tie ? t.tiedFirst : `#${rank}`} · {p.organization || p.type}</div>
           <h3 className="text-2xl leading-snug">{p.plan_name}</h3>
           <Stars v={p.star_overall} />
         </div>
@@ -105,8 +105,16 @@ export default function PlanResults({ data, t, table = false }) {
       )}
 
       <h2 className="text-2xl">{t.topPlans}</h2>
-      {table ? <PlanTable plans={data.top_plans.slice(0, 5)} t={t} /> : data.top_plans.slice(0, 3).map((p, i) => <PlanCard key={p.plan_key} p={p} t={t} rank={i + 1} />)}
+      {table ? <PlanTable plans={data.top_plans.slice(0, 5)} t={t} /> : data.top_plans.slice(0, 3).map((p, i) => <PlanCard key={p.plan_key} p={p} t={t} rank={i + 1} tie={(data.tied_at_top || []).includes(p.plan_name)} />)}
       {data.ranking_notes?.length > 0 && <p className="text-base text-muted">{data.ranking_notes[0]}</p>}
+
+      {data.drug_only_plans?.length > 0 && (
+        <details className="rounded-3xl border border-line bg-card p-5">
+          <summary className="cursor-pointer text-lg font-bold">{t.drugOnly}</summary>
+          <p className="mt-2 text-base text-muted">{t.drugOnlyNote}</p>
+          <div className="mt-3 space-y-4">{data.drug_only_plans.slice(0, 2).map((p, i) => <PlanCard key={p.plan_key} p={p} t={t} rank={i + 1} />)}</div>
+        </details>
+      )}
 
       {data.special_needs_plan_options?.length > 0 && (
         <details className="rounded-3xl border border-line bg-card p-5">

@@ -12,7 +12,7 @@ import sys
 import time
 from pathlib import Path
 
-from agent import metrics, tools
+from agent import grounding, metrics, tools
 from agent.llm import MODELS, client
 
 SYSTEM = """You are a neutral, privacy-first Medicare helper for older adults and the family members who help them.
@@ -44,7 +44,11 @@ How you work:
    only that person's medicines) and report each by name.
    Quantities you work out (insulin units -> mL or pens, eye drops -> bottles, "twice a day" -> 60) or a strength you
    assume: say them in a few words ("I used 6 mL, 2 pens, a month") so the user can correct you.
-2. Use find_drug to turn each medication into an exact RxNorm name; confirm strength with the user if unclear.
+2. Use find_drug ONCE with all medications in `queries` to turn them into exact RxNorm names; confirm strength with the
+   user if unclear.
+   If the user's message lists medicines "(exact names from the list)", those ARE exact RxNorm names picked from the
+   app's list: skip find_drug and call compare_plans right away with each name copied character for character
+   (keep any [Brand] part; never swap a brand for its generic) and the monthly amount given.
    Use find_county if the county name might not match exactly.
 3. Call compare_plans. ALL dollar amounts, dates, star ratings and coverage facts must come from tool results
    in THIS conversation - never from memory (e.g. use part_b_monthly_premium from the tool, never a remembered
@@ -83,6 +87,14 @@ NOT A MEDICARE DOCUMENT: if read_medicare_letter returns letter_type "not_medica
 looks like (looks_like), that it doesn't seem to be a Medicare letter, bill or statement, and what you can read: Medicare
 or plan letters and notices, bills with the plan's EOB or Medicare's MSN, and pill bottle labels. Ask for the right photo.
 Do not guess its contents.
+PLAN TYPES: compare_plans returns top_plans (Medicare Advantage: medical and drugs together, with a yearly cap) and
+drug_only_plans (stand-alone drug plans for people who keep Original Medicare). Lead with top_plans. Mention the best
+drug-only plan in one sentence only as the option "if you keep Original Medicare" (or lead with it if the person says
+they have Original Medicare, a Medigap/supplement plan, or employer coverage for medical care). Never call a drug-only
+plan the best plan overall: its total leaves out medical costs.
+TIES: if compare_plans returns tied_at_top (two or more plans with the same typical-year and bad-year cost), do not
+call one of them "the best": say they tie on cost and name what still differs (insurer, star rating, network), and
+suggest checking which one the person's doctors take.
 PLAN NEWS: check_current_plan returns next_year (from CMS data) and plan_news (Tavily). If next_year.published is false,
 say the plan has no listing for next year in Medicare's data, so it may be ending or changing its ID, and to check the
 plan's letter. If plan_news.found_exit_news, say what the news reports and NAME the source site (e.g. "according to
@@ -121,6 +133,8 @@ HOW TO ASK QUESTIONS (the reader may be 80 years old, on a phone, or listening t
 - Each question is one short line with an easy example answer, e.g. "How many Synthroid pills do they take a day? (Most people take 1.)"
 - Don't ask for what you can look up or reasonably assume: strength shown on the name, insulin pens usually come 5 per box
   (say what you assumed and let them correct it). Fill in common defaults and say so, rather than asking.
+- Dose form (tablet vs capsule vs delayed-release) when the strength is known: don't ask. Price the most common oral
+  form among the find_drug matches and say in a few words which one you used ("I priced the 20 mg capsule").
 - Never re-ask or ask to confirm something the user already told you (e.g. "5 pens a month"). If they gave a
   number, use it and go straight to the tools. "Twice a day" / "once a day" / "at night" is a count: one pill each
   time (twice a day = 60 a month) unless they said otherwise; don't ask again.
@@ -172,8 +186,18 @@ STAY = re.compile(r"\bstay\b.{0,40}\bplan\b|\bplan\b.{0,40}\bstay\b|\bkeep (my|h
 PLAN_KEY = re.compile(r"\b([HSR]\d{4}[-\u2010-\u2011]\d{3})[-\u2010-\u2011]\d{3}\b")
 TABLE = re.compile(r"^\s*\|.*\|\s*$\n^\s*\|?\s*:?-{3,}", re.M)
 RECONFIRM = re.compile(r"(is that|is this|that's|are those|(does|do) (that|this|these|those) (sound|look)) (still )?"
-                       r"(correct|right|accurate)\b[^.?!\n]{0,60}\?|just to confirm|(can|could) you (please )?confirm\b", re.I)
+                       r"(correct|right|accurate)\b[^.?!\n]{0,60}\?|just to confirm|(can|could) you (please )?confirm\b|"
+                       r"\bto confirm\b[^.?!\n]{0,100}\?|,\s*(correct|right)\?", re.I)  # "to confirm, she does not have Medicaid, correct?" (10/18)
+# "Does she take any other medicines?" once county + a medicine are known: compare now, invite additions instead (10/18)
+# "Which form of omeprazole: tablet, capsule or disintegrating tablet?" when the strength is known (k06, 10/18)
+ASKS_FORM = re.compile(r"\b(which|what)\b[^.?!\n]{0,40}\b(form|type|kind)\b[^.?!\n]*\?|\b(tablets?|capsules?)\b[^.?!\n]{0,40}\bor\b[^.?!\n]{0,40}\b(tablets?|capsules?)\b[^.!\n]*\?", re.I)
+ASKS_MORE_MEDS = re.compile(r"\b(any|other|more)\b[^.?!\n]{0,30}\b(medicines?|medications?|prescriptions?|drugs?|medicinas?|medicamentos?)\b[^.!\n]*\?", re.I)
+STRENGTH = re.compile(r"\d+(\.\d+)?\s?(mg|mcg|units?|ml)\b", re.I)
+# "I'll start by looking up the plans..." with no tool call: a promise instead of the action (h06, 10/18)
+PROMISE = re.compile(r"\b(i'll|i will|let me|i'm going to|voy a|déjame)\s+(start by |now |go ahead and |quickly )?"
+                     r"(look(ing)? up|compar|run|check|search|pull|find|busca|compar)", re.I)
 OFFER = re.compile(r"\b(would you like( me)? to|do you want me to|shall i|should i (go ahead|check|look)|want me to|"
+                   r"does (that|this) sound (good|ok(ay)?|right)|sound good\?|"  # "I'll prepare it... Does that sound good?" (m08)
                    r"¿?(quiere|quieres|le gustar[ií]a|te gustar[ií]a) que|¿?te parece (bien )?que)\b", re.I)
 YES = re.compile(r"^\W*(yes|yeah|yep|sure|ok(ay)?|please|go ahead|s[ií]|claro|por favor|dale)\b", re.I)
 INCOME = re.compile(r"(\$\s?\d[\d,]*|\b\d+(?:[.,]\d+)?\s*(k|mil|thousand)\b)[^.?!]{0,60}"
@@ -240,6 +264,15 @@ def gave_county(messages: list[dict] | None) -> bool:
     return any(re.search(rf"\b{re.escape(c)}\b", text) for c in _known_counties() if len(c) > 3)
 
 
+def _tool_since_user(messages: list[dict] | None) -> bool:
+    for m in reversed(messages or []):
+        if m.get("role") == "user":
+            return False
+        if m.get("role") == "tool":
+            return True
+    return False
+
+
 def _called(messages: list[dict] | None, name: str) -> bool:
     return any(tc.get("function", {}).get("name") == name for m in messages or [] for tc in m.get("tool_calls") or [])
 
@@ -268,6 +301,21 @@ def pin_current_plan(name: str, args: dict, messages: list[dict]) -> dict:
     return args
 
 
+def ungrounded_numbers(text: str, messages: list[dict] | None) -> list[str]:
+    """$, % and star ratings in a draft that no tool result, tool argument or user message supports (the same
+    check evals/agent gates on, so "the AI never makes up a number" is enforced at run time, not only measured)."""
+    tool_texts, user_texts = [], []
+    for m in messages or []:
+        if m.get("role") == "tool":
+            tool_texts.append(str(m.get("content") or ""))
+        elif m.get("role") == "user":
+            user_texts.append(str(m.get("content") or ""))
+        for tc in m.get("tool_calls") or []:
+            tool_texts.append(str((tc.get("function") or {}).get("arguments") or ""))
+    return [c["text"] for c in grounding.classify(text or "", tool_texts, user_texts)
+            if c["category"] == "UNGROUNDED"]  # doses too: "common strengths are 20 or 40 mg" from memory (m02)
+
+
 def style_problem(text: str, messages: list[dict] | None = None, mode: str | None = None) -> str | None:
     """Prompt rules the model breaks often enough to fix in code (found by evals/agent): one rewrite is requested."""
     text = (text or "").replace("\u2019", "'")
@@ -291,6 +339,25 @@ def style_problem(text: str, messages: list[dict] | None = None, mode: str | Non
     if ASKS_LOCATION.search(text) and gave_county(messages):
         return ("The user already named their county, which is all compare_plans needs (it also tells you the state). "
                 "Do not ask for a city, ZIP code or county again: call find_county / compare_plans now.")
+    if ASKS_MORE_MEDS.search(text) and gave_county(messages) and STRENGTH.search(_last_user(messages)) \
+            and not _called(messages, "compare_plans") and not _called(messages, "check_current_plan"):
+        return ("The user already gave the county and a medicine with its strength: that is enough. Do not ask about "
+                "other medicines or Medicaid. Call find_drug and compare_plans now, assume no Medicaid and no other "
+                "medicines, and say in a few words that they can add more medicines anytime.")
+    if ASKS_FORM.search(text) and _called(messages, "find_drug") and STRENGTH.search(" ".join(
+            m["content"] for m in messages or [] if m.get("role") == "user" and isinstance(m.get("content"), str))):
+        return ("Don't ask about the form (tablet, capsule, delayed-release). Pick the most common oral form from the "
+                "find_drug matches for the strength the user gave, call compare_plans now, and say in a few words which "
+                "form you priced so they can correct it.")
+    if PROMISE.search(text) and "?" not in text and not _tool_since_user(messages):
+        return ("It says you will look something up but calls no tool. Don't describe the next step: call the tools "
+                "now and answer with the result.")
+    made_up = ungrounded_numbers(text, messages)
+    if made_up:
+        return (f"It states {', '.join(made_up)}, which is not in any tool result or anything the user said in this "
+                "conversation. Never give a number from memory (premiums, limits and costs change every year). Remove "
+                "it, or call the tool that returns it. If no tool has it, say where the person can see their own amount "
+                "(for Part B: the Social Security letter each fall or Medicare.gov) without stating a number.")
     if "?" in text and DONT_KNOW.search(_last_user(messages)) and "?" in _prev_assistant(messages):
         return ("The user just said they don't know. Do not ask that again in other words. Use the usual default "
                 "(for example: no Medicaid, Original Medicare, 30 tablets a month), say the assumption in a few words, "
@@ -302,6 +369,36 @@ def style_problem(text: str, messages: list[dict] | None = None, mode: str | Non
 def _short_name(rxnorm_name: str) -> str:
     m = re.search(r"\[([^\]]+)\]", rxnorm_name)
     return m.group(1) if m else re.sub(r"\s+\d.*$", "", rxnorm_name).strip() or rxnorm_name
+
+
+DEADLINE_NOTE = {"en": "Deadline: {date} ({left} days left).", "es": "Fecha límite: {date} (quedan {left} días)."}
+DEADLINE_MISSED = {"en": "The deadline was {date}.", "es": "La fecha límite era el {date}."}
+MONTHS = {1: "jan|enero", 2: "feb|febrero", 3: "mar|marzo", 4: "apr|abril", 5: "may|mayo", 6: "jun|junio", 7: "jul|julio",
+          8: "aug|agosto", 9: "sep|septiembre", 10: "oct|octubre", 11: "nov|noviembre", 12: "dec|diciembre"}
+
+
+def _letter_deadline(messages: list[dict] | None) -> dict | None:
+    """Deadline from a letter read in THIS turn (code computed it; the reply must state it - m08, 10/18)."""
+    ids = _tool_names(messages or [])
+    for m in reversed(messages or []):
+        if m.get("role") == "user":
+            return None
+        if m.get("role") == "tool" and ids.get(m.get("tool_call_id")) in ("read_medicare_letter", "read_care_ending_notice"):
+            try:
+                d = json.loads(m.get("content") or "{}")
+            except json.JSONDecodeError:
+                return None
+            dl = d.get("deadline") or (d.get("appeal") or {}).get("deadline")
+            return dl if isinstance(dl, dict) and dl.get("date") and dl.get("date_text") else None
+    return None
+
+
+def _mentions_date(text: str, iso: str, date_text: str | None) -> bool:
+    t = (text or "").replace("\u00a0", " ").replace("\u202f", " ")
+    if date_text and date_text.lower() in t.lower():
+        return True
+    y, mo, d = (int(x) for x in iso.split("-"))
+    return bool(re.search(rf"\b({MONTHS[mo]})\w*\.?\s+0?{d}\b|\b0?{d}\s+de\s+({MONTHS[mo]})|\b0?{mo}/0?{d}\b|{iso}", t, re.I))
 
 
 def add_required_notes(text: str, messages: list[dict] | None, priced: list[dict], lang: str = "en") -> str:
@@ -318,6 +415,10 @@ def add_required_notes(text: str, messages: list[dict] | None, priced: list[dict
         notes.append(NO_PROMISE[lang])
     if MBI.search(_last_user(messages)) and not SAYS_NOT_SAVED.search(text.replace("\u2019", "'")):
         notes.append(NOT_SAVED[lang])
+    dl = _letter_deadline(messages)
+    if dl and not _mentions_date(text, dl["date"], dl.get("date_text")):
+        notes.append(DEADLINE_NOTE[lang].format(date=dl["date_text"], left=dl["days_left"])
+                     if dl.get("status") != "missed" else DEADLINE_MISSED[lang].format(date=dl["date_text"]))
     return (text.rstrip() + "\n\n" + " ".join(notes)) if notes else text
 
 
@@ -326,6 +427,19 @@ RXNORM_NAME = re.compile(r'"rxnorm_name":\s*"((?:[^"\\]|\\.)*)"')
 
 def _tool_names(messages: list[dict]) -> dict:
     return {tc["id"]: tc["function"]["name"] for m in messages if m.get("tool_calls") for tc in m["tool_calls"]}
+
+
+PICKED = re.compile(r"\((?:exact names from the list|nombres exactos de la lista)\):\s*(.+?)\.?\s*$", re.S)
+
+
+def picked_medicines(messages: list[dict]) -> set[str]:
+    """Exact RxNorm names the person picked in the quick-start form (latest such message)."""
+    for m in reversed(messages):
+        if m.get("role") == "user" and isinstance(m.get("content"), str):
+            hit = PICKED.search(m["content"])
+            if hit:
+                return {re.sub(r",\s*\d+\s*(?:a month|al mes)\s*$", "", x.strip()) for x in hit.group(1).split(";") if x.strip()}
+    return set()
 
 
 def guard(name: str, args: dict, messages: list[dict], profile: dict | None = None) -> str | None:
@@ -340,6 +454,16 @@ def guard(name: str, args: dict, messages: list[dict], profile: dict | None = No
                 known.update(json.loads(f'"{x}"') for x in RXNORM_NAME.findall(m.get("content") or ""))
         for person in (profile or {}).get("people", []):
             known.update(str(d.get("rxnorm_name")) for d in person.get("medicines", []))
+        # Names picked from the app's medicine list arrive in the user's message; they must be used EXACTLY.
+        # (Found 10/18: the model dropped "[Eliquis]" from "apixaban 2.5 MG Oral Tablet [Eliquis]", turning the brand
+        # the person takes into a generic no plan lists, so every plan showed it as "not covered".)
+        picked = picked_medicines(messages)
+        known.update(picked)
+        if picked:
+            changed = [d.get("rxnorm_name") for d in args.get("drugs") or [] if d.get("rxnorm_name") not in picked]
+            if changed:
+                return ("Not run: the person picked these exact medicines from the list; use them exactly as written, "
+                        "including any [Brand] part: " + "; ".join(sorted(picked)) + ".")
         missing = [d.get("rxnorm_name") for d in args.get("drugs") or [] if d.get("rxnorm_name") not in known]
         if missing:
             return ("Not run: call find_drug for each of these first and use an rxnorm_name it returns, exactly: "

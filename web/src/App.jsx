@@ -18,6 +18,7 @@ import NextSteps from "./components/NextSteps.jsx";
 import DoctorCard from "./components/DoctorCard.jsx";
 import CurrentPlanCard from "./components/CurrentPlanCard.jsx";
 import ShareSummary from "./components/ShareSummary.jsx";
+import QuickStart from "./components/QuickStart.jsx";
 
 const RESULT_KINDS = ["plans", "current_plan", "doctor", "appeal", "letter", "bill"];  // results worth sending to family
 const pref = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
@@ -78,7 +79,8 @@ export default function App() {
     if (sid && start && !started_.current) {
       started_.current = true;
       window.history.replaceState(null, "", "/app");
-      send({ defend: t.startDefend, recheck: t.startRecheck, letter: t.startLetter }[start] || t.startChoose);
+      if (start === "choose") setQuick(true);  // a short form beats an open question for "where + which medicines"
+      else send({ defend: t.startDefend, recheck: t.startRecheck, letter: t.startLetter }[start] || t.startChoose);
     }
   }, [sid]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { document.documentElement.classList.toggle("big-text", big); save("big", big ? "1" : "0"); }, [big]);
@@ -124,8 +126,9 @@ export default function App() {
     const argsById = {};
     const marks = [];  // applied at the end of the turn, after any profile save that creates the person
     const mark = (args, key) => marks.push([args, key]);
-    try {
-      await chat(sid, text, lang, (ev) => {
+    const firstTurn = !items.some((x) => x.kind === "user");
+    let useSid = sid;
+    const run = (id) => chat(id, text, lang, (ev) => {
         if (ev.type === "tool_start") { argsById[ev.id] = ev.args; argsById[ev.name] = ev.args; }
         if (ev.type === "tool_done" && ev.ok && ev.name === "screen_extra_help") mark(argsById[ev.id], "extra_help_checked");
         if (ev.type === "plans") mark(argsById.compare_plans, "compared");
@@ -151,8 +154,19 @@ export default function App() {
         if (ev.type === "message") { setItems((xs) => [...xs, { kind: "assistant", text: ev.text }]); if (voice) speak(ev.text, lang); }
         if (ev.type === "error") setItems((xs) => [...xs, { kind: "assistant", text: ev.text }]);
       }, forMode(profileRef.current, mode), mode);
+    try {
+      try {
+        await run(useSid);
+      } catch (e) {
+        // The server restarted (sessions live in memory). On the first message nothing is lost: open a new
+        // session and send the same message again, so the person never has to retype it.
+        if (e.status !== 404 || !firstTurn) throw e;
+        useSid = await newSession();
+        setSid(useSid);
+        await run(useSid);
+      }
     } catch (e) {
-      if (e.status === 404) {  // server restarted: sessions live in memory, so start a fresh one
+      if (e.status === 404) {  // server restarted mid-conversation: start a fresh one
         newSession().then(setSid);
         setItems((xs) => [...xs, { kind: "assistant", text: t.sessionLost }]);
       } else if (e.status === 429 && e.detail) {  // rate limit: the server's message is already in the user's language
@@ -167,6 +181,7 @@ export default function App() {
     }
   }
 
+  const [quick, setQuick] = useState(false);
   const photoKind = useRef(null);  // set when the person already said what the photo is (e.g. "photo a letter")
   function photoLetter() { photoKind.current = "notice"; fileRef.current?.click(); }
   function onFile(e) {
@@ -234,7 +249,7 @@ export default function App() {
         </aside>
       )}
       <main ref={mainRef} className="min-w-0 flex-1 pt-6 pb-40">
-        {!started && !mode && (
+        {!started && !mode && !quick && (
           <div className="mx-auto max-w-xl space-y-5">
             <h1 className="text-4xl leading-tight">{t.whoTitle}</h1>
             <p className="text-lg text-muted">{t.whoSub}</p>
@@ -250,18 +265,24 @@ export default function App() {
             <p className="text-sm text-muted">{t.disclaimer}</p>
           </div>
         )}
-        {showDash && (
+        {showDash && !quick && (
           <>
           <Dashboard profile={forMode(profile, mode)} activeId={active?.id} onPick={setActiveId} onSend={send} t={t} lang={lang} big={big}
             onPhoto={() => { setPhotoFor(active?.name || null); fileRef.current?.click(); }} onPhotoLetter={photoLetter}
             onAddMed={(pid, m) => { const who = profileRef.current.people.find((x) => x.id === pid); if (who) setProfile(applyPatch(profileRef.current, { person: who.name, add_medicines: [m] })); }} onOther={() => setOther(true)} />
           <p className="mx-auto mt-6 max-w-3xl text-sm text-muted">{t.disclaimer}</p></>
         )}
-        {!started && mode && !showDash && (
+        {!started && quick && (
+          <QuickStart t={t} lang={lang} profile={forMode(profile, mode)}
+            onSubmit={({ state, county, meds }) => { setQuick(false); send(t.qs.msg(county, state, meds)); }}
+            onPhoto={() => { setQuick(false); photoKind.current = "label"; fileRef.current?.click(); }}
+            onTalk={() => { setQuick(false); send(t.startChoose); }} />
+        )}
+        {!started && !quick && mode && !showDash && (
           <div className="mx-auto max-w-2xl space-y-5">
             <h1 className="text-4xl leading-tight">{t.hello}</h1>
             <p className="text-lg text-muted">{t.tagline}</p>
-            <button onClick={() => send(t.startChoose)} className="w-full rounded-3xl border-2 border-line bg-card p-6 text-left shadow-sm hover:border-brand">
+            <button onClick={() => setQuick(true)} className="w-full rounded-3xl border-2 border-line bg-card p-6 text-left shadow-sm hover:border-brand">
               <div className="flex items-center gap-3 text-2xl font-bold"><Pill className="h-8 w-8 text-brand" />{t.choose}</div><div className="text-lg text-muted">{t.chooseSub}</div>
             </button>
             <button onClick={photoLetter} className="w-full rounded-3xl border-2 border-line bg-card p-6 text-left shadow-sm hover:border-brand">
@@ -327,7 +348,7 @@ export default function App() {
             <MicButton lang={lang} onText={send} label={t.talk} listeningLabel={t.listening} />
             <button type="submit" disabled={busy} aria-label={t.send} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand text-white disabled:opacity-50"><Send className="h-6 w-6" /></button>
           </form>
-          <p className="mt-1 text-center text-xs text-muted">{t.disclaimer}</p>
+          <p className="mt-1 text-center text-xs text-muted">{t.disclaimerShort}</p>
           {meta && <p className="mt-1 text-center text-sm text-muted">{t.dataAsOf(String(meta.coverage_as_of).replace(/^(\d{4})(\d{2})(\d{2})$/, "$2/$3/$1"))}</p>}
         </footer>
       )}

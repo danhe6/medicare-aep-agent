@@ -41,7 +41,7 @@
     },
     "find_drug before compare_plans": {
      "ok": true,
-     "detail": "find_drug > find_drug > compare_plans"
+     "detail": "find_drug > compare_plans"
     }
    },
    "passed": true,
@@ -51,10 +51,10 @@
     "questions_ok": true,
     "reconfirm_asks": 0,
     "asked_known_location": 0,
-    "tool_calls": 3,
+    "tool_calls": 2,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 15.9
+    "secs": 11.4
    },
    "turns": [
     {
@@ -63,13 +63,10 @@
       {
        "name": "find_drug",
        "args": {
-        "query": "Eliquis 5 mg"
-       }
-      },
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "metformin 500 mg"
+        "queries": [
+         "Eliquis 5 mg",
+         "metformin 500 mg"
+        ]
        }
       },
       {
@@ -86,13 +83,11 @@
           "rxnorm_name": "metformin hydrochloride 500 MG Oral Tablet",
           "qty_per_30d": 60
          }
-        ],
-        "medicaid": false,
-        "hospital_stay_last_year": false
+        ]
        }
       }
      ],
-     "reply": "\n\nBased on the results, CareOne\u202fPlus (HMO) looks like the best fit\u2014about $0 in a typical year (premium $0 + drug costs $0). There\u2019s no special ranking note separating it from the other zero\u2011cost plans. Both Eliquis and metformin have a quantity\u2011limit flag on this plan, meaning the plan limits how much you can get per fill. Please call the plan or check its provider directory to confirm your mom\u2019s doctors are in network before enrolling.",
+     "reply": "\n\nBoth CareOne\u202fPlus (HMO) and Humana\u202fGold\u202fPlus H1036\u2011054C (HMO) tie for lowest typical\u2011year cost\u2014about $0 in premiums and drug costs, with a maximum out\u2011of\u2011pocket of $500 in a bad year. Neither plan excludes Eliquis or metformin, but both apply a quantity\u2011limit (QL) on each fill. To choose, check whether her doctors are in the network of either plan (or both) and then compare the plans on Medicare.gov or call\u202f1\u2011800\u2011MEDICARE for final details.",
      "simulated": false
     }
    ]
@@ -135,7 +130,7 @@
     },
     "asks before comparing": {
      "ok": true,
-     "detail": "\nI can\u2019t enroll anyone, but I can help you compare Medicare Part\u202fD plans for your dad\u2019s insulin. First I need to know wh"
+     "detail": "\nI\u2019ll start by turning \u201cLantus pens\u201d into the exact medication name and figuring out the monthly amount.\u202fFor 15\u202funits a "
     }
    },
    "passed": true,
@@ -148,13 +143,13 @@
     "tool_calls": 0,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 2.5
+    "secs": 2.1
    },
    "turns": [
     {
      "user": "My dad uses Lantus pens, 15 units a day. Which Medicare plan should he get?",
      "calls": [],
-     "reply": "\nI can\u2019t enroll anyone, but I can help you compare Medicare Part\u202fD plans for your dad\u2019s insulin. First I need to know where he lives (state and county) and whether he has Medicaid, so I can look up the right plans. Could you tell me his state and county? (For example, \u201cFlorida, Broward County.\u201d) And does he have Medicaid in addition to Medicare?",
+     "reply": "\nI\u2019ll start by turning \u201cLantus pens\u201d into the exact medication name and figuring out the monthly amount.\u202fFor 15\u202funits a day, that\u2019s about\u202f4.5\u202fmL per month, which rounds up to **2 pens (\u22486\u202fmL)** each month\u2014let me know if that\u2019s not right.\n\nTo compare plans I need where your dad lives (state and county). Could you tell me the county he resides in? (If you\u2019re not sure, the state will help me look up the county.) Also, does he have Medicaid, or any chronic conditions you\u2019d like me to consider? If not, I\u2019ll assume no Medicaid and no special conditions for now.",
      "simulated": false
     }
    ]
@@ -211,10 +206,10 @@
     "questions_ok": true,
     "reconfirm_asks": 0,
     "asked_known_location": 0,
-    "tool_calls": 3,
+    "tool_calls": 2,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 19.4
+    "secs": 10.4
    },
    "turns": [
     {
@@ -223,13 +218,10 @@
       {
        "name": "find_drug",
        "args": {
-        "query": "atorvastatin 20 mg"
-       }
-      },
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "lisinopril 10 mg"
+        "queries": [
+         "atorvastatin 20 mg",
+         "lisinopril 10 mg"
+        ]
        }
       },
       {
@@ -251,13 +243,13 @@
        }
       }
      ],
-     "reply": "\n\nThe best option is Wellcare Value Script (PDP) \u2013 about $0 in a typical year ($0 premium + $0 drug costs). All of his medicines are covered, though atorvastatin has a quantity\u2011limit rule on some plans. To be sure, check the plan\u2019s details on Medicare.gov or call 1\u2011800\u2011MEDICARE before enrolling.",
+     "reply": "\n\nCareOne\u202fPlus\u202f(HMO) has a typical\u2011year cost of about\u202f$0 (premium\u202f$0\u202f+\u202fdrugs\u202f$0) and a worst\u2011case cost of up to\u202f$500 (its medical out\u2011of\u2011pocket max). It ties with Humana\u202fGold\u202fPlus\u202fH1036\u2011054C\u202f(HMO) on cost; both cover atorvastatin and lisinopril with no prior\u2011auth or quantity limits. Check that your dad\u2019s doctors are in the plan\u2019s network by calling the plan or the doctor\u2019s office, then compare on Medicare.gov or call\u202f1\u2011800\u2011MEDICARE to enroll.",
      "simulated": false
     },
     {
      "user": "And how much is the Part B premium he pays on top of the plan premium?",
      "calls": [],
-     "reply": "\n\nThe standard Part\u202fB premium for 2026 is **$202.90 per month** (about **$2,435 per year**). This amount is paid in addition to any plan premium\u2014so even if a plan has a $0 premium, your dad would still owe the Part\u202fB premium each month.",
+     "reply": "\nHe\u2019ll pay the standard Part\u202fB premium of **about\u202f$202.90 each month** ($2,435\u202fper year) in addition to the plan\u2019s premium. Since the plans shown have a $0 monthly premium, his total out\u2011of\u2011pocket for premiums would be roughly $202.90/month. Remember to confirm the exact amount with Social Security, as it can change based on income.",
      "simulated": false
     }
    ]
@@ -305,10 +297,10 @@
     "questions_ok": true,
     "reconfirm_asks": 0,
     "asked_known_location": 0,
-    "tool_calls": 3,
+    "tool_calls": 2,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 24.5
+    "secs": 9.1
    },
    "turns": [
     {
@@ -317,13 +309,10 @@
       {
        "name": "find_drug",
        "args": {
-        "query": "metformin 500 mg"
-       }
-      },
-      {
-       "name": "find_drug",
-       "args": {
-        "query": "atorvastatin 20 mg"
+        "queries": [
+         "metformin 500 mg",
+         "atorvastatin 20 mg"
+        ]
        }
       },
       {
@@ -346,7 +335,7 @@
        }
       }
      ],
-     "reply": "\n\nYour mom\u2019s current CareOne\u202fPlus (HMO) plan would cost about $0 in a typical year (premium $0 + drug costs $0), and switching to the best alternative Wellcare Value Script (PDP) would also be about $0, so there\u2019s no savings to gain by changing. The plan covers both metformin and atorvastatin as prescribed, with no uncovered drugs or prior\u2011authorization requirements. Since the plan\u2019s premium and out\u2011of\u2011pocket max for next year are unchanged ($0 premium, $500 MOOP) and there\u2019s no news that it\u2019s ending, staying is reasonable. As a next step, you can confirm the drug list and network details by calling the plan or checking Medicare.gov before the open\u2011enrollment deadline.",
+     "reply": "\n\nYour current CareOne\u202fPlus (HMO) plan would cost about\u202f$0 in a typical year (premium\u202f$0\u202f+\u202fdrugs\u202f$0) and caps medical out\u2011of\u2011pocket at\u202f$500 in a bad year. The plan\u2019s formulary limits the quantity you can get per fill for generic metformin, so check with the pharmacy if that works for her dosing. Because the plan\u2019s premium and out\u2011of\u2011pocket max are unchanged for next year and none of her medicines were affected by recent formulary changes, staying is reasonable; the alternative drug\u2011only plan also shows $0 drug cost but doesn\u2019t include medical coverage. Next, call CarePlus or check Medicare.gov to confirm the metformin quantity limit and that her doctors remain in network before deciding.",
      "simulated": false
     }
    ]
@@ -423,7 +412,7 @@
        }
       }
      ],
-     "reply": "\nThe letter is a Part\u202fD drug\u2011coverage denial from Evergreen Senior Choice (PPO) for Ozempic\u202f1\u202fmg/dose pen injector because the plan requires you to try metformin first. You have until October\u202f30,\u202f2026 (about 12\u202fdays) to file a redetermination; ask your doctor to send a supporting statement explaining why Ozempic is needed and why metformin isn\u2019t appropriate, then submit the request using the plan\u2019s contact (1\u2011800\u2011555\u20110138). If waiting could seriously harm your health, you can request a fast appeal, which the plan must decide within 72\u202fhours. Keep a copy of everything you send and note the date you submitted it.",
+     "reply": "\nThis is a Medicare Part\u202fD drug\u2011coverage denial from Evergreen Senior Choice (PPO) for Ozempic\u202f1\u202fmg/dose pen injector, and you have until\u202fOctober\u202f30,\u202f2026 (about\u202f12\u202fdays) to appeal.  \nFirst, ask the prescribing doctor to send the plan a supporting statement explaining why Ozempic is medically necessary and why alternatives like metformin aren\u2019t suitable.  \nThen submit a \u201cRequest for Redetermination\u201d (the appeal letter provided) by mail, fax, or phone using the plan\u2019s contact on the denial notice.  \nIf waiting could seriously harm health, request a fast (expedited) appeal, which the plan must decide within\u202f72\u202fhours.  \nKeep a copy of everything you send and note the date you submitted it.",
      "simulated": false
     }
    ]
@@ -479,7 +468,7 @@
     "tool_calls": 1,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 8.6
+    "secs": 4.3
    },
    "turns": [
     {
@@ -492,7 +481,7 @@
        }
       }
      ],
-     "reply": "\nIt looks like a grocery store receipt, not a Medicare letter or notice, so I can\u2019t extract any Medicare information from it. Please upload a photo of a Medicare letter, notice, bill, or pill\u2011bottle label instead.",
+     "reply": "\n\nIt looks like a grocery store receipt from Fresh Market, not a Medicare letter, bill, or statement. Please upload a photo of a Medicare or plan notice, a bill with an EOB/MSN, or a prescription\u2011bottle label instead.",
      "simulated": false
     }
    ]
@@ -541,10 +530,10 @@
     "questions_ok": true,
     "reconfirm_asks": 0,
     "asked_known_location": 0,
-    "tool_calls": 4,
+    "tool_calls": 3,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 36.9
+    "secs": 15.4
    },
    "turns": [
     {
@@ -553,14 +542,9 @@
       {
        "name": "find_drug",
        "args": {
-        "query": "Eliquis 5 mg"
-       }
-      },
-      {
-       "name": "find_county",
-       "args": {
-        "state": "Florida",
-        "contains": "Miami-Dade"
+        "queries": [
+         "Eliquis 5 mg"
+        ]
        }
       },
       {
@@ -578,7 +562,7 @@
        }
       }
      ],
-     "reply": "\n\nCareOne Plus (HMO) looks best\u2014about $0 in a typical year (no premium and no drug cost) with a $500 out\u2011of\u2011pocket max for a bad year and a 4.5\u2011star rating. The plan has a quantity limit on Eliquis 5\u202fmg tablets, so check how many pills per fill are allowed. Next, call the plan or your aunt\u2019s pharmacy to confirm the Eliquis limit and that her doctors are in network, then review the plan\u2019s details on Medicare.gov or by calling 1\u2011800\u2011MEDICARE.",
+     "reply": "\n\nBoth CareOne Plus (HMO) and Humana Gold Plus H1036\u2011054C (HMO) tie for lowest typical\u2011year cost \u2013 about $0 premium plus $0 drug cost, with a maximum out\u2011of\u2011pocket of $500 in a bad year. Neither plan requires prior authorization for Eliquis, but both have a quantity\u2011limit flag, so the pharmacy may limit the amount per fill. To confirm which plan works best for her doctors, call the plan or her doctor\u2019s office to check network participation before enrolling.",
      "simulated": false
     },
     {
@@ -600,7 +584,7 @@
        }
       }
      ],
-     "reply": "\n\nWith mail\u2011order pharmacy, CareOne Plus (HMO) remains the top choice\u2014about $0 in a typical year (no premium and no drug cost) and a $500 out\u2011of\u2011pocket max for a bad year. The plan has a quantity limit on Eliquis 5\u202fmg tablets, so check how many pills per fill are allowed. There are no special\u2011needs plans listed for her situation. As a next step, call the plan or her pharmacy to confirm the Eliquis limit and that her doctors are in network, then review the plan details on Medicare.gov or by calling 1\u2011800\u2011MEDICARE.",
+     "reply": "\n\nWith mail\u2011order pharmacy, CareOne\u202fPlus (HMO) and Humana Gold\u202fPlus H1036\u2011054C (HMO) remain tied for the lowest typical\u2011year cost\u2014about $0 premium plus $0 drug cost, with a maximum out\u2011of\u2011pocket of $500 in a bad year. Both plans show only a quantity\u2011limit flag for Eliquis, no prior\u2011authorization requirement. To decide which plan works best for her doctors, call the plan or her doctor\u2019s office to confirm network participation before enrolling.",
      "simulated": false
     }
    ]
@@ -649,13 +633,13 @@
     "tool_calls": 0,
     "tool_errors": 0,
     "guard_blocks": 0,
-    "secs": 1.7
+    "secs": 1.2
    },
    "turns": [
     {
      "user": "I live in Broward County, Florida and I take atorvastatin. Help me pick a plan.",
      "calls": [],
-     "reply": "\nI\u2019ve got you in Broward County, Florida, and I\u2019ll assume you don\u2019t have Medicaid unless you tell me otherwise. To compare plans, I need to know how much atorvastatin you take each day (for example, 10\u202fmg, 20\u202fmg, etc.) and how many pills you take per day. Could you share that?",
+     "reply": "\nI\u2019ve noted you\u2019re in Broward County, Florida and take atorvastatin. To compare plans accurately, could you tell me how many atorvastatin tablets you take each day (or how many you get per month)? (For example, \u201c1 tablet a day\u201d equals about 30 per month.)",
      "simulated": false
     }
    ]

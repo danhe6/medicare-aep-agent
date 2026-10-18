@@ -157,7 +157,9 @@ def check(sc: dict, run: dict) -> dict:
         g[f"{n} args {kv}"] = (ok, "")
     if exp.get("ask_first"):
         first = turns[0]
-        ok = "?" in first["reply"] and not any(c["name"] in ("compare_plans", "check_current_plan") for c in first["calls"])
+        asks = "?" in first["reply"] or re.search(r"\b(please (share|tell|send|give)|i'll need|i need|necesito|d[ií]game)\b",
+                                                  normalize(first["reply"]), re.I)  # "please share: 1. County 2. ..." asks too (10/18)
+        ok = bool(asks) and not any(c["name"] in ("compare_plans", "check_current_plan") for c in first["calls"])
         g["asks before comparing"] = (ok, first["reply"][:120])
     for pat in exp.get("reply_must_mention", []):
         g[f"mentions /{pat}/"] = (any(re.search(pat, r, re.I) for r in replies), "")
