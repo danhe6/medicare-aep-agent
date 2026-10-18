@@ -7,7 +7,67 @@ const KEY = "mh_profile_v1";
 export function loadProfile() {
   try { return JSON.parse(localStorage.getItem(KEY)) || { people: [] }; } catch { return { people: [] }; }
 }
-export function saveProfile(p) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* private mode */ } }
+export function saveProfile(p) {
+  try {
+    const before = localStorage.getItem(KEY), next = JSON.stringify(p);
+    localStorage.setItem(KEY, next);
+    if (before !== next) localStorage.setItem(CHANGED, String(Date.now()));
+  } catch { /* private mode */ }
+  if (p?.people?.length) askToKeep();
+}
+const CHANGED = "mh_profile_changed", EXPORTED = "mh_profile_exported";
+
+/** Ask the browser not to clear our storage when space runs low (Chrome/Edge grant it quietly; Safari may still
+ *  clear unused sites after 7 days unless the app is on the Home Screen - hence the backup file below). */
+let asked = false;
+export function askToKeep() {
+  if (asked) return;
+  asked = true;
+  try { navigator.storage?.persist?.().catch(() => {}); } catch { /* old browser */ }
+}
+
+/** Has the profile changed since the last backup file? (null = no backup ever) */
+export function backupInfo() {
+  try {
+    const changed = Number(localStorage.getItem(CHANGED) || 0), exported = Number(localStorage.getItem(EXPORTED) || 0);
+    return { exported: exported || null, stale: changed > exported };
+  } catch { return { exported: null, stale: true }; }
+}
+
+/** One-tap backup: a small JSON file the person keeps (Files app, email to self). Nothing goes to our server. */
+export async function exportProfile(profile) {
+  const body = JSON.stringify({ app: "medicare-helper", version: 1, exported: new Date().toISOString(), profile }, null, 2);
+  const name = `medicare-helper-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const file = new File([body], name, { type: "application/json" });
+  let done = false;
+  try {  // phones: the share sheet (Save to Files, AirDrop, email to myself)
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file] }); done = true; }
+  } catch (e) { if (e?.name === "AbortError") return false; }
+  if (!done) {
+    const url = URL.createObjectURL(file), a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  try { localStorage.setItem(EXPORTED, String(Date.now())); } catch { /* ignore */ }
+  return true;
+}
+
+/** Read a backup file and merge it into what is on this device (nothing here is overwritten or lost). */
+export function importProfile(text, current) {
+  const data = JSON.parse(text);
+  const incoming = data?.app === "medicare-helper" ? data.profile : data;
+  if (!incoming || !Array.isArray(incoming.people)) throw new Error("not a Medicare Helper backup");
+  const people = [...(current?.people || [])];
+  for (const q of incoming.people) {
+    if (!q || typeof q !== "object") continue;
+    const i = people.findIndex((x) => norm(x.name) === norm(q.name));
+    if (i < 0) { people.push({ ...q, id: q.id || crypto.randomUUID?.() || String(Date.now() + people.length), medicines: q.medicines || [] }); continue; }
+    const have = people[i], meds = [...(have.medicines || [])];
+    for (const m of q.medicines || []) if (m?.rxnorm_name && !meds.some((x) => x.rxnorm_name === m.rxnorm_name)) meds.push(m);
+    people[i] = { ...q, ...have, medicines: meds, conditions: [...new Set([...(q.conditions || []), ...(have.conditions || [])])] };
+  }
+  return { ...(current || {}), people };
+}
 export function clearProfile() { try { localStorage.removeItem(KEY); } catch { /* ignore */ } }
 
 const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };

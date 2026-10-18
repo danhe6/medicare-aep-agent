@@ -45,3 +45,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @keyframes mhrise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .mh-rise { animation: mhrise .35s ease-out; }
 @media (prefers-reduced-motion: reduce) { .mh-rise { animation: none; } }
+
+/* Home demo tabs: one row of 6 on tablets and up, 3 per row on phones (plain CSS so it never depends on class scanning). */
+.mh-tabs { display: grid; gap: 0.5rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 640px) { .mh-tabs { grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr)); } }

@@ -1,8 +1,20 @@
+import { useRef, useState } from "react";
 import { Lock, Pill, X } from "../icons.jsx";
+import { backupInfo, exportProfile } from "../profile.js";
 
 /** "Saved on this device" panel: what the helper remembers, with delete controls. */
-export default function ProfilePanel({ profile, onRemoveMed, onRemovePerson, onClearAll, onClose, onUse, t }) {
+export default function ProfilePanel({ profile, onRemoveMed, onRemovePerson, onClearAll, onClose, onUse, onImport, t }) {
   const people = profile.people || [];
+  const fileRef = useRef(null);
+  const [info, setInfo] = useState(backupInfo);
+  const [note, setNote] = useState(null);
+  const save = async () => { if (await exportProfile(profile)) { setInfo(backupInfo()); setNote(t.backupDone); } };
+  const restore = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    try { onImport(await f.text()); setNote(t.restoreDone); } catch { setNote(t.restoreBad); }
+  };
   return (
     <div role="dialog" aria-modal="true" aria-label={t.profileTitle}
       className="fixed inset-0 z-30 flex items-end justify-center bg-ink/40 sm:items-center" onClick={onClose}>
@@ -37,6 +49,16 @@ export default function ProfilePanel({ profile, onRemoveMed, onRemovePerson, onC
             <button onClick={() => onRemovePerson(p.id)} className="mt-3 text-base font-bold text-urgent underline">{t.removePerson(p.name)}</button>
           </section>
         ))}
+        <section className="mt-6 rounded-3xl border border-line bg-card p-5">
+          <h3 className="text-2xl">{t.backupTitle}</h3>
+          <p className="mt-1 text-base text-muted">{people.length ? (info.exported ? (info.stale ? t.backupStale(new Date(info.exported)) : t.backupOk(new Date(info.exported))) : t.backupNever) : t.backupRestoreOnly}</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {!!people.length && <button onClick={save} className="min-h-12 flex-1 rounded-full bg-brand px-5 text-lg font-bold text-white">{t.backupSave}</button>}
+            <button onClick={() => fileRef.current?.click()} className="min-h-12 flex-1 rounded-full border-2 border-brand px-5 text-lg font-bold text-brand">{t.backupRestore}</button>
+            <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={restore} />
+          </div>
+          {note && <p role="status" className="mt-3 text-base font-bold text-brand">{note}</p>}
+        </section>
         {!!people.length && <button onClick={onClearAll} className="mt-6 min-h-12 w-full rounded-full border-2 border-urgent text-lg font-bold text-urgent">{t.clearAll}</button>}
       </div>
     </div>

@@ -57,7 +57,7 @@ function Home({ t, lang }) {
       <section className={`${wrap} grid items-center gap-10 py-12 md:py-16 lg:grid-cols-2 xl:gap-16`}>
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap gap-2">{t.chips.map((c) => <span key={c} className="rounded-full bg-gold-soft px-4 py-1.5 text-sm font-bold tracking-[0.04em] text-warn">{c}</span>)}</div>
-          <h1 className="text-5xl leading-[1.04] md:text-[3rem] 2xl:text-[3.5rem]">{t.h1[0]}<br /><span className="text-brand">{t.h1[1]}</span></h1>
+          <h1 className="text-5xl leading-[1.04] md:text-[3rem] 2xl:text-[3.5rem]" style={{ textWrap: "balance" }}>{t.h1[0]}<br /><span className="text-brand">{t.h1[1]}</span></h1>
           <p className="max-w-xl text-xl leading-relaxed text-muted">{t.sub}</p>
           <div className="flex flex-wrap gap-3">
             <a href="/app?start=choose" className="inline-flex min-h-14 items-center gap-3 rounded-full bg-brand px-7 text-lg font-bold text-white no-underline hover:bg-brand-dark"><Pill className="h-5 w-5" />{t.compareCta}</a>

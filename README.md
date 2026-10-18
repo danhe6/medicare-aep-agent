@@ -143,21 +143,63 @@ ours $0 premium + $0 drugs, $3,500 max, 4.5 stars, ranked #1; Plan Finder shows 
 
 ### Letters
 
-A second answer key for the letter reader (`evals/letters/`): 41 fictional letters built on the structure of CMS's
+A second answer key for the letter reader (`evals/letters/`): 46 fictional letters built on the structure of CMS's
 public notice templates (Part D and Medicare Advantage denials, Medicare Summary Notices, IRMAA, care-ending notices,
-plan change notices, EOBs, bills, plus 4 photos that are not Medicare documents). Each is printed and "photographed"
+plan change notices, plan non-renewal notices, EOBs, bills, plus 4 photos that are not Medicare documents). Each is printed and "photographed"
 (tilted, shadowed, low light) and the right answers are computed independently of the app.
 
 | Check | Result |
 |---|---|
-| Letter type recognized (incl. "not a Medicare document") | **41 / 41** |
-| Appeal deadline exactly right | **28 / 28** |
+| Letter type recognized (incl. "not a Medicare document") | **46 / 46** |
+| Deadline exactly right (appeals, plan ending Dec 31) | **33 / 33** |
+| Key item read (drug, service, plan) | **42 / 42** |
 | Phone number read correctly | **19 / 19** |
 
-One of the 28 is a care-ending notice whose date is cut off in the photo: the right answer is to ask, not to guess.
+One of the 33 is a care-ending notice whose date is cut off in the photo: the right answer is to ask, not to guess.
 The eval caught exactly that bug: the model had been inventing an end date (e.g. 2024-01-15) when none was visible.
 Now a date must be found in the letter's own text, in code, before any deadline is computed.
 Run: `PYTHONPATH=src python evals/letters/run_eval.py`.
+
+### The agent
+
+50 multi-turn conversations (`evals/agent/`): 8 used while building, 42 held out and written to break it (vague
+medicines with no strength, "Dade county", two parents in one chat, an 80-year-old in senior mode who answers "I don't
+know", someone typing their Medicare number, "just enroll me", insulin in units, a letter whose deadline has passed).
+A simulated person answers follow-up questions from each scenario's facts. Every run is graded by code: required tool
+calls and arguments, things it must and must never say, and the promises below checked in **every** reply. The model is
+not deterministic, so each scenario runs 3 times.
+
+| Set | Scenarios | Runs passed | Scenarios passing all 3 runs |
+|---|---|---|---|
+| dev | 8 | 24/24 | 8/8 |
+| held out 1 | 14 | 42/42 | 14/14 |
+| held out 2 | 14 | 42/42 | 14/14 |
+| held out 3 | 14 | 41/42 | 13/14 |
+| **all** | **50** | **149/150 (99%)** | **49/50** |
+
+| Promise, checked in every reply | Held |
+|---|---|
+| Every $, % and star rating comes from a tool result or the user | 150/150 |
+| Every dose comes from the user or a tool | 150/150 |
+| Every drug name sent to the engine came from RxNorm | 150/150 |
+| No internal plan keys shown | 150/150 |
+
+**How it got there.** The held-out sets are where the bugs showed up, and most fixes moved a rule from the prompt into
+code, because a prompt rule the model breaks 1 run in 10 is not a rule:
+
+- It quoted a remembered Part B premium ($174.70, two years out of date). Now every draft reply is checked in code
+  before it is sent; a number no tool returned sends it back for a rewrite.
+- It dropped "[Eliquis]" from a brand the person picked, so every plan showed the drug as not covered. Picked names
+  must now be used exactly.
+- It ranked a drug-only plan "best" against Advantage plans, which is not a like-for-like total. They are now separate.
+- It read a denial correctly but left out the appeal deadline. The deadline code computed is now always stated.
+- It asked "tablet or capsule?" three times after the person said "I don't know". Form is assumed and stated.
+- The last miss (m03): insulin priced as 5 pens instead of 15 mL a month. Fixed after this run with a unit check
+  (50 units/day x 30 / 100 units/mL = 15 mL) that refuses the wrong quantity.
+
+Two failures were the eval's fault ("To see if Dr. X is in network, ..." is a question, not a claim) and the eval was
+fixed instead. Run: `for s in dev heldout heldout2 heldout3; do PYTHONPATH=src python evals/agent/run_agent_eval.py
+--set $s --repeats 3; done; python evals/agent/summarize.py`.
 
 ## Privacy
 

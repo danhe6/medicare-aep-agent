@@ -8,7 +8,7 @@ const ICON = { compare: Star, label: Camera, current: Check, doctor: Stethoscope
 const P = {
   en: {
     label: "TEN THINGS IT DOES · SAMPLE DATA", chooseLabel: "CHOOSING A PLAN, STEP BY STEP · SAMPLE DATA", play: "Play all", pause: "Pause",
-    foot: "Every number comes from Medicare's public data and a rules engine, never from the AI. Bracketed items are examples.",
+    foot: "Sample data. Every number comes from Medicare's public data and a rules engine, never from the AI.",
     scenes: [
       { key: "compare", short: "Compare plans", title: "Compare every plan", line: "Ranked for the medicines you take", tag: "COMPARE PLANS",
         say: "I take Eliquis 5 mg twice a day and atorvastatin 40 mg at night. I live in Orlando.", think: "Checking every plan in Orange County against both medicines…" },
@@ -37,10 +37,10 @@ const P = {
       labelTag: "READ FROM THE LABEL · MATCHED IN THE NATIONAL DRUG LIST", labelDose: "1 a day · 30 a month", savedDevice: "Saved on this device only",
       goodFit: "Your current plan is a good fit for next year.", premium27: "2027 premium", max27: "2027 out-of-pocket max",
       track: "Track record: this insurer dropped or restricted 5.5% of drugs last year (typical 4.2%). None of yours.",
-      docTag: "NATIONAL PROVIDER REGISTRY + INSURER DIRECTORIES", docName: "[Doctor name], [specialty]", docListed: "Listed in [insurer]'s [year] provider directory",
+      docTag: "NATIONAL PROVIDER REGISTRY + INSURER DIRECTORIES", docName: "Dr. Ana Rivera, Cardiology", docListed: "Listed in the plan's 2027 provider directory",
       docLead: "A lead, not a promise: call the office to confirm before you switch.",
       ehTag: "EXTRA HELP CHECK · NOTHING IS SAVED", ehTitle: "You may qualify for Extra Help", ehBody: "Lower drug copays, and it's free to apply through Social Security.",
-      ehCost: "Your drugs with Extra Help: [estimated $ a year]",
+      ehCost: "Next: apply for free at ssa.gov, or call Social Security at 1-800-772-1213.",
       apTag: "APPEAL DEADLINE · SAMPLE NOTICE", apWhen: "Thursday, Oct 8, 12:00 noon", apCall: "Call Acentra Health, 1-888-317-0751",
       apSay: "Say: \"I want a fast-track appeal of a Notice of Medicare Non-Coverage.\" Care continues while they review.",
       ltTag: "DRUG COVERAGE DENIED · SAMPLE LETTER", ltWhen: "Appeal by Dec 6, 2026", ltWhat: "Ozempic 1 mg pen · 65 days from the letter's date",
@@ -55,7 +55,7 @@ const P = {
   },
   es: {
     label: "DIEZ COSAS QUE HACE · DATOS DE EJEMPLO", chooseLabel: "ELEGIR UN PLAN, PASO A PASO · DATOS DE EJEMPLO", play: "Ver todo", pause: "Pausa",
-    foot: "Cada número viene de los datos públicos de Medicare y de un motor de reglas, nunca de la IA. Lo que está entre corchetes es un ejemplo.",
+    foot: "Datos de ejemplo. Cada número viene de los datos públicos de Medicare y de un motor de reglas, nunca de la IA.",
     scenes: [
       { key: "compare", short: "Comparar", title: "Compare todos los planes", line: "Ordenados según sus medicinas", tag: "COMPARAR PLANES",
         say: "Tomo Eliquis 5 mg dos veces al día y atorvastatina 40 mg en la noche. Vivo en Orlando.", think: "Revisando cada plan del condado Orange con ambas medicinas…" },
@@ -84,10 +84,10 @@ const P = {
       labelTag: "LEÍDO DE LA ETIQUETA · ENCONTRADO EN LA LISTA NACIONAL DE MEDICINAS", labelDose: "1 al día · 30 al mes", savedDevice: "Guardado solo en este dispositivo",
       goodFit: "Su plan actual le conviene para el próximo año.", premium27: "Prima 2027", max27: "Gasto máximo 2027",
       track: "Historial: esta aseguradora quitó o restringió el 5.5% de las medicinas el año pasado (lo típico: 4.2%). Ninguna de las suyas.",
-      docTag: "REGISTRO NACIONAL DE PROVEEDORES + DIRECTORIOS", docName: "[Nombre del médico], [especialidad]", docListed: "Aparece en el directorio [año] de [aseguradora]",
+      docTag: "REGISTRO NACIONAL DE PROVEEDORES + DIRECTORIOS", docName: "Dra. Ana Rivera, Cardiología", docListed: "Aparece en el directorio 2027 del plan",
       docLead: "Es una pista, no una garantía: llame al consultorio para confirmar antes de cambiar.",
       ehTag: "AYUDA ADICIONAL · NADA SE GUARDA", ehTitle: "Podría calificar para Ayuda Adicional", ehBody: "Copagos más bajos en medicinas, y solicitarla en el Seguro Social es gratis.",
-      ehCost: "Sus medicinas con Ayuda Adicional: [$ estimado al año]",
+      ehCost: "Siguiente: solicítela gratis en ssa.gov, o llame al Seguro Social al 1-800-772-1213.",
       apTag: "FECHA LÍMITE PARA APELAR · AVISO DE EJEMPLO", apWhen: "Jueves 8 de oct, 12:00 del mediodía", apCall: "Llame a Acentra Health, 1-888-317-0751",
       apSay: "Diga: \"Quiero una apelación rápida de un Aviso de No Cobertura de Medicare.\" La atención continúa mientras revisan.",
       ltTag: "COBERTURA DE MEDICINA NEGADA · CARTA DE EJEMPLO", ltWhen: "Apele antes del 6 dic 2026", ltWhat: "Ozempic 1 mg pluma · 65 días desde la fecha de la carta",
@@ -199,7 +199,7 @@ export default function DemoPlayer({ lang, compact = false, only = null }) {
     <span key={`${i}-${playing}`} className="block h-full bg-gold" style={{ width: playing ? undefined : "100%", animation: playing ? `mhfill ${SCENE_MS}ms linear forwards` : "none" }} />
   );
   const windowEl = (
-    <div className={`flex flex-col gap-5 rounded-[28px] bg-card p-6 shadow-[0_1px_0_var(--color-line),0_24px_60px_-30px_rgba(47,58,53,0.25)] md:p-8 ${compact ? "min-h-[440px]" : "min-h-[460px] md:p-9"}`} aria-live="polite">
+    <div className={`flex flex-col gap-5 rounded-[28px] bg-card p-6 shadow-[0_1px_0_var(--color-line),0_24px_60px_-30px_rgba(47,58,53,0.25)] md:p-8 ${compact ? "min-h-[400px]" : "min-h-[460px] md:p-9"}`} aria-live="polite">
       <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-line" /><span className="h-2.5 w-2.5 rounded-full bg-line" /><span className="h-2.5 w-2.5 rounded-full bg-line" />
         <span className="ml-3 font-mono text-xs text-muted">{s.tag}</span>
         <button onClick={() => setPlaying(!playing)} className="ml-auto min-h-9 rounded-full border border-line px-3 text-xs font-bold text-muted hover:border-ink hover:text-ink">{playing ? p.pause : p.play}</button></div>
@@ -216,7 +216,7 @@ export default function DemoPlayer({ lang, compact = false, only = null }) {
   if (compact) return (
     <div id="demo" className="flex min-w-0 flex-col gap-4">
       {windowEl}
-      <div role="tablist" aria-label={p.label} className={`grid gap-2 ${p.scenes.length === 6 ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-5"}`}>
+      <div role="tablist" aria-label={p.label} className="mh-tabs" style={{ "--n": p.scenes.length }}>
         {p.scenes.map((x, n) => {
           const Icon = ICON[x.key];
           return (

@@ -8,7 +8,7 @@ import PlanResults from "./components/PlanResults.jsx";
 import AppealCard from "./components/AppealCard.jsx";
 import ProfilePanel from "./components/ProfilePanel.jsx";
 import { LabelCard, SavedCard } from "./components/SavedCard.jsx";
-import { applyPatch, clearProfile, forMode, loadProfile, markStatus, removeMedicine, removePerson, saveProfile, setAppeal, whoIsThis } from "./profile.js";
+import { applyPatch, backupInfo, clearProfile, forMode, importProfile, loadProfile, markStatus, removeMedicine, removePerson, saveProfile, setAppeal, whoIsThis } from "./profile.js";
 import Dashboard from "./components/Dashboard.jsx";
 import LetterCard from "./components/LetterCard.jsx";
 import BillCard from "./components/BillCard.jsx";
@@ -212,18 +212,18 @@ export default function App() {
   return (
     <div className={`mx-auto flex min-h-dvh flex-col px-4 ${family ? "max-w-6xl" : "max-w-2xl"}`}>
       <header className="sticky top-0 z-10 -mx-4 flex print:hidden flex-wrap items-center justify-between gap-2 border-b border-line bg-paper/95 px-4 py-3 backdrop-blur">
-        <a href="/" className="flex items-center gap-2 text-ink no-underline" aria-label={t.appName}><Compass className="h-8 w-8 text-brand" /><span className="font-display text-xl font-[650]">{t.appName}</span></a>
+        <a href="/" className="flex items-center gap-2 text-ink no-underline" aria-label={t.appName}><Compass className="h-8 w-8 text-brand" /><span className="hidden font-display text-xl font-[650] min-[420px]:inline">{t.appName}</span></a>
         <div className="flex items-center gap-2">
-          <button onClick={() => setLang(lang === "en" ? "es" : "en")} className="min-h-12 rounded-full border-2 border-brand px-4 text-base font-bold text-brand">
-            {lang === "en" ? "Español" : "English"}
+          <button onClick={() => setLang(lang === "en" ? "es" : "en")} aria-label={lang === "en" ? "Español" : "English"} className="min-h-12 rounded-full border-2 border-brand px-3 text-base font-bold text-brand sm:px-4">
+            <span className="sm:hidden">{lang === "en" ? "ES" : "EN"}</span><span className="hidden sm:inline">{lang === "en" ? "Español" : "English"}</span>
           </button>
           <button onClick={() => setBig(!big)} aria-pressed={big} title={t.bigText} className={`min-h-12 min-w-12 rounded-full border-2 border-brand px-3 text-base font-bold ${big ? "bg-brand text-white" : "text-brand"}`}>A+</button>
           <button onClick={() => setVoice(!voice)} aria-pressed={voice} title={t.voiceOn} aria-label={t.voiceOn} className={`flex min-h-12 min-w-12 items-center justify-center rounded-full border-2 border-brand px-3 ${voice ? "bg-brand text-white" : "text-brand"}`}><Speaker className="h-6 w-6" /></button>
           <button onClick={() => setShowProfile(true)} title={t.myInfo} aria-label={t.myInfo} className="relative flex min-h-12 min-w-12 items-center justify-center rounded-full border-2 border-brand px-3 text-brand">
             <User className="h-6 w-6" />
-            {!!profile.people?.length && <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-paper bg-gold" aria-hidden="true" />}
+            {!!profile.people?.length && backupInfo().stale && <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-paper bg-gold" title={t.backupTitle} />}
           </button>
-          {mode && <button onClick={() => { reset(); setMode(null); }} title={t.switchMode} className="min-h-12 rounded-full bg-brand-soft px-4 text-base font-bold text-brand">{mode === "family" ? t.modeFamily : t.modeSenior} · {t.switchMode}</button>}
+          {mode && <button onClick={() => { reset(); setMode(null); }} title={t.switchMode} className="hidden min-h-12 rounded-full bg-brand-soft px-4 text-base font-bold text-brand sm:block">{mode === "family" ? t.modeFamily : t.modeSenior} · {t.switchMode}</button>}
           {started && <button onClick={reset} className="min-h-12 rounded-full px-3 text-base font-bold text-brand underline">{t.home}</button>}
         </div>
       </header>
@@ -344,7 +344,7 @@ export default function App() {
             <button type="button" onClick={() => fileRef.current?.click()} title={t.upload} aria-label={t.upload}
               className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-brand text-brand"><Camera className="h-7 w-7" /></button>
             <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={t.typeHere} aria-label={t.typeHere}
-              className="min-h-14 w-full rounded-full border-2 border-line bg-card px-5 text-lg outline-none focus:border-brand" />
+              className="min-h-14 w-full min-w-0 rounded-full border-2 border-line bg-card px-4 text-lg outline-none focus:border-brand sm:px-5" />
             <MicButton lang={lang} onText={send} label={t.talk} listeningLabel={t.listening} />
             <button type="submit" disabled={busy} aria-label={t.send} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand text-white disabled:opacity-50"><Send className="h-6 w-6" /></button>
           </form>
@@ -357,6 +357,7 @@ export default function App() {
           onRemoveMed={(pid, rx) => setProfile(removeMedicine(profile, pid, rx))}
           onRemovePerson={(pid) => setProfile(removePerson(profile, pid))}
           onClearAll={() => { clearProfile(); setProfile({ people: [] }); }}
+          onImport={(text) => setProfile(importProfile(text, profileRef.current))}
           onUse={(p) => { setShowProfile(false); send(t.useProfileMsg(p.name)); }} />
       )}
     </div>

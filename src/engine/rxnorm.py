@@ -8,6 +8,7 @@ Uses the free NLM RxNav API; everything is cached in data/processed/rxnav_cache.
 from __future__ import annotations
 
 import json
+import re
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -99,10 +100,9 @@ def strengths(term: str, limit: int = 12) -> list[str]:
     """Every RxNorm strength/form of a bare name ('furosemide' -> 'furosemide 20 MG Oral Tablet', ...), so the agent
     can offer the real choices instead of "common strengths are 20 or 40 mg" from memory (m02, 10/18)."""
     try:
-        groups = _get(f"{RXNAV}/drugs.json?name={urllib.parse.quote(term)}").get("drugGroup", {}).get("conceptGroup") or []
+        names = [p["rxnorm_name"] for p in products(term)]
     except Exception:  # noqa: BLE001 - optional extra, never fails the lookup
         return []
-    names = [c["name"] for g in groups if g.get("tty") in ("SCD", "SBD") for c in g.get("conceptProperties") or []]
     names.sort(key=lambda n: ("oral tablet" not in n.lower() and "oral capsule" not in n.lower(), len(n), n))
     return names[:limit]
 
@@ -150,11 +150,17 @@ SALTS = {"calcium", "sodium", "potassium", "magnesium", "hydrochloride", "hcl", 
          "fumarate", "citrate", "acetate", "sulfate", "phosphate", "bromide", "chloride", "propylene", "glycol", "free", "base"}
 
 
+# RxNorm display names include things no one fills at a pharmacy for Part D (mouthwash, test allergens, bacteria
+# used in vaccines/research): typing "lis" offered Listerine and Listeria next to lisinopril (10/18).
+NOT_RX = re.compile(r"\b(listerine|listeria|monocytogenes|antiseptic|mouthwash|toothpaste|sunscreen|allergenic|pollen|"
+                    r"venom|dander|mold mix|house dust|bacterial lysate)\b", re.I)
+
+
 def _clean(n: str, names: set[str]) -> bool:
     """Keep plain drug and brand names; drop dose packs/kits ('... 0.5 mg (28) tablet') and salt spellings of a
     drug that is already listed ('atorvastatin calcium trihydrate' when 'atorvastatin' exists)."""
     low = n.lower()
-    if any(ch.isdigit() for ch in low) or " pack" in low or " kit" in low or "(" in low:
+    if any(ch.isdigit() for ch in low) or " pack" in low or " kit" in low or "(" in low or NOT_RX.search(low):
         return False
     words = low.replace("/", " ").split()
     if len(words) > 1 and any(w in SALTS for w in words[1:]) and words[0] in names:

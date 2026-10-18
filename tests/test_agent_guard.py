@@ -298,3 +298,17 @@ def test_no_question_about_dose_form_when_strength_known():
             {"role": "tool", "tool_call_id": "f", "content": "{}"}]
     draft = "Which form of omeprazole do you take: tablet, capsule, or disintegrating tablet?"
     assert "form you priced" in style_problem(draft, msgs)
+
+
+def test_insulin_quantity_is_ml_a_month():
+    # m03 (10/18): "Lantus Solostar pens, 50 units once a day" was priced as qty 5 (pens) instead of 15 mL.
+    from agent.agent import insulin_qty_problem
+    name = "3 ML insulin glargine 100 UNT/ML Pen Injector [Lantus]"
+    msgs = [{"role": "user", "content": "She uses Lantus Solostar pens, 50 units once a day."}]
+    assert "qty_per_30d=15" in insulin_qty_problem([{"rxnorm_name": name, "qty_per_30d": 5}], msgs)
+    assert insulin_qty_problem([{"rxnorm_name": name, "qty_per_30d": 15}], msgs) is None
+    twice = [{"role": "user", "content": "20 units twice a day"}]
+    assert "qty_per_30d=12" in insulin_qty_problem([{"rxnorm_name": name, "qty_per_30d": 6}], twice)
+    assert insulin_qty_problem([{"rxnorm_name": "metformin 500 MG Oral Tablet", "qty_per_30d": 60}], msgs) is None
+    k01 = [{"role": "user", "content": "My dad injects Lantus, 20 units every night, plus metformin 1000 mg twice a day."}]
+    assert insulin_qty_problem([{"rxnorm_name": name, "qty_per_30d": 6}], k01) is None

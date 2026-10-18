@@ -442,6 +442,39 @@ def picked_medicines(messages: list[dict]) -> set[str]:
     return set()
 
 
+UNITS = re.compile(r"(\d+(?:\.\d+)?)\s*(?:units?|unidades?|u)\b", re.I)
+TIMES = [(re.compile(r"\b(three times|3 times|tres veces)\b", re.I), 3), (re.compile(r"\b(twice|two times|2 times|dos veces)\b", re.I), 2)]
+CONC = re.compile(r"(\d+(?:\.\d+)?)\s*UNT/ML", re.I)
+
+
+def insulin_qty_problem(drugs: list[dict], messages: list[dict]) -> str | None:
+    """qty_per_30d for insulin is in mL. "50 units once a day" of 100 units/mL = 15 mL; the model sometimes passes
+    pens (5) or boxes instead, which prices the wrong amount (m03, 10/18: 5 instead of 15). Checked only when the
+    user gave one daily unit amount and there is one insulin, so the arithmetic is unambiguous."""
+    ins = [d for d in drugs if isinstance(d, dict) and CONC.search(str(d.get("rxnorm_name", "")))]
+    if len(ins) != 1:
+        return None
+    for m in reversed(messages):
+        if m.get("role") != "user" or not isinstance(m.get("content"), str):
+            continue
+        hits = list(UNITS.finditer(m["content"]))
+        if not hits:
+            continue
+        if len({float(h.group(1)) for h in hits}) != 1:
+            return None
+        # frequency must be in the same phrase: "20 units every night, plus metformin twice a day" is once a day
+        near = re.split(r"[.;,]|\b(plus|and|y|también)\b", m["content"][hits[0].end():hits[0].end() + 40])[0]
+        per_day = float(hits[0].group(1)) * next((n for rx, n in TIMES if rx.search(near)), 1)
+        conc = float(CONC.search(ins[0]["rxnorm_name"]).group(1))
+        want = round(per_day * 30 / conc, 1)
+        got = ins[0].get("qty_per_30d")
+        if got is None or abs(float(got) - want) > 0.5:
+            return (f"Not run: qty_per_30d for {ins[0]['rxnorm_name']} must be mL a month: {per_day:g} units a day x 30 "
+                    f"/ {conc:g} units per mL = {want:g}. Call again with qty_per_30d={want:g}.")
+        return None
+    return None
+
+
 def guard(name: str, args: dict, messages: list[dict], profile: dict | None = None) -> str | None:
     """Rules the prompt states but the model sometimes skips, enforced in code. Returns an error for the model, or None.
     Found by evals/agent: the model typed 'metformin 500 MG Oral Tablet' without find_drug (3 of 4 runs), and answered
@@ -464,6 +497,9 @@ def guard(name: str, args: dict, messages: list[dict], profile: dict | None = No
             if changed:
                 return ("Not run: the person picked these exact medicines from the list; use them exactly as written, "
                         "including any [Brand] part: " + "; ".join(sorted(picked)) + ".")
+        bad_qty = insulin_qty_problem(args.get("drugs") or [], messages)
+        if bad_qty:
+            return bad_qty
         missing = [d.get("rxnorm_name") for d in args.get("drugs") or [] if d.get("rxnorm_name") not in known]
         if missing:
             return ("Not run: call find_drug for each of these first and use an rxnorm_name it returns, exactly: "
