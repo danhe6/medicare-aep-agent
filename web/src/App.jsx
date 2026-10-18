@@ -283,7 +283,7 @@ export default function App() {
           if (it.kind === "current_plan") return <CurrentPlanCard key={i} data={it.data} t={t} />;
           if (it.kind === "doctor") return <DoctorCard key={i} data={it.data} t={t} />;
           if (it.kind === "label") return <LabelCard key={i} data={it.data} t={t} />;
-          if (it.kind === "letter") return <LetterCard key={i} data={it.data} t={t} />;
+          if (it.kind === "letter") return <LetterCard key={i} data={it.data} t={t} onSend={busy ? null : send} />;
           if (it.kind === "bill") return <BillCard key={i} data={it.data} t={t} />;
           if (it.kind === "saved") return <SavedCard key={i} patch={it.patch} t={t} />;
           return null;

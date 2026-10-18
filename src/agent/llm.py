@@ -11,7 +11,9 @@ MODELS = {
     "agent": os.environ.get("MODEL_AGENT", "nvidia/nemotron-3-super-120b-a12b"),      # tool calling / planning
     "reason": os.environ.get("MODEL_REASON", "nvidia/Nemotron-3-Ultra-550b-a55b"),     # hard reasoning (traps)
     "extract": os.environ.get("MODEL_EXTRACT", "nvidia/Nemotron-3_5-Lightning"),       # cheap extraction
-    "vision": os.environ.get("MODEL_VISION", "google/gemma-3-27b-it"),                 # photos / scans (OCR only)
+    # photos / scans (transcription only). Nemotron VL matched or beat Gemma 3 27B on the 46-letter eval (10/18):
+    # type 45/46 both, deadlines 33/33 both, key item 42/42 vs 41/42, median 4.1 s vs 5.6 s per letter.
+    "vision": os.environ.get("MODEL_VISION", "nvidia/Nemotron-3.5-Super-VL"),
 }
 
 

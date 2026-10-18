@@ -3,9 +3,13 @@
     PYTHONPATH=src python -m pytest tests/test_agent_guard.py -q
 """
 import json
+import sys
+from pathlib import Path
 
-from agent.agent import guard
-from agent.tools import _full_state
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from agent.agent import guard  # noqa: E402
+from agent.tools import _full_state  # noqa: E402
 
 ELIQUIS = "apixaban 5 MG Oral Tablet [Eliquis]"
 

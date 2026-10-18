@@ -2,7 +2,7 @@
 
     PYTHONPATH=src python -m meds.label evals/fixtures/rx_label_sample.png
 
-Pipeline (same pattern as defend.notice): Gemma 3 vision transcribes the label -> Nemotron extracts fields as JSON
+Pipeline (same pattern as defend.notice): Nemotron VL transcribes the label -> Nemotron extracts fields as JSON
 -> deterministic checks (drug name and numbers must appear in the transcript) -> quantity per 30 days computed in
 code from quantity + days supply, or from the directions ("take 1 tablet twice daily") -> RxNorm lookup.
 """

@@ -2,7 +2,7 @@
 
     PYTHONPATH=src python -m defend.notice evals/fixtures/nomnc_sample_photo.jpg --now 2026-10-07T18:00
 
-Pipeline: Gemma 3 (vision) transcribes the page -> Nemotron Lightning extracts fields as JSON ->
+Pipeline: Nemotron VL (vision) transcribes the page -> Nemotron Lightning extracts fields as JSON ->
 deterministic checks confirm every date/phone actually appears in the text -> rules.plan_appeal().
 """
 from __future__ import annotations
@@ -36,12 +36,13 @@ def transcribe(path: Path, llm=None) -> str:
     llm = llm or client()
     mime = mimetypes.guess_type(path.name)[0] or "image/jpeg"
     b64 = base64.b64encode(path.read_bytes()).decode()
-    resp = llm.chat.completions.create(model=MODELS["vision"], temperature=0, max_tokens=3000, messages=[{
+    extra = NO_THINK if MODELS["vision"].startswith("nvidia/") else None  # Nemotron VL: transcription needs no reasoning
+    resp = llm.chat.completions.create(model=MODELS["vision"], temperature=0, max_tokens=3000, extra_body=extra, messages=[{
         "role": "user", "content": [
             {"type": "text", "text": "Transcribe ALL text on this document exactly as written, top to bottom. "
                                      "Keep dates, names and phone numbers exactly. Output only the text."},
             {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}]}])
-    return resp.choices[0].message.content or ""
+    return re.sub(r"<think>.*?</think>", "", resp.choices[0].message.content or "", flags=re.S).strip()
 
 
 EXTRACT_PROMPT = """From this Medicare notice text, return ONLY a JSON object with these keys (null if not present):

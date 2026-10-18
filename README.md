@@ -27,7 +27,7 @@ models that make decisions are **NVIDIA Nemotron** open models:
 | The agent: what to ask, which tool to call, the plain-language answer | `nvidia/nemotron-3-super-120b-a12b` | Reliable tool calling at about $0.002 a turn |
 | Structured extraction (pill labels, letters, bills, statements) | `nvidia/Nemotron-3_5-Lightning`, thinking off | Fast, cheap JSON: a label read went from 31 s to 8 s with thinking off |
 | Family summaries in 18 languages | `nvidia/Nemotron-3-Ultra-550b-a55b` | Best at less common languages (Haitian Creole, Vietnamese); every number checked in code |
-| Reading photos (transcription only) | `google/gemma-3-27b-it` | Vision model available on Token Factory; Nemotron does all reasoning on its text |
+| Reading photos (transcription only) | `nvidia/Nemotron-3.5-Super-VL`, thinking off | On our 46-letter key it matched Gemma 3 27B on type and deadlines, read every key item (42/42 vs 41/42) and was faster (4.1 s vs 5.6 s per letter) |
 
 - Every model call goes through one metered client (`src/agent/metrics.py`): task name, model, tokens and latency,
   never health content. The same counts drive a hard daily spend cap (`DAILY_SPEND_CAP_USD`).
@@ -82,7 +82,7 @@ flowchart LR
     end
     A -- tool calls --> T{{Tools}}
     T --> E[Deterministic cost engine<br/>Part D benefit rules · IRA prices]
-    T --> V[Photo reader<br/>Gemma 3 vision → Nemotron Lightning JSON]
+    T --> V[Photo reader<br/>Nemotron VL → Nemotron Lightning JSON]
     T --> D[Doctor check<br/>NPPES + Tavily]
     T --> R[Appeal rules<br/>deadlines · QIO lookup]
     T --> L[Letter reader + bill check<br/>keyword router · per-type workflow]
@@ -103,8 +103,9 @@ flowchart LR
   dates and phone numbers against the transcript → compute the deadline in code → draft one argument paragraph.
   The bill check is plain code (date + description matching, amounts compared).
 - **Models used**: `nvidia/nemotron-3-super-120b-a12b` (agent, letter drafts), `nvidia/Nemotron-3_5-Lightning`
-  (structured extraction, thinking off), `google/gemma-3-27b-it` (transcribing photos),
-  `nvidia/Nemotron-3-Ultra-550b-a55b` (family summaries in other languages).
+  (structured extraction, thinking off), 
+  `nvidia/Nemotron-3-Ultra-550b-a55b` (family summaries in other languages), `nvidia/Nemotron-3.5-Super-VL` (reading
+  photos). Every model in the product is an NVIDIA Nemotron model.
 
 ### Design: workflows where we can, an agent where we must
 

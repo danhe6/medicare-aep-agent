@@ -21,9 +21,11 @@ from defend.notice import _json, _parse_date, transcribe
 from letters.checks import check_draft, keyword_type, stated_days
 from letters.rules import fmt, plan
 
-COVERAGE_WORDS = re.compile(r"\b(medicare|medicaid|insurance|insurer|coverage|covered|claim|benefits?|premium|member|"
-                            r"plan|social security|prescription|pharmacy|deductible|copay|appeal)\b", re.I)
-TYPES = ["nomnc", "partd_denial", "ma_denial", "msn", "irmaa", "anoc", "eob", "bill", "other", "not_medicare"]
+# Words only health-coverage mail uses. Generic words ("plan", "member", "account") also appear on utility bills
+# and store receipts, so they don't count (eval: a dark photo of an electric bill was kept as "other").
+COVERAGE_WORDS = re.compile(r"\b(medicare|medicaid|health insurance|insurer|coverage|claims?|premium|social security|"
+                            r"prescription|pharmacy|deductible|copay|coinsurance|appeal|health plan|patient)\b", re.I)
+TYPES = ["nomnc", "partd_denial", "ma_denial", "msn", "irmaa", "nonrenewal", "anoc", "eob", "bill", "other", "not_medicare"]
 def classify(text: str, llm=None, info: dict | None = None) -> tuple[str, str]:
     """(type, how): 'keyword' when an official title is found, else 'llm'. `info` gets a few words on what it is."""
     kind = keyword_type(text)
@@ -40,14 +42,14 @@ def classify(text: str, llm=None, info: dict | None = None) -> tuple[str, str]:
         "health coverage at all (a store receipt, a utility bill, a menu, a photo of a person or place); other = about "
         "Medicare or health coverage but none of the listed kinds. partd_denial = a drug plan refused a prescription; ma_denial = a Medicare Advantage plan "
         "refused medical care or payment; msn = Original Medicare claim summary; irmaa = Social Security income-related "
-        "premium; anoc = plan changes for next year; eob = plan's explanation of benefits.\n\nLetter:\n" + text[:6000]}])
+        "premium; nonrenewal = the plan is ending / will not be offered next year; anoc = plan changes for next year; eob = plan's explanation of benefits.\n\nLetter:\n" + text[:6000]}])
     j = _json(resp.choices[0].message.content)
-    kind = j.get("type")
-    if kind in (None, "other") and not COVERAGE_WORDS.search(text):  # a menu or a note: nothing about health coverage
+    kind = j.get("type") if j.get("type") in TYPES else "other"  # e.g. "utility_bill" -> other, then the check below
+    if kind == "other" and not COVERAGE_WORDS.search(text):  # a menu, a note, a utility bill: nothing about coverage
         kind = "not_medicare"
     if info is not None:
         info["what"] = str(j.get("what") or "")[:120]
-    return (kind if kind in TYPES else "other"), "llm"
+    return kind, "llm"
 
 
 FIELDS = {
@@ -60,6 +62,8 @@ FIELDS = {
     "msn": '{"appeal_by": "YYYY-MM-DD" (the date you must appeal by), "appeal_by_as_written", "items_denied": [short list], '
            '"notice_date": "YYYY-MM-DD", "member_first_name"}',
     "irmaa": '{"notice_date": "YYYY-MM-DD", "notice_date_as_written", "premium_year", "tax_year_used", "member_first_name"}',
+    "nonrenewal": '{"plan_name", "plan_id": like "H1234-056" if printed, "plan_kind": "medicare_advantage"|"drug_plan", '
+                  '"last_day": "YYYY-MM-DD" (last day of coverage, if printed), "notice_date": "YYYY-MM-DD"}',
     "anoc": '{"plan_name", "plan_id": like "H1234-056" if printed, "plan_year"}',
     "eob": '{"plan_name", "period"}',
     "bill": '{"provider_name", "statement_date", "amount_due"}',

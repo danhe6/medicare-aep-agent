@@ -50,6 +50,8 @@ KEYWORDS = [  # (type, pattern) - the official notice titles, checked in order
     ("ma_denial", r"notice of denial of medical coverage|integrated denial notice|notice of denial of payment"),
     ("msn", r"medicare summary notice"),
     ("irmaa", r"income-?related monthly adjustment|\birmaa\b"),
+    ("nonrenewal", r"non-?renewal|will (?:not|no longer) be (?:offered|available|renewed)|won't be (?:offered|available)|"
+                   r"(?:leaving|leave|exit(?:ing)?) the medicare program|plan is leaving medicare|not renew(?:ing)? (?:its|our) contract"),
     ("anoc", r"annual notice of changes?"),
     ("eob", r"explanation of benefits|part d eob"),
     ("bill", r"(?=[\s\S]*\b(?:patient|provider|physician|clinic|hospital|medical|office visit|x-ray|cpt|date of service)\b)"

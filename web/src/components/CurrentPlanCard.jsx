@@ -34,6 +34,18 @@ export default function CurrentPlanCard({ data, t }) {
               : <span className="inline-flex items-center gap-1 text-ok"><Check className="h-4 w-4" />{t.cpRecordOk(rec.pct_drugs_made_worse, rec.national_median_pct)}</span>}
           </p>
         )}
+        {data.plan_news?.found_exit_news && (
+          <div className="mt-3 rounded-2xl border-2 border-warn bg-card p-3">
+            <div className="text-base font-bold text-warn">{t.cpNews(data.plan_news.insurer, data.plan_news.year)}</div>
+            <ul className="mt-2 space-y-1 text-base">
+              {data.plan_news.articles.map((a) => (
+                <li key={a.url}><a href={a.url} target="_blank" rel="noreferrer" className="font-bold">{a.title}</a>
+                  <span className="text-muted"> · {a.site}{a.published ? ` · ${String(a.published).slice(0, 16)}` : ""}</span></li>
+              ))}
+            </ul>
+            <p className="mt-2 text-sm text-muted">{t.cpNewsNote}</p>
+          </div>
+        )}
       </article>
       {alt && worth && (
         <article className="rounded-3xl border-2 border-brand bg-card p-5">

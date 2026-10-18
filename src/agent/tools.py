@@ -107,6 +107,16 @@ SCHEMAS = [
             "hospital_stay_last_year": {"type": "boolean"}},
             "required": ["current_plan", "state", "county", "drugs"]}}},
     {"type": "function", "function": {
+        "name": "check_plan_news",
+        "description": "Use when the user asks whether a plan or insurer is leaving Medicare / ending next year, or "
+                       "mentions hearing that their plan is going away, and you are not already running "
+                       "check_current_plan (which includes this). Searches recent news with Tavily and returns only "
+                       "articles that name the insurer, an exit and the year, with links.",
+        "parameters": {"type": "object", "properties": {
+            "organization": {"type": "string", "description": "Insurer or plan brand, e.g. Humana, Aetna, Devoted"},
+            "state": {"type": "string"}, "plan_name": {"type": "string"}},
+            "required": ["organization"]}}},
+    {"type": "function", "function": {
         "name": "screen_extra_help",
         "description": "Quick check whether the person may qualify for Extra Help (Medicare's Part D low-income subsidy), "
                        "and roughly what their medicines would cost with it. Ask for yearly income and savings only "
@@ -345,6 +355,20 @@ def _match_plan(results: list[dict], query: str) -> tuple[dict | None, list[dict
     return scored[0][1], []
 
 
+def _plan_news(organization: str | None, year: int, state: str, plan_name: str | None) -> dict | None:
+    """Tavily news on the insurer leaving Medicare next year (see network/plan_news.py). None if search is off."""
+    if not organization or not os.environ.get("TAVILY_API_KEY"):
+        return None
+    from network.plan_news import plan_news
+    return plan_news(organization, year, state=state, plan_name=plan_name)
+
+
+def check_plan_news(organization: str, state: str | None = None, plan_name: str | None = None, year: int | None = None) -> dict:
+    from network.plan_news import plan_news
+    from datetime import date as _date
+    return plan_news(organization, year or _date.today().year + 1, state=state, plan_name=plan_name)
+
+
 def check_current_plan(current_plan: str, state: str, county: str, drugs: list[dict], medicaid: bool = False,
                        chronic_conditions: list[str] | None = None, hospital_stay_last_year: bool | None = None,
                        lang: str = "en") -> dict:
@@ -378,6 +402,7 @@ def check_current_plan(current_plan: str, state: str, county: str, drugs: list[d
                                              "note": "No published next-year row under this plan ID: the plan may be "
                                                      "ending or renumbered - check the Annual Notice of Change letter."},
         "track_record": tr.get("formulary_record"),
+        "plan_news": _plan_news(cur.get("organization"), out["year"] + 1, state, cur.get("plan_name")),
         "best_alternative": alt,
         "typical_year_savings_if_switching": savings,
         "note": "Next year's drug list (formulary) for this plan is published in October; until then drug costs "
@@ -396,7 +421,7 @@ def screen_extra_help(drugs: list[str] | None = None, **kw) -> dict:
     return out
 
 
-IMPL = {"check_bill": check_bill, "read_medicare_letter": read_medicare_letter, "check_current_plan": check_current_plan, "screen_extra_help": screen_extra_help, "check_doctor_network": check_doctor_network, "read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
+IMPL = {"check_plan_news": check_plan_news, "check_bill": check_bill, "read_medicare_letter": read_medicare_letter, "check_current_plan": check_current_plan, "screen_extra_help": screen_extra_help, "check_doctor_network": check_doctor_network, "read_care_ending_notice": read_care_ending_notice, "read_medicine_label": read_medicine_label,
         "update_profile": update_profile, "find_drug": find_drug, "find_county": find_county, "compare_plans": compare_plans}
 
 

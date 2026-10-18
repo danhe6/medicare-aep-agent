@@ -15,5 +15,9 @@
   "google/gemma-3-27b-it": {
     "input": 0.1,
     "output": 0.3
+  },
+  "nvidia/Nemotron-3.5-Super-VL": {
+    "input": 0.3,
+    "output": 0.9
   }
 }

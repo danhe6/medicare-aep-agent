@@ -7,6 +7,10 @@ Checked 2026-10-09 against Medicare.gov / SSA:
     (pre-service), 60 days (payment), 7 days (Part B drug), 72 hours if fast.
   * Original Medicare (Medicare Summary Notice) -> redetermination by the date printed on the MSN, form CMS-20027,
     to the Medicare contractor on the MSN's last page; decision usually within 60 days.
+  * Plan nonrenewal (checked 2026-10-18, Medicare Rights Center / Medicare Interactive) -> the plan covers you through
+    Dec 31; choose a new plan in open enrollment (Oct 15 - Dec 7, starts Jan 1) or in the special enrollment period
+    Dec 8 - end of February; pick by Dec 31 to avoid a gap. Doing nothing = Original Medicare on Jan 1 with no drug
+    plan (people with Extra Help are placed in a drug plan). Medigap may be available without health questions: SHIP.
   * IRMAA (Social Security) -> reconsideration within 60 days of receipt (receipt = notice date + 5 days), form
     SSA-561; a life-changing event (retirement, death of a spouse...) is a new determination with form SSA-44.
 """
@@ -15,6 +19,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 SOURCES = {
+    "nonrenewal": ["https://www.medicareinteractive.org/?p=28777"],
     "partd_denial": ["https://www.medicare.gov/providers-services/claims-appeals-complaints/appeals/drug-plans"],
     "ma_denial": ["https://www.medicare.gov/providers-services/claims-appeals-complaints/appeals/medicare-health-plans"],
     "msn": ["https://www.medicare.gov/providers-services/claims-appeals-complaints/appeals/original-medicare"],
@@ -50,7 +55,7 @@ T = {
     "en": {
         "titles": {"partd_denial": "Drug coverage denied", "ma_denial": "Medical coverage denied",
                    "msn": "Medicare Summary Notice (a statement, not a bill)", "irmaa": "Higher Part B / D premium (IRMAA)",
-                   "anoc": "Annual Notice of Change (your plan next year)", "nomnc": "Care is ending (Notice of Medicare Non-Coverage)",
+                   "anoc": "Annual Notice of Change (your plan next year)", "nonrenewal": "Your plan is ending (non-renewal notice)", "nomnc": "Care is ending (Notice of Medicare Non-Coverage)",
                    "eob": "Explanation of Benefits (a statement, not a bill)", "bill": "A bill from a doctor or hospital", "other": "Medicare letter"},
         "partd": ["Ask the doctor who prescribed it to send the plan a supporting statement explaining why you need this drug "
                   "(required for an exception). You can use the request below.",
@@ -78,6 +83,17 @@ T = {
                   "If you think the income they used is wrong, ask for a reconsideration with form SSA-561 (the letter below works).",
                   "Call Social Security at 1-800-772-1213 or visit your local office for help."],
         "irmaa_time": "Social Security reviews the request; you can send both a new-decision request and an appeal.",
+        "nonrenewal": ["Your plan still covers you until {last}. Keep using it until then.",
+                       "Choose a new plan now: in open enrollment (until {aep_end}) it starts January 1. Because your plan is "
+                       "ending you also have a special window until {sep_end}.",
+                       "Pick by {last} so there is no gap. If you do nothing you move to Original Medicare on January 1 with "
+                       "no drug plan (unless you get Extra Help), so add a Part D drug plan too.",
+                       "You may be able to buy a Medigap policy without health questions. Your State Health Insurance "
+                       "Assistance Program (SHIP) can explain your rights for free.",
+                       "I can compare the plans in your county for your medicines right now."],
+        "nonrenewal_label": "Choose a new plan by",
+        "nonrenewal_missed": "You can still choose a plan until {sep_end} (special enrollment period). Coverage starts the first "
+                             "day of the next month, so act soon. Call 1-800-MEDICARE or your SHIP for help.",
         "anoc": ["This letter lists what changes in your plan on January 1.",
                  "I can check your plan for next year against your medicines and show the best alternative."],
         "eob": ["This is a summary of what your plan paid. It is not a bill.",
@@ -97,7 +113,7 @@ T = {
     "es": {
         "titles": {"partd_denial": "Le negaron la cobertura de una medicina", "ma_denial": "Le negaron cobertura médica",
                    "msn": "Resumen de Medicare (un resumen, no una factura)", "irmaa": "Prima más alta de la Parte B / D (IRMAA)",
-                   "anoc": "Aviso Anual de Cambios (su plan el próximo año)", "nomnc": "Fin de la atención (Aviso de No Cobertura de Medicare)",
+                   "anoc": "Aviso Anual de Cambios (su plan el próximo año)", "nonrenewal": "Su plan termina (aviso de no renovación)", "nomnc": "Fin de la atención (Aviso de No Cobertura de Medicare)",
                    "eob": "Explicación de Beneficios (un resumen, no una factura)", "bill": "Una factura de un médico u hospital", "other": "Carta de Medicare"},
         "partd": ["Pida al médico que recetó la medicina que envíe al plan una declaración explicando por qué la necesita "
                   "(es obligatoria para una excepción). Puede usar la solicitud de abajo.",
@@ -125,6 +141,17 @@ T = {
                   "Si cree que los ingresos que usaron están mal, pida una reconsideración con el formulario SSA-561 (sirve la carta de abajo).",
                   "Llame al Seguro Social al 1-800-772-1213 o visite su oficina local."],
         "irmaa_time": "El Seguro Social revisa la solicitud; puede enviar una nueva solicitud y una apelación a la vez.",
+        "nonrenewal": ["Su plan le sigue cubriendo hasta el {last}. Úselo hasta esa fecha.",
+                       "Elija un plan nuevo ahora: en la inscripción abierta (hasta el {aep_end}) empieza el 1 de enero. Como "
+                       "su plan termina, también tiene un periodo especial hasta el {sep_end}.",
+                       "Elija antes del {last} para no quedarse sin cobertura. Si no hace nada pasa a Medicare Original el 1 de "
+                       "enero sin plan de medicinas (salvo que reciba Ayuda Adicional), así que agregue también un plan de la Parte D.",
+                       "Puede que pueda comprar una póliza Medigap sin preguntas de salud. El Programa Estatal de Asistencia "
+                       "con Seguros de Salud (SHIP) le explica sus derechos gratis.",
+                       "Puedo comparar ahora los planes de su condado para sus medicinas."],
+        "nonrenewal_label": "Elija un plan nuevo antes del",
+        "nonrenewal_missed": "Aún puede elegir un plan hasta el {sep_end} (periodo especial de inscripción). La cobertura empieza "
+                             "el primer día del mes siguiente, así que actúe pronto. Llame al 1-800-MEDICARE o a su SHIP.",
         "anoc": ["Esta carta explica qué cambia en su plan el 1 de enero.",
                  "Puedo revisar su plan del próximo año con sus medicinas y mostrarle la mejor alternativa."],
         "eob": ["Es un resumen de lo que pagó su plan. No es una factura.",
@@ -159,6 +186,16 @@ def plan(kind: str, f: dict, today: date, lang: str = "en") -> dict:
     elif kind == "msn":
         printed = date.fromisoformat(f["appeal_by"]) if f.get("appeal_by") else None
         out.update(deadline=_deadline(printed, today, lang), steps=t["msn"], decision_time=t["msn_time"])
+    elif kind == "nonrenewal":
+        last = date.fromisoformat(f["last_day"]) if f.get("last_day") else None
+        year = (last or notice or today).year
+        if not last or last.month != 12:  # plans end on Dec 31; a mid-year date on the letter is read as-is
+            last = last or date(year, 12, 31)
+        sep_end = date(year + 1, 3, 1) - timedelta(days=1)  # last day of February
+        out.update(deadline=_deadline(last, today, lang), steps=[s.format(last=fmt(last, lang), sep_end=fmt(sep_end, lang),
+                   aep_end=fmt(date(year, 12, 7), lang)) for s in t["nonrenewal"]], decision_time=None,
+                   deadline_label=t["nonrenewal_label"], missed_hint=t["nonrenewal_missed"].format(sep_end=fmt(sep_end, lang)),
+                   reminder_kind="choose", special_period_ends=sep_end.isoformat(), offer_compare=True)
     elif kind == "irmaa":
         out.update(deadline=_deadline(notice + timedelta(days=65) if notice else None, today, lang),
                    steps=t["irmaa"], decision_time=t["irmaa_time"])

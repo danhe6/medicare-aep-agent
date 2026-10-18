@@ -31,13 +31,15 @@ ROOT = Path(__file__).resolve().parents[2]
 DB = Path(os.environ.get("PUSH_DB", ROOT / "data" / "state" / "push.db"))
 ET = ZoneInfo("America/New_York")
 SEND_HOUR = 9           # reminders go out from 9 am Eastern
-KINDS = {"deadline", "nomnc", "enrollment"}
+KINDS = {"deadline", "nomnc", "enrollment", "choose"}
 _lock = threading.Lock()
 
 TEXT = {
     "en": {
         "deadline": lambda d, n: ("Appeal deadline " + ("today" if n == 0 else "tomorrow" if n == 1 else f"in {n} days"),
                                   f"The deadline is {d}. Open Medicare Helper for the steps and your drafted letter."),
+        "choose": lambda d, n: ("Your plan ends " + ("today" if n == 0 else "tomorrow" if n == 1 else f"in {n} days"),
+                                f"Choose a new plan by {d} so there is no gap. Tap to compare plans."),
         "nomnc": lambda d, n: ("Fast appeal: call " + ("by noon today" if n == 0 else "by noon tomorrow"),
                                "To keep care going, call the number on the notice before noon. Open Medicare Helper for the script."),
         "aep_start": lambda d, n: ("Open enrollment starts today", "Check that the plan still fits the medicines before Dec 7."),
@@ -50,6 +52,8 @@ TEXT = {
     "es": {
         "deadline": lambda d, n: ("Fecha límite para apelar " + ("hoy" if n == 0 else "mañana" if n == 1 else f"en {n} días"),
                                   f"La fecha límite es {d}. Abra Ayuda con Medicare para ver los pasos y su carta."),
+        "choose": lambda d, n: ("Su plan termina " + ("hoy" if n == 0 else "mañana" if n == 1 else f"en {n} días"),
+                                f"Elija un plan nuevo antes del {d} para no quedarse sin cobertura. Toque para comparar."),
         "nomnc": lambda d, n: ("Apelación rápida: llame " + ("antes del mediodía de hoy" if n == 0 else "antes del mediodía de mañana"),
                                "Para que la atención continúe, llame al número del aviso antes del mediodía. Abra la app para ver el guion."),
         "aep_start": lambda d, n: ("Hoy empieza la inscripción abierta", "Revise si el plan sigue sirviendo para sus medicinas antes del 7 de dic."),
@@ -60,7 +64,7 @@ TEXT = {
         "test": lambda d, n: ("Recordatorios activados", "Así se ve un recordatorio de Ayuda con Medicare."),
     },
 }
-URL = {"deadline": "/app", "nomnc": "/app", "plan_year": "/app?start=recheck", "test": "/app"}
+URL = {"choose": "/app?start=choose", "deadline": "/app", "nomnc": "/app", "plan_year": "/app?start=recheck", "test": "/app"}
 
 
 def today() -> date:
@@ -82,8 +86,9 @@ def schedule(kind: str, due: date | None, now: date | None = None) -> list[tuple
     """(message key, due date, send date) for one reminder request. Pure: easy to test."""
     now = now or today()
     out = []
-    if kind == "deadline" and due:
-        out = [("deadline", due, due - timedelta(days=k)) for k in (7, 2, 0)]
+    if kind in ("deadline", "choose") and due:
+        out = [(kind, due, due - timedelta(days=k)) for k in (14, 7, 2, 0)] if kind == "choose" else \
+              [("deadline", due, due - timedelta(days=k)) for k in (7, 2, 0)]
     elif kind == "nomnc" and due:
         out = [("nomnc", due, due - timedelta(days=1)), ("nomnc", due, due)]
     elif kind == "enrollment":

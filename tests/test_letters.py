@@ -88,5 +88,19 @@ class StatedDays(unittest.TestCase):
         self.assertEqual(plan("partd_denial", {"notice_date": "2026-10-02"}, date(2026, 10, 12))["deadline"]["date"], "2026-12-06")
 
 
+class Nonrenewal(unittest.TestCase):
+    def test_router_and_windows(self):
+        from datetime import date
+        from letters.checks import keyword_type
+        from letters.rules import plan
+        self.assertEqual(keyword_type("Important: your plan will not be offered in 2027. Please choose a new plan."), "nonrenewal")
+        self.assertEqual(keyword_type("Annual Notice of Change for 2027"), "anoc")
+        out = plan("nonrenewal", {"notice_date": "2026-10-02"}, date(2026, 10, 18))
+        self.assertEqual(out["deadline"]["date"], "2026-12-31")
+        self.assertEqual(out["special_period_ends"], "2027-02-28")
+        self.assertEqual(out["reminder_kind"], "choose")
+        self.assertTrue(any("Original Medicare" in s for s in out["steps"]))
+
+
 if __name__ == "__main__":
     unittest.main()

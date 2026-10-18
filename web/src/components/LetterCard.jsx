@@ -26,7 +26,7 @@ function Draft({ title, hint, text, t }) {
   );
 }
 
-export default function LetterCard({ data, t }) {
+export default function LetterCard({ data, t, onSend }) {
   if (!data) return null;
   const L = t.lt, f = data.fields || {}, dl = data.deadline;
   const facts = ["item", "items_denied", "denial_reason", "plan_name", "plan_id", "notice_date", "premium_year", "tax_year_used"]
@@ -47,11 +47,11 @@ export default function LetterCard({ data, t }) {
 
       {dl && (
         <div className={`rounded-3xl p-6 text-center ${missed || dl.status === "urgent" ? "bg-warn-soft" : "border border-line bg-card"}`}>
-          <div className="text-lg font-bold text-muted">{missed ? L.missed : L.deadline}</div>
+          <div className="text-lg font-bold text-muted">{missed ? L.missed : data.deadline_label || L.deadline}</div>
           <div className="font-display mt-1 text-2xl">{dl.date_text}</div>
           {!missed && <div className={`font-display mt-2 text-5xl ${dl.status === "urgent" ? "text-warn" : "text-brand"}`}>{L.daysLeft(dl.days_left)}</div>}
-          {missed && <p className="mt-2 text-base">{L.missedHint}</p>}
-          {!missed && dl.date && <RemindButton items={[{ kind: "deadline", date: dl.date }]} lang={document.documentElement.lang} t={t} className="mt-4" />}
+          {missed && <p className="mt-2 text-base">{data.missed_hint || L.missedHint}</p>}
+          {!missed && dl.date && <RemindButton items={[{ kind: data.reminder_kind || "deadline", date: dl.date }]} lang={document.documentElement.lang} t={t} className="mt-4" />}
         </div>
       )}
       {data.needs_date && <div className="rounded-2xl border-2 border-warn bg-card p-4 text-base"><Alert className="mr-2 inline h-5 w-5 text-warn" />{data.needs_date}</div>}
@@ -64,6 +64,9 @@ export default function LetterCard({ data, t }) {
             {data.steps.map((s, i) => <li key={i} className="flex gap-3 text-lg"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft font-bold text-brand">{i + 1}</span><span>{s}</span></li>)}
           </ol>
           {data.decision_time && <p className="mt-4 text-base text-muted"><b>{L.decision}:</b> {data.decision_time}</p>}
+          {data.offer_compare && onSend && (
+            <button onClick={() => onSend(t.startChoose)} className="mt-4 min-h-12 rounded-full bg-brand px-5 text-lg font-bold text-white">{t.choose}</button>
+          )}
         </div>
       )}
 

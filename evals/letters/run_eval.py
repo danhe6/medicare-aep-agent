@@ -20,7 +20,7 @@ from pathlib import Path
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parents[1] / "src"))
 
-from agent.llm import client  # noqa: E402
+from agent.llm import MODELS, client  # noqa: E402
 from letters.read import analyze  # noqa: E402
 
 TODAY = date(2026, 10, 12)
@@ -70,11 +70,15 @@ def main() -> None:
         print(f"{t:14} {len(rs):>3} {rate(rs, 'type_ok'):>7} {rate(rs, 'date_ok'):>7} {rate(rs, 'keyword_ok'):>7} {rate(rs, 'phone_ok'):>7}")
     print(f"{'ALL':14} {len(results):>3} {rate(results, 'type_ok'):>7} {rate(results, 'date_ok'):>7} "
           f"{rate(results, 'keyword_ok'):>7} {rate(results, 'phone_ok'):>7}")
+    print("vision model:", MODELS["vision"])
     print("median seconds per letter:", sorted(r["secs"] for r in results)[len(results) // 2])
     for r in results:
         if not r["type_ok"] or r.get("date_ok") is False or r.get("error"):
             print("MISS", r["id"], r["style"], "type", r["type"], "->", r["got_type"], "| date", r.get("want"), "->", r.get("got"), r.get("error") or "")
-    (HERE / "results_latest.json").write_text(json.dumps({"today": TODAY.isoformat(), "results": results}, indent=1))
+    tag = MODELS["vision"].split("/")[-1]
+    payload = json.dumps({"today": TODAY.isoformat(), "vision_model": MODELS["vision"], "results": results}, indent=1)
+    (HERE / "results_latest.json").write_text(payload)
+    (HERE / f"results_{tag}.json").write_text(payload)  # one file per vision model, for A/B
 
 
 if __name__ == "__main__":

@@ -1,0 +1,42 @@
+{
+ "today": "2026-10-12",
+ "vision_model": "google/gemma-3-27b-it",
+ "results": [
+  {
+   "id": "not_medicare_01",
+   "style": "scan",
+   "type": "not_medicare",
+   "got_type": "not_medicare",
+   "type_ok": true,
+   "secs": 2.9,
+   "error": null
+  },
+  {
+   "id": "not_medicare_02",
+   "style": "dark",
+   "type": "not_medicare",
+   "got_type": "other",
+   "type_ok": false,
+   "secs": 3.4,
+   "error": null
+  },
+  {
+   "id": "not_medicare_03",
+   "style": "dark",
+   "type": "not_medicare",
+   "got_type": "not_medicare",
+   "type_ok": true,
+   "secs": 2.4,
+   "error": null
+  },
+  {
+   "id": "not_medicare_04",
+   "style": "photo",
+   "type": "not_medicare",
+   "got_type": "not_medicare",
+   "type_ok": true,
+   "secs": 2.8,
+   "error": null
+  }
+ ]
+}

@@ -176,7 +176,25 @@ def not_medicare(i):
     return kinds[i % len(kinds)], {"type": "not_medicare", "phone": None}
 
 
-MAKERS = [(partd, 8), (ma, 6), (msn, 5), (irmaa, 4), (nomnc, 5), (anoc, 3), (eob, 3), (bill, 3), (not_medicare, 4)]
+def nonrenewal(i):
+    plan = R.choice(PLANS)
+    pid = f"H{R.randint(1000, 9999)}-{R.randint(1, 99):03d}" if "PDP" not in plan else f"S{R.randint(1000, 9999)}-{R.randint(1, 99):03d}"
+    d = date(2026, 10, R.randint(1, 5))
+    opener = ["Important: Your plan will not be offered in 2027.",
+              "Your Medicare plan is leaving the Medicare program.",
+              f"{plan.title()} has decided not to renew its contract with Medicare for 2027.",
+              "This is a Plan Non-Renewal Notice.",
+              "Your plan won't be available next year."][i % 5]
+    lines = [plan, f"Plan ID {pid}", "", f"{fmt_date(d, R.randint(0, 3))}", f"Dear {name()},", "", opener, "",
+             "Your current coverage will continue through December 31, 2026.",
+             "You must choose new coverage. You can join another plan during Open Enrollment, October 15 - December 7.",
+             "Because your plan is ending, you also have a Special Enrollment Period through the end of February 2027.",
+             "If you do not choose a plan, you will be enrolled in Original Medicare on January 1, 2027.",
+             f"Questions? Call Member Services at {phone()}."]
+    return lines, {"type": "nonrenewal", "deadline": "2026-12-31", "keyword": pid, "phone": None}
+
+
+MAKERS = [(partd, 8), (ma, 6), (msn, 5), (irmaa, 4), (nomnc, 5), (anoc, 3), (eob, 3), (bill, 3), (not_medicare, 4), (nonrenewal, 5)]
 
 
 def render(lines: list[str], style: str) -> Image.Image:
