@@ -312,3 +312,202 @@ def test_insulin_quantity_is_ml_a_month():
     assert insulin_qty_problem([{"rxnorm_name": "metformin 500 MG Oral Tablet", "qty_per_30d": 60}], msgs) is None
     k01 = [{"role": "user", "content": "My dad injects Lantus, 20 units every night, plus metformin 1000 mg twice a day."}]
     assert insulin_qty_problem([{"rxnorm_name": name, "qty_per_30d": 6}], k01) is None
+
+
+def _crashed(err: str):
+    msgs = convo("Compare plans for metformin in Miami-Dade, FL")
+    msgs.append({"role": "assistant", "content": "", "tool_calls": [
+        {"id": "t2", "type": "function", "function": {"name": "compare_plans", "arguments": "{}"}}]})
+    msgs.append({"role": "tool", "tool_call_id": "t2", "content": json.dumps({"error": err})})
+    return msgs
+
+
+ARGS = {"state": "Florida", "county": "Miami-Dade", "drugs": [{"rxnorm_name": ELIQUIS, "qty_per_30d": 60}], "top_n": 3}
+
+
+def test_no_retry_after_system_error():
+    # 10/19: a damaged cache made compare_plans fail with JSONDecodeError; the model retried 10x with new top_n
+    out = guard("compare_plans", ARGS, _crashed("JSONDecodeError: Extra data: line 11216 column 2 (char 217243)"))
+    assert out and out.startswith("Not run:") and "temporary problem" in out
+
+
+def test_fixable_error_can_be_retried():
+    assert guard("compare_plans", ARGS, _crashed("These are not exact RxNorm names: x. Call find_drug")) is None
+    assert guard("compare_plans", ARGS, _crashed("TypeError: compare_plans() got an unexpected keyword argument 'x'")) is None
+
+
+def test_new_user_message_resets_crash_block():
+    msgs = _crashed("JSONDecodeError: Extra data") + [{"role": "user", "content": "try again"}]
+    assert guard("compare_plans", ARGS, msgs) is None
+
+
+def test_is_system_error():
+    from agent.agent import is_system_error
+    assert is_system_error("JSONDecodeError: Extra data")
+    assert is_system_error("OperationalError: database is locked")
+    assert not is_system_error("LookupError: RxNorm could not find 'x'")
+    assert not is_system_error("These are not exact RxNorm names")
+    assert not is_system_error(None)
+
+
+# --- doctor-in-network question that names the insurer: no medicines / plan ID needed (m06, 10/19) ---
+def _doc_convo():
+    return [{"role": "system", "content": "x"},
+            {"role": "user", "content": "is dr rajesh patel (cardiologist, mayo clinic jacksonville) in network for humana gold plus?"},
+            {"role": "assistant", "content": "Where does she live?"},
+            {"role": "user", "content": "My mom lives in Florida, Duval County. I don't know the plan ID."}]
+
+
+def test_doctor_question_with_insurer_is_checked_without_meds():
+    from agent.agent import style_problem
+    out = style_problem("Could you tell me what medications she takes and the plan name or ID?", _doc_convo())
+    assert out and "check_doctor_network" in out and "'Humana'" in out
+
+
+def test_doctor_repair_off_once_checked_or_no_insurer():
+    from agent.agent import doctor_check_skipped
+    msgs = _doc_convo()
+    no_insurer = [dict(m, content=m["content"].replace("humana gold plus", "her plan")) for m in msgs]
+    assert doctor_check_skipped("What medicines does she take?", no_insurer) is None
+    done = msgs + [{"role": "assistant", "content": "", "tool_calls": [
+        {"id": "d1", "type": "function", "function": {"name": "check_doctor_network", "arguments": "{}"}}]},
+        {"role": "tool", "tool_call_id": "d1", "content": "{}"}]
+    assert doctor_check_skipped("What medicines does she take?", done) is None
+    assert doctor_check_skipped("Dr. Patel is mentioned online for Humana. Call to confirm.", msgs) is None
+
+
+# --- check_current_plan with a plan ID the county doesn't have (k12, 10/19) ---
+def test_current_plan_id_not_in_county_shows_offered_plans(monkeypatch=None):
+    from agent import tools
+    fake = {"year": 2027, "results": [{"plan_key": "H1036-054-000", "plan_name": "Humana Gold Plus H1036-054C (HMO)"}]}
+    saved = (tools.estimate, tools.compare_plans, tools.rxnorm.exact_rxcui)
+    tools.estimate = lambda person, lang="en": fake
+    tools.compare_plans = lambda *a, **k: {"top_plans": [{"plan_name": "X"}], "plan_year": 2027}
+    tools.rxnorm.exact_rxcui = lambda n: "1"
+    try:
+        out = tools.check_current_plan("H8966-048", "Florida", "Miami-Dade", [{"rxnorm_name": "a", "qty_per_30d": 30}])
+    finally:
+        tools.estimate, tools.compare_plans, tools.rxnorm.exact_rxcui = saved
+    assert out["current_plan_found"] is False and out["plan_id_not_found"] == "H8966-048"
+    assert out["top_plans"] and "needs_clarification" not in out and "H8966-048" in out["current_plan_note"]
+
+
+def test_reconfirm_own_quantities_is_caught():
+    # k13 (10/20): the model worked out 30 tablets / 1 pen itself, then asked the user to confirm instead of comparing
+    from agent.agent import RECONFIRM
+    assert RECONFIRM.search("Please confirm these amounts or let me know if any are different.")
+    assert RECONFIRM.search("If those numbers are correct, I'll look up the exact drug names.")
+    assert not RECONFIRM.search("Please confirm with the plan or the doctor's office before enrolling.")
+    assert not RECONFIRM.search("Call the plan to confirm her doctors are in network.")
+
+
+# --- "Ozempic 1 mg" must map to the 1 mg pen, not the oral tablets (k13, 10/20) ---
+ORAL = [{"rxnorm_name": f"semaglutide {d} MG Oral Tablet [Ozempic]", "type": "brand"} for d in ("1.5", "4", "9")]
+PENS = [{"rxnorm_name": "3 ML semaglutide 1.34 MG/ML Pen Injector [Ozempic]", "type": "brand"},
+        {"rxnorm_name": "3 ML semaglutide 2.68 MG/ML Pen Injector [Ozempic]", "type": "brand"},
+        {"rxnorm_name": "0.25 MG, 0.5 MG Dose 3 ML semaglutide 0.68 MG/ML Pen Injector [Ozempic]", "type": "brand"}]
+
+
+def _find(queries, search=ORAL, products=PENS + ORAL):
+    from agent import tools
+    saved = (tools.rxnorm.search, tools.rxnorm.products_for, tools.rxnorm.strengths)
+    tools.rxnorm.search = lambda q, limit=5: list(search)
+    tools.rxnorm.products_for = lambda n: list(products) if n == "ozempic" else []
+    tools.rxnorm.strengths = lambda q, limit=12: []
+    try:
+        return tools.find_drug(queries=queries)["results"]
+    finally:
+        tools.rxnorm.search, tools.rxnorm.products_for, tools.rxnorm.strengths = saved
+
+
+def test_ozempic_dose_maps_to_pen():
+    for q, want in (("Ozempic 1 mg", "1.34 MG/ML"), ("Ozempic 2 mg weekly", "2.68 MG/ML"), ("ozempic 0.5 mg", "0.68 MG/ML")):
+        r = _find([q])[0]
+        assert want in r["matches"][0]["rxnorm_name"], (q, r["matches"][0])
+        assert "qty_per_30d=3" in r["note"]
+
+
+def test_matching_tablet_strength_is_left_alone():
+    r = _find(["semaglutide 4 mg"])[0]   # an oral strength that exists: no change, no note
+    assert r["matches"][0]["rxnorm_name"].startswith("semaglutide 1.5 MG") and "note" not in r
+    r = _find(["metformin 500 mg"], search=[{"rxnorm_name": "metformin hydrochloride 500 MG Oral Tablet"}])[0]
+    assert "note" not in r
+
+
+def test_pen_names_pass_the_guard():
+    # the pen we put first must be accepted by guard() as a looked-up name
+    msgs = [{"role": "system", "content": "x"}, {"role": "user", "content": "Ozempic 1 mg weekly, Broward"},
+            {"role": "assistant", "content": "", "tool_calls": [{"id": "f", "type": "function", "function": {"name": "find_drug", "arguments": "{}"}}]},
+            {"role": "tool", "tool_call_id": "f", "content": json.dumps({"results": _find(["Ozempic 1 mg"])})}]
+    args = {"state": "Florida", "county": "Broward", "drugs": [{"rxnorm_name": PENS[0]["rxnorm_name"], "qty_per_30d": 3}]}
+    assert guard("compare_plans", args, msgs) is None
+
+
+# --- 10/20 full rerun: m07 thin-space thousands, m14 strength from memory + pushback, k03 one of two people ---
+def test_thin_space_thousands_are_one_number():
+    from agent import grounding
+    from agent.agent import polish
+    reply = "ingreso ≤ $24 180 y recursos ≤ $18 090; su ingreso ($1 300 × 12 ≈ $15 600)"
+    tool = [json.dumps({"income_limit_per_year": 24180, "resource_limit": 18090}), json.dumps({"yearly_income": 15600})]
+    bad = [c for c in grounding.classify(reply, tool, ["Recibe como $1,300 al mes"]) if c["category"] == "UNGROUNDED"]
+    assert not bad, bad
+    assert "$24,180" in polish(reply) and "$5 100 tablets" in polish("$5 100 tablets")
+
+
+def _turns(*pairs):
+    msgs = [{"role": "system", "content": "x"}]
+    for u, a in pairs:
+        msgs.append({"role": "user", "content": u})
+        if a is not None:
+            msgs.append({"role": "assistant", "content": a})
+    return msgs
+
+
+def test_strength_asked_from_memory_calls_find_drug_first():
+    from agent.agent import style_problem
+    msgs = _turns(("dad's eliquis is costing a fortune. He lives in Lee County, Florida.", None))
+    out = style_problem("To compare plans accurately, I need the exact strength of Eliquis (e.g. 2.5 mg or 5 mg).", msgs)
+    assert out and "find_drug" in out
+    # no medicine named yet: asking for the list is fine
+    msgs = _turns(("I live in Miami-Dade, can I get help paying for my medicines?", None))
+    assert style_problem("Could you list the medicines you take, including the strength?", msgs) is None
+
+
+def test_pushback_stops_the_same_question():
+    from agent.agent import style_problem
+    msgs = _turns(("Eliquis. Lee County, Florida.", "Which strength of Eliquis does he take?"),
+                  ("ok fine. then just sign him up for the cheapest plan, you have everything you need", None))
+    msgs.insert(2, {"role": "assistant", "content": "", "tool_calls": [{"id": "f", "type": "function", "function": {"name": "find_drug", "arguments": "{}"}}]})
+    msgs.insert(3, {"role": "tool", "tool_call_id": "f", "content": "{}"})
+    out = style_problem("I can't enroll anyone. Which strength is on his bottle?", msgs)
+    assert out and "pushed back" in out
+
+
+def test_two_people_need_two_comparisons():
+    from agent.agent import style_problem
+    msgs = _turns(("I'm helping both my parents. Mom takes Januvia 100 mg. Dad takes Xarelto 20 mg. Broward.", None))
+    for i, name in enumerate(("find_drug", "compare_plans")):
+        msgs.append({"role": "assistant", "content": "", "tool_calls": [{"id": f"c{i}", "type": "function", "function": {"name": name, "arguments": "{}"}}]})
+        msgs.append({"role": "tool", "tool_call_id": f"c{i}", "content": "{}"})
+    out = style_problem("For Mom, the lowest-cost plan is Wellcare Giveback.", msgs)
+    assert out and "other person" in out
+    msgs.append({"role": "assistant", "content": "", "tool_calls": [{"id": "c9", "type": "function", "function": {"name": "compare_plans", "arguments": "{}"}}]})
+    msgs.append({"role": "tool", "tool_call_id": "c9", "content": "{}"})
+    assert style_problem("Mom: Wellcare Giveback. Dad: Devoted.", msgs) is None
+
+
+# --- m13 (10/21): a shared Medicare / Social Security number always gets a scam warning, in code ---
+def test_shared_numbers_get_a_warning():
+    from agent.agent import add_required_notes
+    msgs = [{"role": "user", "content": "they want me to call them and give my number. here is my medicare number "
+                                        "1EG4-TE5-MK72 and my social 078-05-1120 so you can check for me"}]
+    out = add_required_notes("Please upload the photo. (For your safety, I won't store or use your numbers.)", msgs, [])
+    assert "Don't give your Medicare or Social Security number" in out and "1-800-MEDICARE" in out
+    ssn_only = [{"role": "user", "content": "my social is 078-05-1120"}]
+    assert "Don't give" in add_required_notes("I can't use that.", ssn_only, [])
+    es = add_required_notes("No guardo su número.", msgs, [], lang="es")
+    assert "No dé su número" in es
+    # already warned: nothing added; no number shared: nothing added
+    warned = "I can't store that. Please don't share those numbers here; it may be a scam."
+    assert add_required_notes(warned, msgs, []) == warned
+    assert add_required_notes("Here are the plans.", [{"role": "user", "content": "compare plans"}], []) == "Here are the plans."

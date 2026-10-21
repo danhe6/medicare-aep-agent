@@ -93,7 +93,7 @@ SCHEMAS = [
             "state": {"type": "string"}, "city": {"type": "string", "description": "City or county, if known"},
             "specialty": {"type": "string", "description": "e.g. 'Family Medicine', 'Cardiology' - use after the user picks one of several matches"},
             "organizations": {"type": "array", "items": {"type": "string"},
-                              "description": "The 'organization' of each plan to check, from compare_plans results"}},
+                              "description": "Insurers to check: the 'organization' of plans from compare_plans, OR the insurer the user names ('Humana Gold Plus' -> 'Humana'). No medicines or plan ID are needed."}},
             "required": ["doctor_name", "state", "organizations"]}}},
     {"type": "function", "function": {
         "name": "check_current_plan",
@@ -162,6 +162,50 @@ SCHEMAS = [
 ]
 
 
+# A dose the user gave ("Ozempic 1 mg") that no tablet/capsule match has is usually the dose of an injection, whose
+# RxNorm names give concentration (MG/ML), not dose. Found 10/20, k13: "Ozempic 1 mg" returned only
+# "semaglutide 1.5/4/9 MG Oral Tablet [Ozempic]" first, and all 3 runs priced the oral tablet (qty 4) instead of the pen.
+DOSE = re.compile(r"(\d+(?:\.\d+)?)\s*(mg|mcg)\b", re.I)
+INJECTABLE = re.compile(r"pen injector|auto-injector|injection|injectable|prefilled syringe|cartridge", re.I)
+# Fixed-dose pens whose names don't state the dose (FDA labels): dose in mg -> text in the RxNorm product name.
+# Only used to pick among products RxNav actually returned, never to make up a name.
+PEN_DOSES = {"ozempic": {0.25: "0.68 MG/ML", 0.5: "0.68 MG/ML", 1.0: "1.34 MG/ML", 2.0: "2.68 MG/ML"}}
+PEN_QTY_NOTE = ("qty_per_30d for a pen is mL a month: one 3 ML pen lasts 4 weekly doses, so qty_per_30d=3 for a weekly "
+                "pen.")
+
+
+def _has_dose(name: str, num: float, unit: str) -> bool:
+    return bool(re.search(rf"(?<![\d.]){num:g}\s*{unit}\b(?!/)", name, re.I))
+
+
+def _dose_fix(q: str, matches: list[dict]) -> tuple[list[dict], str | None]:
+    """Put the injection that matches the user's dose first when no tablet/capsule has that strength."""
+    want = DOSE.search(q)
+    if not want or not matches or any(_has_dose(m["rxnorm_name"], float(want.group(1)), want.group(2)) for m in matches):
+        return matches, None
+    word = re.sub(r"\d+(?:\.\d+)?\s*(mg|mcg|units?|ml)\b|\b(pen|injection|injector|shot|weekly|once|a|week|daily|"
+                  r"subcutaneous|solution|tablets?|pills?)\b", " ", q, flags=re.I)
+    word = " ".join(word.split()).lower()
+    if not word:
+        return matches, None
+    try:
+        pens = [x for x in rxnorm.products_for(word) if INJECTABLE.search(x["rxnorm_name"])]
+    except Exception:  # noqa: BLE001 - RxNav down: keep the plain matches
+        pens = []
+    if not pens:
+        return matches, None
+    dose = float(want.group(1)) * (1000 if want.group(2).lower() == "mg" else 1) / 1000  # in mg
+    table = PEN_DOSES.get(word, {})
+    exact = [x for x in pens if table.get(dose) and table[dose] in x["rxnorm_name"]]
+    if exact:
+        ordered = exact + [x for x in pens if x not in exact] + [m for m in matches if m not in pens]
+        return ordered, (f"{q}: {word.title()} at this dose is the pen {exact[0]['rxnorm_name']} (listed first). "
+                         f"The oral tablets are a different product; don't use them for a {want.group(0)} dose. " + PEN_QTY_NOTE)
+    ordered = pens + [m for m in matches if m not in pens]
+    return ordered, (f"{q}: no tablet or capsule has {want.group(0)}, so it is likely an injection (listed first). Pen names "
+                     "give concentration (MG/ML), not the dose; ask which pen if you can't tell. " + PEN_QTY_NOTE)
+
+
 def find_drug(query: str | None = None, queries: list[str] | None = None) -> dict:
     """One medicine (query) or all of them at once (queries), looked up in parallel."""
     qs = [q for q in (queries or []) if q] or ([query] if query else [])
@@ -170,8 +214,14 @@ def find_drug(query: str | None = None, queries: list[str] | None = None) -> dic
     with ThreadPoolExecutor(8) as pool:
         found = list(pool.map(rxnorm.search, qs))
         every = dict(zip(bare, pool.map(rxnorm.strengths, bare)))
+    found = [_dose_fix(q, m) for q, m in zip(qs, found)]
+    notes = {q: n for q, (_, n) in zip(qs, found) if n}
+    found = [m for m, _ in found]
+
     def one(q, m):
         out = {"matches": m}
+        if notes.get(q):
+            out["note"] = notes[q]
         if every.get(q):
             # same shape as matches, so a name picked from here passes the guard (k02, 10/18: the right
             # "latanoprost 0.05 MG/ML Ophthalmic Solution" was only in this list and the guard refused it)
@@ -417,6 +467,22 @@ def check_current_plan(current_plan: str, state: str, county: str, drugs: list[d
               "drugs": [{"name": d["rxnorm_name"], "qty_per_30d": d["qty_per_30d"]} for d in drugs]}
     out = estimate(person, lang=lang)
     res = out["results"]
+    # A plan ID that no plan in this county has: say so, and show what IS offered. (Found 10/19, k12: the ANOC's
+    # H8966-048 is not in the Miami-Dade data, so the ID text was fuzzy-matched against plan names and the user was
+    # asked to pick "their" plan from three unrelated Humana plans.)
+    pid = re.search(r"\b([HRS]\d{4})[-_ ]?(\d{3})", current_plan.strip().upper())
+    if pid and not any(r["plan_key"].startswith(f"{pid.group(1)}-{pid.group(2)}") for r in res):
+        plan_id = f"{pid.group(1)}-{pid.group(2)}"
+        alt = compare_plans(state, county, drugs, medicaid=medicaid, chronic_conditions=chronic_conditions, top_n=3,
+                            hospital_stay_last_year=hospital_stay_last_year, lang=lang)
+        if "error" in alt:
+            return alt
+        return {**alt, "current_plan_found": False, "plan_id_not_found": plan_id,
+                "current_plan_note": (f"Medicare's {out['year']} plan data has no plan {plan_id} in {county} County, "
+                                      f"{state}. Either it is not offered there next year (ending or renumbered: the "
+                                      "Annual Notice of Change says what happens to members) or the person lives in "
+                                      "another county. Say this plainly in one sentence, then give the best plans that "
+                                      "are offered (top_plans). Never ask the user to pick another plan as theirs.")}
     cur, candidates = _match_plan(res, current_plan)
     if not cur:
         return {"needs_clarification": True,

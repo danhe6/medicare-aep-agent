@@ -68,7 +68,8 @@ call compare_plans again with ONLY that input changed (pharmacy, hospital_stay_l
 then say in 2-3 sentences what changed versus the previous result (best plan, typical-year cost). Don't restate
 everything. "Why is this plan first?": explain with ranking_notes and the field_guide ranking assumption.
 DOCTORS: when asked whether a doctor is in network, call check_doctor_network with the organizations of the plans
-you discussed. If it returns needs_clarification, list the matches in plain words (name, specialty, city) and ask
+you discussed, or with the insurer the user names ("Humana Gold Plus" -> "Humana") - it needs only the doctor, the
+state and the insurer: never ask for medicines or a plan ID first. If it returns needs_clarification, list the matches in plain words (name, specialty, city) and ask
 which one; then call again with specialty. Report per plan: "found on the insurer's directory" / "mentioned online" / "no listing found (that
 does not mean out of network)". If npi_registry_matches has several doctors, ask which one (specialty, city). Never
 say a doctor IS in network; always end with: call the plan or the doctor's office to confirm before enrolling.
@@ -187,7 +188,11 @@ PLAN_KEY = re.compile(r"\b([HSR]\d{4}[-\u2010-\u2011]\d{3})[-\u2010-\u2011]\d{3}
 TABLE = re.compile(r"^\s*\|.*\|\s*$\n^\s*\|?\s*:?-{3,}", re.M)
 RECONFIRM = re.compile(r"(is that|is this|that's|are those|(does|do) (that|this|these|those) (sound|look)) (still )?"
                        r"(correct|right|accurate)\b[^.?!\n]{0,60}\?|just to confirm|(can|could) you (please )?confirm\b|"
-                       r"\bto confirm\b[^.?!\n]{0,100}\?|,\s*(correct|right)\?", re.I)  # "to confirm, she does not have Medicaid, correct?" (10/18)
+                       r"\bto confirm\b[^.?!\n]{0,100}\?|,\s*(correct|right)\?|"
+                       # k13 (10/20): "Please confirm these amounts ..." / "If those numbers are correct, I'll ..." about
+                       # quantities the model worked out itself. Narrow on purpose: "please confirm with the plan" is a good next step.
+                       r"\bconfirm (these|those|the|her|his|your|their) (monthly )?(amounts|numbers|quantities|doses)\b|"
+                       r"\bif (those|these|the) (monthly )?(amounts|numbers|quantities) (are|look|sound) (correct|right)\b", re.I)  # "to confirm, she does not have Medicaid, correct?" (10/18)
 # "Does she take any other medicines?" once county + a medicine are known: compare now, invite additions instead (10/18)
 # "Which form of omeprazole: tablet, capsule or disintegrating tablet?" when the strength is known (k06, 10/18)
 ASKS_FORM = re.compile(r"\b(which|what)\b[^.?!\n]{0,40}\b(form|type|kind)\b[^.?!\n]*\?|\b(tablets?|capsules?)\b[^.?!\n]{0,40}\bor\b[^.?!\n]{0,40}\b(tablets?|capsules?)\b[^.!\n]*\?", re.I)
@@ -216,6 +221,18 @@ MBI = re.compile(r"\b[1-9][A-Z][A-Z0-9]\d-?[A-Z][A-Z0-9]\d-?[A-Z]{2}\d{2}\b", re
 SAYS_NOT_SAVED = re.compile(r"(not|n't|never|no)\b.{0,40}(save|store|keep|record|guard)", re.I)
 NOT_SAVED = {"en": "I don't save Medicare numbers, and I don't need yours to compare plans, so keep it private.",
              "es": "No guardo números de Medicare y no necesito el suyo para comparar planes; manténgalo privado."}
+# m13 (10/21): a senior pasted her Medicare and Social Security numbers because "they want me to call them and give my
+# number"; 2 of 3 replies only said "I won't store them" and never warned her. The warning is added in code.
+SSN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
+# someone else asked for the number ("they want me to call them and give my number", "a man called asking for it")
+ASKED_BY_OTHERS = re.compile(r"\b(they|them|someone|somebody|a (man|woman|lady|guy)|caller|the letter|ellos|alguien|un se[nñ]or)\b"
+                             r".{0,60}\b(want|wants|ask|asks|asked|asking|need|told|call|called|calling|give|llam\w*|pid\w*|quier\w*)\b", re.I)
+WARNS = re.compile(r"scam|fraud|careful|protect|private|don'?t (share|give|call|send)|do not (share|give|call|send)|"
+                   r"never (share|give|send)|estafa|fraude|cuidado|no (d[eé]|comparta|env[ií]e)", re.I)
+PROTECT = {"en": "Don't give your Medicare or Social Security number to anyone who calls, texts or writes asking for it: "
+                 "Medicare won't ask that way. If you're not sure, hang up and call 1-800-MEDICARE (1-800-633-4227).",
+           "es": "No dé su número de Medicare ni de Seguro Social a nadie que lo llame, le escriba o le mande un mensaje "
+                 "pidiéndolo: Medicare no lo pide así. Si tiene dudas, cuelgue y llame al 1-800-MEDICARE (1-800-633-4227)."}
 ASKS_PROMISE = re.compile(r"\b(promise|guarantee|garant\w*|prom[eé]t\w*)\b", re.I)
 SAYS_ESTIMATE = re.compile(r"\b(estimate|guarantee|promise|estimad\w*|garant\w*|prome\w*)", re.I)
 NO_PROMISE = {"en": "These are estimates, not a promise: plans and prices can change each year.",
@@ -226,7 +243,7 @@ PRICED_AS = {"en": "I priced {name} at {qty} mL a month; check that this matches
 
 def polish(text: str) -> str:
     """Internal plan keys 'H1019-001-000' -> the plan ID people see, 'H1019-001' (prompt rule the model sometimes breaks)."""
-    return PLAN_KEY.sub(r"\1", text or "")
+    return grounding.join_thousands(PLAN_KEY.sub(r"\1", text or ""))  # "$24\u202f180" -> "$24,180" (m07, 10/20)
 
 
 def _last_user(messages: list[dict] | None) -> str:
@@ -316,6 +333,86 @@ def ungrounded_numbers(text: str, messages: list[dict] | None) -> list[str]:
             if c["category"] == "UNGROUNDED"]  # doses too: "common strengths are 20 or 40 mg" from memory (m02)
 
 
+# Doctor-in-network questions that name an insurer need no plan list (found 10/19, m06: 2 of 3 runs asked for her
+# medicines and plan ID over 4 turns and never checked the doctor, because "organizations" read as "from compare_plans").
+DOCTOR_Q = re.compile(r"\b(dr\.?|doctor|physician|cardiologist|specialist|surgeon|pcp)\b.{0,160}?(in[- ]?network|in the network|take[s]? (her|his|my|their|the) (plan|insurance)|accept)|"
+                      r"(in[- ]?network|in the network).{0,160}?\b(dr\.?|doctor|physician|cardiologist|specialist)\b", re.I | re.S)
+INSURERS = [("humana", "Humana"), ("aetna", "Aetna"), ("unitedhealthcare", "UnitedHealthcare"), ("united healthcare", "UnitedHealthcare"),
+            ("uhc", "UnitedHealthcare"), ("aarp", "UnitedHealthcare"), ("wellcare", "Wellcare"), ("cigna", "Cigna"),
+            ("devoted", "Devoted Health"), ("florida blue", "Florida Blue"), ("blue cross", "Blue Cross Blue Shield"),
+            ("anthem", "Anthem"), ("kaiser", "Kaiser Permanente"), ("simply", "Simply Healthcare"), ("molina", "Molina"),
+            ("clover", "Clover Health"), ("alignment", "Alignment Health"), ("sunshine health", "Sunshine Health")]
+ASKS_PLAN_OR_MEDS = re.compile(r"\b(plan(?:'s)? (name|id)|plan id|member card|medicines?|medications?|prescriptions?)\b", re.I)
+
+
+def named_insurers(messages: list[dict] | None) -> list[str]:
+    users = " ".join(m["content"] for m in messages or [] if m.get("role") == "user" and isinstance(m.get("content"), str)).lower()
+    return list(dict.fromkeys(name for word, name in INSURERS if re.search(rf"\b{re.escape(word)}\b", users)))
+
+
+def doctor_check_skipped(text: str, messages: list[dict] | None) -> str | None:
+    users = [m["content"] for m in messages or [] if m.get("role") == "user" and isinstance(m.get("content"), str)]
+    if not any(DOCTOR_Q.search(u) for u in users) or _called(messages, "check_doctor_network"):
+        return None
+    orgs = named_insurers(messages)
+    if not orgs or not gave_county(messages) or not ASKS_PLAN_OR_MEDS.search(text or ""):
+        return None
+    return (f"The user asked whether a doctor is in network and named the insurer ({', '.join(orgs)}). Call "
+            f"check_doctor_network now with organizations={orgs!r}, the doctor's name, the state and the city: it needs no "
+            "medicines and no plan ID. Do not ask for them. Report what it found and tell them to call the plan or the "
+            "doctor's office to confirm.")
+
+
+# "Which strength of Eliquis?" answered from memory ("e.g. 2.5 mg or 5 mg") and asked again after the user pushed back
+# (m14, 10/20: 3 turns, no find_drug, doses not from a tool). find_drug on the bare name returns every real strength.
+ASKS_STRENGTH = re.compile(r"\b(strength|dosage|dose|how many (mg|milligrams))\b[^.!\n]*(\?|\bplease\b|\bshare\b|\btell me\b)|"
+                           r"\b(could|can) you[^.!\n]{0,80}\b(strength|dosage|dose)\b|\b(i|we) (still )?need\b[^.!\n]{0,40}\b(strength|dosage|dose)\b", re.I)
+PUSHBACK = re.compile(r"\byou have (everything|all|enough)\b|\bjust (sign|pick|choose|do|run|compare|go)\b|\byou decide\b|"
+                      r"\bstop asking\b|\bok(ay)? fine\b|\bhaz(lo)? t[uú]\b|\bdecide t[uú]\b", re.I)
+# Two people in one request ("both my parents", "Mom takes ... Dad takes ..."): one compare_plans each (k03, 10/20:
+# compared Mom only and answered).
+TWO_PEOPLE = re.compile(r"\b(both (of )?(my |our )?(parents|them)|each of them|for each|ambos|cada uno)\b", re.I)
+
+
+NOT_A_DRUG = {"water", "succinate", "sodium", "potassium", "calcium", "hydrochloride", "tartrate", "acetate", "citrate"}
+
+
+@functools.lru_cache(maxsize=1)
+def _drug_words() -> frozenset[str]:
+    """One-word RxNorm display names (eliquis, atorvastatin), from the local list only (never a network call here)."""
+    try:
+        from engine import rxnorm
+        names = json.loads(rxnorm.NAMES.read_text()) if rxnorm.NAMES.exists() else []
+    except Exception:  # noqa: BLE001
+        names = []
+    return frozenset(n.lower() for n in names if n.isalpha() and len(n) >= 5) - NOT_A_DRUG
+
+
+def named_drug_without_strength(messages: list[dict] | None) -> bool:
+    """The user named a real medicine ("I take atorvastatin") but gave no strength right after it."""
+    words = _drug_words()
+    for m in messages or []:
+        if m.get("role") != "user" or not isinstance(m.get("content"), str):
+            continue
+        low = m["content"].lower()
+        for hit in re.finditer(r"[a-z]+", low):
+            if hit.group(0) in words and not STRENGTH.search(low[hit.end():hit.end() + 25]):
+                return True
+    return False
+
+
+def _calls_since_user(messages: list[dict] | None, name: str) -> int:
+    last_user = max((i for i, m in enumerate(messages or []) if m.get("role") == "user"), default=-1)
+    return sum(1 for m in (messages or [])[last_user + 1:] for tc in m.get("tool_calls") or []
+               if (tc.get("function") or {}).get("name") == name)
+
+
+def two_people(text: str) -> bool:
+    t = (text or "").lower()
+    return bool(TWO_PEOPLE.search(t)) or (bool(re.search(r"\b(mom|mother|mamá|madre)\b", t)) and
+                                          bool(re.search(r"\b(dad|father|papá|padre)\b", t)))
+
+
 def style_problem(text: str, messages: list[dict] | None = None, mode: str | None = None) -> str | None:
     """Prompt rules the model breaks often enough to fix in code (found by evals/agent): one rewrite is requested."""
     text = (text or "").replace("\u2019", "'")
@@ -327,6 +424,18 @@ def style_problem(text: str, messages: list[dict] | None = None, mode: str | Non
     if OFFER.search(text) and YES.search(last) and OFFER.search(_prev_assistant(messages)):
         return ("The user already said yes to your offer. Do it now with your tools; if no tool can do it, say so in one "
                 "sentence and give the next step (Medicare.gov, 1-800-MEDICARE, or the plan). Do not offer again.")
+    skipped = doctor_check_skipped(text, messages)
+    if skipped:
+        return skipped
+    if two_people(last) and _calls_since_user(messages, "compare_plans") == 1 and _called(messages, "find_drug"):
+        return ("The user asked for two people and you compared plans for one. Call compare_plans for the other person "
+                "now, with only that person's medicines, then answer for both, one short paragraph each, named "
+                "(Mom: ... / Dad: ...).")
+    if ASKS_STRENGTH.search(text) and named_drug_without_strength(messages) and not _called(messages, "find_drug") \
+            and not _called(messages, "read_medicine_label"):
+        return ("Don't ask for the strength from memory. Call find_drug with the medicine's name as the user said it (no "
+                "strength): it returns every real strength (all_strengths). Then, if the strength matters, ask once using "
+                "only those strengths; never list strengths that are not in a tool result.")
     limit = Q_LIMIT.get(mode or "", 2)
     if text.count("?") > limit:
         return (f"It asks {text.count('?')} questions; ask at most {limit} (the single most important one). "
@@ -358,6 +467,11 @@ def style_problem(text: str, messages: list[dict] | None = None, mode: str | Non
                 "conversation. Never give a number from memory (premiums, limits and costs change every year). Remove "
                 "it, or call the tool that returns it. If no tool has it, say where the person can see their own amount "
                 "(for Part B: the Social Security letter each fall or Medicare.gov) without stating a number.")
+    if "?" in text and PUSHBACK.search(_last_user(messages)) and "?" in _prev_assistant(messages):
+        return ("The user pushed back on your question (they want you to go ahead). Don't ask it again. Use the usual "
+                "default and continue now with the tools: for a medicine with no strength, price the most common strength "
+                "find_drug returned and say which one in a few words so they can correct it; no Medicaid; 30 a month for a "
+                "once-a-day pill. Then answer. You still can't enroll anyone: say so in one sentence.")
     if "?" in text and DONT_KNOW.search(_last_user(messages)) and "?" in _prev_assistant(messages):
         return ("The user just said they don't know. Do not ask that again in other words. Use the usual default "
                 "(for example: no Medicaid, Original Medicare, 30 tablets a month), say the assumption in a few words, "
@@ -413,8 +527,13 @@ def add_required_notes(text: str, messages: list[dict] | None, priced: list[dict
                 notes.append(PRICED_AS[lang].format(name=_short_name(name), qty=q))
     if ASKS_PROMISE.search(_last_user(messages)) and not SAYS_ESTIMATE.search(text):
         notes.append(NO_PROMISE[lang])
-    if MBI.search(_last_user(messages)) and not SAYS_NOT_SAVED.search(text.replace("\u2019", "'")):
+    last = _last_user(messages)
+    if MBI.search(last) and not SAYS_NOT_SAVED.search(text.replace("\u2019", "'")):
         notes.append(NOT_SAVED[lang])
+    # the scam warning is judged on the model's own words, not on the note above ("keep it private")
+    if (SSN.search(last) or (MBI.search(last) and ASKED_BY_OTHERS.search(last))) \
+            and not WARNS.search(text.replace("\u2019", "'")):
+        notes.append(PROTECT[lang])
     dl = _letter_deadline(messages)
     if dl and not _mentions_date(text, dl["date"], dl.get("date_text")):
         notes.append(DEADLINE_NOTE[lang].format(date=dl["date_text"], left=dl["days_left"])
@@ -475,10 +594,43 @@ def insulin_qty_problem(drugs: list[dict], messages: list[dict]) -> str | None:
     return None
 
 
+# A tool error that the model can fix by changing its arguments (a bad name, a missing field) vs a system error
+# (a damaged data file, a crash) that will fail the same way however it retries. Found 10/19: a damaged RxNorm cache
+# made every compare_plans fail with "JSONDecodeError: Extra data"; the model retried 10x with new top_n values
+# (75 s), then asked the user to "narrow the request". The eval also counts these (no_tool_crashed).
+FIXABLE_ERRORS = ("LookupError", "ValueError", "KeyError", "TypeError")
+SYSTEM_ERROR = re.compile(r"^([A-Z][A-Za-z]*(?:Error|Exception)): ")
+
+
+def is_system_error(err) -> bool:
+    m = SYSTEM_ERROR.match(str(err or ""))
+    return bool(m) and m.group(1) not in FIXABLE_ERRORS
+
+
+def crashed_since_user(name: str, messages: list[dict]) -> str | None:
+    """The system error this tool already hit since the user's last message, if any."""
+    last_user = max((i for i, m in enumerate(messages) if m.get("role") == "user"), default=-1)
+    ids = _tool_names(messages)
+    for m in messages[last_user + 1:]:
+        if m.get("role") == "tool" and ids.get(m.get("tool_call_id")) == name:
+            try:
+                err = (json.loads(m.get("content") or "{}") or {}).get("error")
+            except (json.JSONDecodeError, AttributeError):
+                continue
+            if is_system_error(err):
+                return str(err)
+    return None
+
+
 def guard(name: str, args: dict, messages: list[dict], profile: dict | None = None) -> str | None:
     """Rules the prompt states but the model sometimes skips, enforced in code. Returns an error for the model, or None.
     Found by evals/agent: the model typed 'metformin 500 MG Oral Tablet' without find_drug (3 of 4 runs), and answered
     'should I stay in H1019-006?' with compare_plans, then called the top-ranked plan 'your current plan'."""
+    crash = crashed_since_user(name, messages)
+    if crash:
+        return (f"Not run: {name} just failed with a system error on our side ({crash[:80]}). Retrying will fail the "
+                "same way. Tell the user plainly that this lookup is having a temporary problem on our side and to "
+                "try again in a few minutes; keep what you already know. Do not ask them to change or narrow the request.")
     if name in ("compare_plans", "check_current_plan"):
         ids = _tool_names(messages)
         known = set()
@@ -675,6 +827,8 @@ def run_turn_events(messages: list[dict], llm=None, model: str | None = None, la
                     yield {"type": "letter", "data": parsed}
             if ok and tc.function.name == "read_medicine_label":
                 yield {"type": "label", "data": parsed}
+            if ok and tc.function.name == "check_current_plan" and parsed.get("current_plan_found") is False and parsed.get("top_plans"):
+                yield {"type": "plans", "data": parsed}
             if ok and tc.function.name == "check_current_plan" and parsed.get("current_plan"):
                 yield {"type": "current_plan", "data": parsed}
             if ok and tc.function.name == "check_doctor_network" and parsed.get("plans"):

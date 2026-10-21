@@ -34,7 +34,7 @@ INFRA_ERROR = re.compile(r"Error code: (402|429|5\d\d)|APIConnectionError|APITim
 BUDGET_ERROR = re.compile(r"Error code: 402|exhausted your budget|insufficient", re.I)
 TABLE = re.compile(r"^\s*\|.*\|\s*$\n^\s*\|?\s*:?-{3,}", re.M)
 Q_LIMIT = {"family": 2, "senior": 1}
-from agent.agent import ASKS_LOCATION, RECONFIRM, gave_county  # noqa: E402  same patterns the agent repairs
+from agent.agent import ASKS_LOCATION, RECONFIRM, gave_county, is_system_error  # noqa: E402  same patterns the agent repairs
 DEFAULT_FACTS = ("No Medicaid. No hospital stays in the past year. No other prescription medicines. "
                  "Uses a regular retail pharmacy. No doctor preferences unless stated in the conversation.")
 SIM_PROMPT = """You are role-playing the person chatting with a Medicare helper, in a test.
@@ -141,6 +141,10 @@ def check(sc: dict, run: dict) -> dict:
     keys = [k for r in replies for k in PLAN_KEY.findall(r)]
     g["no_internal_plan_keys"] = (not keys, ", ".join(keys))
     g["no_tables"] = (not any(TABLE.search(r) for r in replies), "")
+    # A tool that crashed (damaged data file, bug) means the answer was not tested at all, even if the reply reads
+    # fine. 10/19: every compare_plans hit "JSONDecodeError" and 38/42 heldout2 runs still "passed" on an apology.
+    crashed = sorted({f"{c['name']}: {str(c['error'])[:60]}" for c in calls if is_system_error(c.get("error"))})
+    g["no_tool_crashed"] = (not crashed, "; ".join(crashed))
 
     # Scenario expectations.
     for n in exp.get("must_call", []):
@@ -161,6 +165,14 @@ def check(sc: dict, run: dict) -> dict:
                                                   normalize(first["reply"]), re.I)  # "please share: 1. County 2. ..." asks too (10/18)
         ok = bool(asks) and not any(c["name"] in ("compare_plans", "check_current_plan") for c in first["calls"])
         g["asks before comparing"] = (ok, first["reply"][:120])
+    # The drug that was actually priced (k13, 10/20: Ozempic priced as an oral tablet passed every text check).
+    priced = [d.get("rxnorm_name", "") for c in calls if c["name"] in ("compare_plans", "check_current_plan")
+              for d in c["args"].get("drugs", [])]
+    for pat in exp.get("priced_must_not", []):
+        hit = [n for n in priced if re.search(pat, n, re.I)]
+        g[f"never prices /{pat}/"] = (not hit, ", ".join(hit))
+    for pat in exp.get("priced_must", []):
+        g[f"prices /{pat}/"] = (any(re.search(pat, n, re.I) for n in priced), ", ".join(priced))
     for pat in exp.get("reply_must_mention", []):
         g[f"mentions /{pat}/"] = (any(re.search(pat, r, re.I) for r in replies), "")
     for pat in exp.get("reply_must_not", []):

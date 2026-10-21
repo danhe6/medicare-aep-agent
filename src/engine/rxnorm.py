@@ -8,7 +8,11 @@ Uses the free NLM RxNav API; everything is cached in data/processed/rxnav_cache.
 from __future__ import annotations
 
 import json
+import os
 import re
+import sys
+import tempfile
+import threading
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -23,13 +27,54 @@ def _get(url: str) -> dict:
         return json.load(r)
 
 
+# find_drug looks medicines up in parallel threads, and each lookup saves the cache. A plain write_text from two
+# threads at once left 3 stray bytes at the end of the file (10/19: every compare_plans failed with "JSONDecodeError:
+# Extra data" and the agent retried 10x). Now: one lock per process, a write to a temp file + atomic rename (a reader
+# or another process never sees half a file), and a damaged file is recovered instead of breaking every tool.
+_LOCK = threading.RLock()
+
+
 def _load() -> dict:
-    return json.loads(CACHE.read_text()) if CACHE.exists() else {}
+    with _LOCK:
+        if not CACHE.exists():
+            return {}
+        text = CACHE.read_text()
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            try:  # keep the first complete object (stray bytes after it are the usual damage)
+                obj, _ = json.JSONDecoder().raw_decode(text.lstrip())
+                print(f"rxnorm: {CACHE.name} was damaged; recovered {len(obj)} entries", file=sys.stderr)
+            except json.JSONDecodeError:
+                print(f"rxnorm: {CACHE.name} unreadable; starting an empty cache", file=sys.stderr)
+                obj = {}
+            obj = obj if isinstance(obj, dict) else {}
+            _write(obj)
+            return obj
 
 
-def _save(cache: dict) -> None:
+def _write(cache: dict) -> None:
     CACHE.parent.mkdir(parents=True, exist_ok=True)
-    CACHE.write_text(json.dumps(cache, indent=1))
+    text = json.dumps(cache, indent=1)
+    fd, tmp = tempfile.mkstemp(dir=CACHE.parent, prefix=CACHE.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        os.replace(tmp, CACHE)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _put(key: str, value) -> None:
+    """Add one entry: re-read under the lock so parallel lookups don't drop each other's entries."""
+    with _LOCK:
+        cache = _load()
+        cache[key] = value
+        _write(cache)
 
 
 def _related(rxcui: str, **params) -> list[dict]:
@@ -72,8 +117,7 @@ def lookup(name: str) -> dict:
         if scd:
             info["generic"] = _concept(scd[0]["rxcui"])
     info["v"] = CACHE_VERSION
-    cache[name] = info
-    _save(cache)
+    _put(name, info)
     return info
 
 
@@ -205,8 +249,7 @@ def products(name: str) -> list[dict]:
             continue
         for c in g.get("conceptProperties") or []:
             out.append({"rxnorm_name": c["name"], "rxcui": c["rxcui"], "type": "brand" if g["tty"] == "SBD" else "generic"})
-    cache[key] = out
-    _save(cache)
+    _put(key, out)
     return out
 
 

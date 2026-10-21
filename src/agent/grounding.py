@@ -16,9 +16,19 @@ QUOTES = {ord("\u2019"): "'", ord("\u2018"): "'", ord("\u201c"): '"', ord("\u201
 DASHES = dict.fromkeys(map(ord, "\u2010\u2011\u2012\u2013\u2014\u2015\u2212"), "-")
 
 
+GROUPED = re.compile(r"\$\s?\d{1,3}(?:[\u00a0\u202f\u2009\u2007\u200a]\d{3})+(?![\d,.]\d)")
+
+
+def join_thousands(text: str) -> str:
+    """"$24\u202f180" (Spanish/French style, a thin no-break space between digit groups) -> "$24,180". Found 10/20, m07:
+    read as "$24", so a number straight from screen_extra_help counted as made up. Only after "$" and only for the
+    no-break spaces models use as group separators (a plain space could be "$5 100 tablets")."""
+    return GROUPED.sub(lambda m: re.sub(r"[\u00a0\u202f\u2009\u2007\u200a](?=\d{3})", ",", m.group(0)), text or "")
+
+
 def normalize(text: str) -> str:
     """Model output uses non-breaking spaces and non-ASCII hyphens ("Miami\u2011Dade", "October\u00a030")."""
-    return (text or "").translate(SPACES).translate(DASHES).translate(QUOTES)
+    return join_thousands(text or "").translate(SPACES).translate(DASHES).translate(QUOTES)
 
 MONEY = re.compile(r"\$\s?(\d[\d,]*(?:\.\d+)?)(?:\s?(k|K|thousand)\b)?")  # "$75 knee X-ray" is $75, not $75k
 PCT = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)\s?(?:%|percent)")
