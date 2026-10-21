@@ -1,6 +1,7 @@
 # Medicare Helper
 
-**A free, neutral, privacy-first helper for people with Medicare and the families who help them.**
+**A neutral, privacy-first helper for people with Medicare and the families who help them.** Nothing to sell:
+no commissions, no insurer money, no ads, no sign-up.
 It compares every plan in a county against the medicines someone actually takes, checks their current plan for next year,
 looks up doctors, screens for Extra Help, reads Medicare letters (denials, summary notices, care-ending notices) and
 turns them into a deadline, steps and a drafted appeal, checks a provider's bill against the plan's statement, and
@@ -216,7 +217,7 @@ fixed instead. Run: `for s in dev heldout heldout2 heldout3; do PYTHONPATH=src p
 
 About **$0.002 per chat turn** at Nebius Token Factory public prices (median over logged turns; prices in
 [pipeline/model_prices.json](pipeline/model_prices.json), report via `python pipeline/metrics_report.py`).
-A full plan comparison is a few turns, roughly a cent, which is what lets this stay free.
+A full plan comparison is a few turns, roughly a cent, so the running cost stays small.
 
 Guards for a public URL (`src/api/limits.py`, all set by environment variables): per-visitor limits per minute and per
 day for chat, photo uploads and lookups; a site-wide cap of chat turns per day; and a hard **daily spend cap**
