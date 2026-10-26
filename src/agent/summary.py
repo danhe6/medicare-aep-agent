@@ -45,6 +45,23 @@ def _compact(v, depth=0):
     return v
 
 
+# Plan money gets keys that say what each number means. The bare tool keys ("total", "bad_year_total", "moop")
+# were explained only in the tool's field_guide, which is dropped here, so the model once wrote the $500 bad-year
+# ceiling as the plan's "estimated cost" (live site, 10/26). The words travel with the numbers now.
+PLAN_KEYS = {"total": "typical_year_cost", "bad_year_total": "most_paid_in_a_very_bad_health_year",
+             "moop": "medical_out_of_pocket_max", "annual_premium": "premium_per_year",
+             "drug_oop": "drug_costs_per_year", "star_overall": "star_rating", "not_covered": "medicines_not_covered"}
+PLAN_TOOLS = ("compare_plans", "check_current_plan")
+
+
+def _relabel(v):
+    if isinstance(v, dict):
+        return {PLAN_KEYS.get(k, k): _relabel(x) for k, x in v.items() if k != "expected_total"}
+    if isinstance(v, list):
+        return [_relabel(x) for x in v]
+    return v
+
+
 def _friendly(rx: str) -> str:
     """'apixaban 5 MG Oral Tablet [Eliquis]' -> 'Eliquis 5 mg tablet' (the plain name people know)."""
     try:
@@ -85,7 +102,8 @@ def facts_from_session(messages: list[dict]) -> list[dict]:
         r = item["result"]
         if name == "compare_plans":
             r["top_plans"] = r.get("top_plans", [])[:3]
-        if name in ("compare_plans", "check_current_plan"):
+        if name in PLAN_TOOLS:
+            item["result"] = r = _relabel(r)
             item["open_enrollment"] = open_enrollment()
             r["next_steps"] = ["Check that the doctors are in the chosen plan's network (call the plan or the doctor's office).",
                                "To switch, enroll on Medicare.gov or call 1-800-MEDICARE between October 15 and December 7."]
@@ -144,7 +162,34 @@ def check_summary(text: str, facts) -> list[str]:
         problems.append("promises an outcome")
     if len(text) > 1800:
         problems.append("too long")
+    problems += check_plan_cost(text, facts)
     return problems
+
+
+def _norm(n) -> str:
+    return re.sub(r"\D", "", n).lstrip("0") or "0"
+
+
+def check_plan_cost(text: str, facts) -> list[str]:
+    """Right numbers can still mean the wrong thing: a plan's very-bad-year ceiling written as its cost. When the
+    facts compare plans, the best plan's typical-year cost must be in the message; if it is missing but a ceiling is
+    there, the ceiling was almost certainly passed off as the cost."""
+    best = next((f["result"]["top_plans"][0] for f in facts
+                 if f["check"] == "compare_plans" and f["result"].get("top_plans")), None)
+    if not best or best.get("typical_year_cost") is None:
+        return []
+    typical = best["typical_year_cost"]
+    want = {_norm(str(int(round(typical)))), _norm(f"{typical:.2f}")}
+    said = {_norm(n) for n in re.findall(r"\d+(?:[.,]\d+)*", text.replace("1-800-MEDICARE", ""))}
+    if want & said:
+        return []
+    ceilings = {_norm(str(int(round(best[k])))) for k in ("most_paid_in_a_very_bad_health_year", "medical_out_of_pocket_max")
+                if best.get(k) is not None}
+    msg = f"must give {best.get('plan_name')}'s typical-year cost (${typical:,.0f})"
+    if ceilings & said:
+        msg += (" - a very-bad-health-year amount or out-of-pocket max is the most they could pay, not the expected "
+                "cost; if you mention it, say so")
+    return [msg]
 
 
 SCRIPTS = {"zh": r"[\u4e00-\u9fff]", "zh-Hant": r"[\u4e00-\u9fff]", "ja": r"[\u3040-\u30ff\u4e00-\u9fff]",
@@ -180,6 +225,8 @@ Rules:
   convert numbers (no monthly amounts from yearly ones). Never invent a number, date, name or phone number.
   For Medicare's phone number write 1-800-MEDICARE.
 - If the facts include plan costs, say in a few words that they are estimates from public Medicare data.
+- For the best plan, give typical_year_cost as what it costs in a normal year. most_paid_in_a_very_bad_health_year
+  and medical_out_of_pocket_max are ceilings, not costs: mention one only as "at most $X in a very bad health year".
 - If a check has next_steps or steps, use those as the next steps.
 - Do not use the person's name or invent relationships; write in the first person ("I checked...") or neutrally.
 - Mention a deadline only if the facts have one (a letter's deadline, or the open enrollment dates). Do not
@@ -201,9 +248,14 @@ def _template(facts: list[dict], lang: str) -> str:
         r = f["result"]
         if f["check"] == "compare_plans" and r.get("top_plans"):
             p = r["top_plans"][0]
-            lines.append((f"- Mejor plan: {p.get('plan_name')}, unos ${p.get('total'):,.0f} en un año típico."
-                          if es else f"- Best plan: {p.get('plan_name')}, about ${p.get('total'):,.0f} in a typical year.")
-                         if p.get("total") is not None else f"- {p.get('plan_name')}")
+            t, bad = p.get("typical_year_cost"), p.get("most_paid_in_a_very_bad_health_year")
+            if t is None:
+                lines.append(f"- {p.get('plan_name')}")
+            else:
+                lines.append(f"- Mejor plan: {p.get('plan_name')}, unos ${t:,.0f} en un año típico" if es else
+                             f"- Best plan: {p.get('plan_name')}, about ${t:,.0f} in a typical year")
+                lines[-1] += ((f"; como máximo ${bad:,.0f} en un año de salud muy malo." if es else
+                               f"; at most ${bad:,.0f} in a very bad health year.") if bad is not None else ".")
         elif f["check"] == "check_bill":
             over = r.get("over_by")
             lines.append((f"- La factura pide ${over:,.2f} más de lo que dice el estado de cuenta." if es else

@@ -34,6 +34,24 @@ class Summary(unittest.TestCase):
         assert summary.check_summary("It will be approved.", f) == ["promises an outcome"]
 
 
+    def test_bad_year_ceiling_is_not_the_cost(self):
+        # Live site 10/26: two $0 plans with a $500 bad-year ceiling were summarized as "costo estimado de $500 al año".
+        plans = {"top_plans": [{"plan_name": "CareOne Plus (HMO)", "total": 0.0, "bad_year_total": 500.0, "moop": 500.0,
+                                "annual_premium": 0.0, "drug_oop": 0.0, "expected_total": 120.0, "not_covered": []}],
+                 "field_guide": {"total": "typical year"}}
+        f = summary.facts_from_session(session(("compare_plans", plans)))
+        p = f[0]["result"]["top_plans"][0]
+        assert p["typical_year_cost"] == 0.0 and p["most_paid_in_a_very_bad_health_year"] == 500.0
+        assert "total" not in p and "expected_total" not in p and "field_guide" not in f[0]["result"]
+        bad = summary.check_summary("CareOne Plus (HMO), con costo estimado de $500 al año.", f)
+        assert len(bad) == 1 and "typical-year cost ($0)" in bad[0] and "not the expected cost" in bad[0]
+        assert summary.check_summary("CareOne Plus (HMO): $0 en un año típico; como máximo $500 en un año muy malo.", f) == []
+        miss = summary.check_plan_cost("Best plan is CareOne Plus.", f)  # cost left out entirely
+        assert len(miss) == 1 and "not the expected cost" not in miss[0]
+        t = summary._template(f, "es")
+        assert "$0 en un año típico" in t and "como máximo $500" in t
+
+
     def test_nothing_to_summarize(self):
         assert summary.write([{"role": "system", "content": "s"}], llm=object()) == {"error": "nothing_yet"}
 
