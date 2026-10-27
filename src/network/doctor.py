@@ -103,6 +103,25 @@ def _mentions(text: str, first: str, last: str) -> bool:
     return bool(re.search(rf"\b{re.escape(first)}\b[\w. ]{{0,12}}\b{re.escape(last)}\b|\b{re.escape(last)}\b,?\s+{re.escape(first)}\b", text))
 
 
+_GENERIC_SPEC = {"medicine", "practice", "health", "care", "services", "service", "provider", "clinic",
+                 "specialist", "physician", "center", "office"}
+
+
+def _spec_words(specialty: str | None) -> list[str]:
+    """Distinctive words of a specialty ("General Practice" -> ["general"], "Neurology" -> ["neurology"])."""
+    return [w for w in re.findall(r"[a-z]{4,}", (specialty or "").lower()) if w not in _GENERIC_SPEC]
+
+
+def _same_person(text: str, spec_words: list[str], city: str) -> bool:
+    """A web hit with the right name can still be a different clinician (a middle name, another specialty).
+    When we know which one the user means, the hit must name that specialty, or failing that the city."""
+    if spec_words:
+        return any(re.search(rf"\b{re.escape(w)}", text) for w in spec_words)
+    if city:
+        return city in text
+    return True
+
+
 def _year(*texts: str) -> int | None:
     years = [int(y) for t in texts for y in re.findall(r"\b(20[12]\d)\b", t or "")]
     return max(years) if years else None
@@ -122,6 +141,9 @@ def check(doctor: str, state: str, city: str | None, organizations: list[str], s
         return {"needs_clarification": True, "npi_registry_matches": npi[:5],
                 "ask": "Several clinicians have this name. Ask which one (specialty and city), then call again with specialty."}
     first, last = _names(doctor)
+    chosen = npi[0] if npi and len(kinds) == 1 else {}
+    want_spec = _spec_words(specialty or chosen.get("specialty"))
+    want_city = (city or chosen.get("city") or "").strip().lower()
     results = []
     for org in list(dict.fromkeys(organizations))[:5]:
         words = _insurer_words(org)
@@ -133,7 +155,7 @@ def check(doctor: str, state: str, city: str | None, organizations: list[str], s
         for h in hits:
             text = (h.get("title", "") + " " + h.get("content", "")).lower()
             url = h.get("url", "")
-            if not _mentions(text, first, last):
+            if not _mentions(text, first, last) or not _same_person(text, want_spec, want_city):
                 continue
             on_insurer_site = _is_insurer_domain(url, words)
             if not (on_insurer_site or any(re.search(rf"\b{re.escape(w)}\b", text) for w in words)):

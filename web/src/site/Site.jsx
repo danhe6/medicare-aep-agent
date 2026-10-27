@@ -3,7 +3,7 @@ import { S } from "./site_i18n.js";
 import { L } from "../landing_i18n.js";
 import { CheckTool } from "../Landing.jsx";
 import DemoPlayer from "./DemoPlayer.jsx";
-import { Arrow, Check, Compass, Lock, Mic, Phone, Pill } from "../icons.jsx";
+import { Arrow, Chat, Check, Compass, Lock, Mic, Phone, Pill } from "../icons.jsx";
 
 const pref = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
@@ -91,9 +91,9 @@ function Home({ t, lang }) {
       <section className={`${wrap} pt-24`}>
         <h2 className="text-4xl md:text-5xl">{t.whoTitle}</h2>
         <div className="mt-8 grid gap-8 md:grid-cols-2">
-          {[[t.forYou, t.photoYou, "/app?mode=senior", "bg-brand-soft"], [t.forFam, t.photoFam, "/app?mode=family", "bg-gold-soft"]].map(([c, photo, href, bg]) => (
+          {[[t.forYou, Mic, "/app?mode=senior", "bg-brand-soft"], [t.forFam, Chat, "/app?mode=family", "bg-gold-soft"]].map(([c, Icon, href, bg]) => (
             <a key={href} href={href} className="flex flex-col gap-4 rounded-[32px] border border-line bg-card p-8 text-ink no-underline hover:border-brand">
-              <div className={`flex h-48 items-center justify-center rounded-3xl p-6 text-center text-lg text-muted ${bg}`}>{photo}</div>
+              <div className={`flex h-48 items-center justify-center rounded-3xl p-6 text-center text-lg text-muted ${bg}`}><Icon className="h-20 w-20 text-brand" aria-hidden="true" /></div>
               <span className="font-display text-3xl font-[650]">{c[0]}</span>
               <span className="text-xl leading-relaxed text-muted">{c[1]}</span>
               <span className="text-xl font-bold text-brand">{c[2]}</span>
@@ -103,7 +103,7 @@ function Home({ t, lang }) {
       </section>
 
       <section className={`${wrap} grid gap-10 pt-20 md:grid-cols-2 md:items-center`}>
-        <div className="flex flex-col gap-4"><h2 className="text-4xl">{t.tryTitle}</h2><p className="text-xl text-muted">{t.featSub}</p></div>
+        <div className="flex flex-col gap-4"><h2 className="text-4xl">{t.tryTitle}</h2><p className="text-xl text-muted">{t.trySub}</p></div>
         <CheckTool t={L[lang].tool} />
       </section>
 
