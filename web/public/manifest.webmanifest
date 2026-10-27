@@ -1,7 +1,7 @@
 {
   "name": "Medicare Helper",
   "short_name": "Medicare Helper",
-  "description": "Free, neutral help choosing and defending Medicare coverage.",
+  "description": "Neutral help choosing and defending Medicare coverage.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",

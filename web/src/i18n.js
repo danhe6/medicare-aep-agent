@@ -2,7 +2,7 @@ const isMe = (n) => /^(me|myself|i|yo|mí|mi)$/i.test((n || "").trim());
 export const STRINGS = {
   en: {
     appName: "Medicare Helper",
-    tagline: "Free, neutral help with Medicare. We don't sell plans.",
+    tagline: "Clear, neutral help with Medicare.",
     hello: "Hi! How can I help today?",
     choose: "Help me pick a plan",
     chooseSub: "Compare plans for your medicines",
@@ -224,7 +224,7 @@ export const STRINGS = {
   },
   es: {
     appName: "Ayuda con Medicare",
-    tagline: "Ayuda gratuita y neutral con Medicare. No vendemos planes.",
+    tagline: "Ayuda clara y neutral con Medicare.",
     hello: "¡Hola! ¿En qué le puedo ayudar hoy?",
     choose: "Ayúdeme a elegir un plan",
     chooseSub: "Compare planes para sus medicinas",

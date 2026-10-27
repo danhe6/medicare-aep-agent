@@ -1,7 +1,6 @@
 # Medicare Helper
 
-**A neutral, privacy-first helper for people with Medicare and the families who help them.** Nothing to sell:
-no commissions, no insurer money, no ads, no sign-up.
+**A neutral, privacy-first helper for people with Medicare and the families who help them.** No ads, no sign-up.
 It compares every plan in a county against the medicines someone actually takes, checks their current plan for next year,
 looks up doctors, screens for Extra Help, reads Medicare letters (denials, summary notices, care-ending notices) and
 turns them into a deadline, steps and a drafted appeal, checks a provider's bill against the plan's statement, and
@@ -10,7 +9,7 @@ writes a short summary for the family in 18 languages.
 Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/) (Best Apps and Agents
 track · Best Use of Tavily). Agent and extraction run on **NVIDIA Nemotron** models served by **Nebius Token Factory**.
 
-> Decision support only. Not an insurer, broker or enrollment service: no commissions, no ads, nothing to sell.
+> Decision support only. Not an insurer, broker or enrollment service.
 > Always confirm with the plan or 1-800-MEDICARE before enrolling.
 
 **The AI never makes up a number.** Every dollar figure comes from a deterministic engine built on Medicare's public

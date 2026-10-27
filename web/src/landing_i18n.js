@@ -1,7 +1,7 @@
 export const L = {
   en: {
     nav: { how: "How it works", families: "For families", faq: "Questions", cta: "Talk to the helper", lang: "Español" },
-    eyebrow: "Free · Neutral · We never sell plans",
+    eyebrow: "Neutral · Private · Medicare's own data",
     h1: "The right Medicare plan. And backup when care gets cut.",
     sub: "Tell us her medicines. We check every plan in her county against Medicare's own data, and help you appeal in time if a nursing home says coverage is ending.",
     ctaChoose: "Check her plan options",
@@ -20,7 +20,7 @@ export const L = {
     trust: [
       ["Medicare's own data", "Official plan files, checked weekly"],
       ["98% match", "with Medicare's Plan Finder in 440 test cases"],
-      ["No commissions", "We don't sell plans or take sales calls"],
+      ["English · Español", "Type or just talk, in either language"],
       ["Private by design", "Open NVIDIA models, hosted on Nebius"],
     ],
     howTitle: "How it works",
@@ -45,14 +45,13 @@ export const L = {
     },
     promiseTitle: "Our promise",
     promises: [
-      ["We don't sell insurance.", "No commissions, no sales calls. We earn nothing from any plan you choose."],
+      ["We stay neutral.", "Plans are ranked by what they cost you, not by who offers them."],
       ["We show our work.", "Every number comes from Medicare's public plan files, with the date."],
       ["We say when we're not sure.", "If a medicine isn't covered or a price is an estimate, we tell you plainly."],
       ["We send you to people, too.", "Your doctor for medicine changes. Free local counselors (SHIP) for hard cases."],
     ],
     faqTitle: "Questions people ask",
     faq: [
-      ["Is it really free?", "Yes. There is nothing to buy, and we don't take commissions from insurance companies."],
       ["Are you Medicare, or an insurance agent?", "Neither. We are an independent tool. We don't enroll anyone. To enroll, use Medicare.gov or call 1-800-MEDICARE."],
       ["How accurate is it?", "We use Medicare's official plan files and test our results against Medicare's own Plan Finder. Always confirm your doctors and pharmacy with the plan before enrolling."],
       ["What happens to what I tell you?", "Your medicines and county are saved only on your own device, and used only to answer you. We never sell it. Please don't share Medicare or Social Security numbers."],
@@ -61,12 +60,12 @@ export const L = {
     ],
     finalTitle: "Start with one question.",
     finalSub: "It takes about three minutes. No account needed.",
-    footer: "Medicare Helper is an independent, free tool. It is not affiliated with or endorsed by Medicare, the Centers for Medicare & Medicaid Services, any government agency, or any insurance company. It does not enroll people in plans and is not medical or legal advice.",
+    footer: "Medicare Helper is an independent tool. It is not affiliated with or endorsed by Medicare, the Centers for Medicare & Medicaid Services, any government agency, or any insurance company. It does not enroll people in plans and is not medical or legal advice.",
     built: "Built with NVIDIA Nemotron on Nebius Token Factory.",
   },
   es: {
     nav: { how: "Cómo funciona", families: "Para familias", faq: "Preguntas", cta: "Hable con la ayuda", lang: "English" },
-    eyebrow: "Gratis · Neutral · Nunca vendemos planes",
+    eyebrow: "Neutral · Privado · Datos oficiales de Medicare",
     h1: "El plan de Medicare correcto. Y apoyo cuando le quitan el cuidado.",
     sub: "Díganos sus medicinas. Revisamos todos los planes de su condado con los datos oficiales de Medicare, y le ayudamos a apelar a tiempo si el asilo dice que la cobertura termina.",
     ctaChoose: "Ver opciones de planes",
@@ -85,7 +84,7 @@ export const L = {
     trust: [
       ["Datos oficiales de Medicare", "Archivos oficiales, revisados cada semana"],
       ["98% de coincidencia", "con el buscador de planes de Medicare en 440 pruebas"],
-      ["Sin comisiones", "No vendemos planes ni hacemos llamadas de ventas"],
+      ["Español · English", "Escriba o simplemente hable, en cualquiera de los dos idiomas"],
       ["Privado por diseño", "Modelos abiertos de NVIDIA, alojados en Nebius"],
     ],
     howTitle: "Cómo funciona",
@@ -110,14 +109,13 @@ export const L = {
     },
     promiseTitle: "Nuestra promesa",
     promises: [
-      ["No vendemos seguros.", "Sin comisiones ni llamadas de ventas. No ganamos nada con el plan que elija."],
+      ["Somos neutrales.", "Ordenamos los planes por lo que le cuestan, no por quién los ofrece."],
       ["Mostramos de dónde vienen los números.", "Todo viene de los archivos públicos de Medicare, con la fecha."],
       ["Le decimos cuando no estamos seguros.", "Si una medicina no está cubierta o un precio es estimado, se lo decimos claramente."],
       ["También le mandamos con personas.", "Su médico para cambios de medicina. Consejeros locales gratuitos (SHIP) para casos difíciles."],
     ],
     faqTitle: "Preguntas frecuentes",
     faq: [
-      ["¿De verdad es gratis?", "Sí. No hay nada que comprar y no recibimos comisiones de aseguradoras."],
       ["¿Son Medicare o agentes de seguros?", "Ninguno. Somos una herramienta independiente y no inscribimos a nadie. Para inscribirse, use Medicare.gov o llame al 1-800-MEDICARE."],
       ["¿Qué tan exacto es?", "Usamos los archivos oficiales de Medicare y comparamos con el buscador de planes de Medicare. Confirme sus médicos y farmacia con el plan antes de inscribirse."],
       ["¿Qué pasa con lo que les digo?", "Sus medicinas y condado se guardan solo en su propio dispositivo y se usan solo para responderle. Nunca lo vendemos. No comparta números de Medicare ni de Seguro Social."],
@@ -126,7 +124,7 @@ export const L = {
     ],
     finalTitle: "Empiece con una pregunta.",
     finalSub: "Toma unos tres minutos. No necesita cuenta.",
-    footer: "Ayuda con Medicare es una herramienta independiente y gratuita. No está afiliada ni respaldada por Medicare, los Centros de Servicios de Medicare y Medicaid, ninguna agencia del gobierno ni ninguna aseguradora. No inscribe a nadie en planes y no es consejo médico ni legal.",
+    footer: "Ayuda con Medicare es una herramienta independiente. No está afiliada ni respaldada por Medicare, los Centros de Servicios de Medicare y Medicaid, ninguna agencia del gobierno ni ninguna aseguradora. No inscribe a nadie en planes y no es consejo médico ni legal.",
     built: "Hecho con NVIDIA Nemotron en Nebius Token Factory.",
   },
 };
