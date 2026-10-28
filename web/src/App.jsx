@@ -296,7 +296,7 @@ export default function App() {
         )}
 
         {items.map((it, i) => {
-          if (it.kind === "user") return <div key={i} className="my-3 ml-10 rounded-3xl rounded-br-md bg-brand px-5 py-3 text-lg text-white">{it.text}</div>;
+          if (it.kind === "user") return <div key={i} className="my-3 ml-10 rounded-3xl rounded-br-md bg-brand px-5 py-3 text-lg text-white">{it.text.replace(/:?\s*uploads\/\S+/g, "")}</div>;
           if (it.kind === "assistant") return <div key={i} className="md my-3 mr-6 rounded-3xl rounded-bl-md border border-line bg-card px-5 py-3 text-lg"><Markdown>{it.text}</Markdown></div>;
           if (it.kind === "steps") return <Steps key={i} steps={it.steps} t={t} />;
           if (it.kind === "plans") return <PlanResults key={i} data={it.data} t={t} table={family} />;

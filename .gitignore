@@ -39,3 +39,6 @@ web/public/_tmp/
 # reminder subscriptions (push addresses + dates only)
 data/state/*
 evals/agent/results_*_partial.json
+video/out/
+video/demo.mp4
+video/demo.srt

@@ -11,7 +11,7 @@ export default function Steps({ steps, t }) {
             ${s.status === "done" ? "bg-ok-soft text-ok" : s.status === "error" ? "bg-warn-soft text-warn" : "bg-brand-soft text-brand"}`}>
             {s.status === "done" ? <Check className="h-4 w-4" /> : s.status === "error" ? "!" : <span className="animate-pulse">•</span>}
           </span>
-          <span>{(t.steps[s.name] || (() => s.name))(s.args || {})}</span>
+          <span>{(t.steps[s.name] || (() => t.working))(s.args || {})}</span>
         </li>
       ))}
     </ol>
