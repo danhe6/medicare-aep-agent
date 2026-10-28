@@ -1,5 +1,7 @@
 # Medicare Helper
 
+**Demo video (under 3 min):** https://youtu.be/2Mbn9ufEs7I · **Live app:** https://89-124-36-137.sslip.io
+
 **A neutral, privacy-first helper for people with Medicare and the families who help them.** No ads, no sign-up.
 It compares every plan in a county against the medicines someone actually takes, checks their current plan for next year,
 looks up doctors, screens for Extra Help, reads Medicare letters (denials, summary notices, care-ending notices) and
