@@ -23,15 +23,16 @@ LONG = 150_000  # ms: the model can be slow; never cut a real answer short
 class Scene:
     """One recorded clip with time marks (seconds from the start of the clip)."""
 
-    def __init__(self, browser, out: Path, name: str, viewport: dict, scale: int = 1):
+    def __init__(self, browser, out: Path, name: str, viewport: dict, scale: int = 2, mobile: bool = False):
+        """Recorded at 2x so a close-up crop in editing stays sharp."""
         self.name, self.out = name, out
         size = {"width": viewport["width"] * scale, "height": viewport["height"] * scale}
         self.ctx = browser.new_context(viewport=viewport, device_scale_factor=scale, locale="en-US",
                                        record_video_dir=str(out / name), record_video_size=size,
-                                       is_mobile=scale > 1, has_touch=scale > 1)
+                                       is_mobile=mobile, has_touch=mobile)
         self.page = self.ctx.new_page()
         self.t0 = time.monotonic()
-        self.marks: list[dict] = []
+        self.marks: list[dict] = [{"kind": "meta", "viewport": viewport, "scale": scale}]
 
     def now(self) -> float:
         return round(time.monotonic() - self.t0, 2)
@@ -45,6 +46,19 @@ class Scene:
     def start(self):
         """Footage before this (blank page, loading, clearing storage) is cut in editing."""
         self.marks.append({"kind": "start", "start": self.now()})
+
+    def focus(self, locator, label: str, hold: float = 3.0):
+        """Mark where the eye should go: build.py zooms smoothly onto this box for `hold` seconds, then back out.
+        The box is the element's card (nearest rounded container), in viewport pixels, measured right now."""
+        box = None
+        try:
+            card = locator.locator("xpath=ancestor-or-self::*[contains(@class,'rounded-3xl') or self::table][1]")
+            box = (card if card.count() else locator).first.bounding_box()
+        except Exception:
+            pass
+        if box:
+            self.marks.append({"kind": "focus", "label": label, "start": self.now(), "hold": hold, "box": box})
+        self.pause(hold)
 
     def pause(self, s: float):
         self.page.wait_for_timeout(int(s * 1000))
@@ -91,11 +105,9 @@ def opening(browser, out, base):
     p = s.page
     p.goto(base + "/", wait_until="networkidle")
     s.start()
-    s.pause(3)
-    p.get_by_text("THE PROBLEM", exact=False).first.scroll_into_view_if_needed()
-    s.pause(1)
-    p.mouse.wheel(0, 250)
-    s.pause(6)
+    s.pause(4)
+    p.mouse.wheel(0, 220)
+    s.pause(4)
     s.close()
 
 
@@ -117,17 +129,17 @@ def family_flow(browser, out, base):
         p.get_by_text("Or take a photo of the pill bottles").click()
     fc.value.set_files(str(LABEL))
     s.busy(lambda: answer_done(p), "reading the label")
-    s.pause(3)
+    s.focus(p.get_by_text("I read this label").last, "label card", 3.5)
 
     s.marks.append({"kind": "cut", "label": "step2", "start": s.now()})
     type_slowly(p, "Mom lives in Miami-Dade, Florida. She also takes Eliquis 5 mg twice a day. No Medicaid.")
     s.busy(lambda: answer_done(p), "comparing every plan")
-    scroll_to_text(p, "Best plans for these medicines", 2500)
-    p.mouse.wheel(0, 300)
-    s.pause(3)
-    scroll_to_text(p, "needs plan approval", 3000)
+    scroll_to_text(p, "Best plans for these medicines", 800)
+    s.focus(p.locator("table").last, "comparison table", 4.5)
+    scroll_to_text(p, "needs plan approval", 800)
+    s.focus(p.get_by_text("needs plan approval").first, "needs approval", 3.5)
     p.mouse.wheel(0, 500)
-    s.pause(3)
+    s.pause(2)
 
     s.marks.append({"kind": "cut", "label": "step3", "start": s.now()})
     p.get_by_role("button", name="Is their doctor in network?").click()
@@ -136,7 +148,8 @@ def family_flow(browser, out, base):
     type_slowly(p, "Dr. Maria Lopez, the general practice PA in Miami Beach")
     s.busy(lambda: answer_done(p), "searching plan directories")
     s.pause(1)
-    scroll_to_text(p, "Online directories are often out of date", 3500)
+    scroll_to_text(p, "Online directories are often out of date", 600)
+    s.focus(p.get_by_text("Online directories are often out of date").last, "doctor card", 4)
     p.get_by_role("button", name="Send a summary to family").last.click()
     s.pause(1)
     p.get_by_label("Language").select_option("es")
@@ -144,32 +157,38 @@ def family_flow(browser, out, base):
     p.get_by_role("button", name="Write it").click()
     s.busy(lambda: p.get_by_text("Numbers checked against the results above").wait_for(timeout=LONG),
            "writing the family summary")
-    scroll_to_text(p, "Numbers checked against the results above", 5000)
+    scroll_to_text(p, "Numbers checked against the results above", 600)
+    s.focus(p.get_by_text("Numbers checked against the results above").last, "spanish summary", 5)
     s.close()
 
 
-def senior_spanish(browser, out, base):
-    """Step 4 at phone size: big-text mode in Spanish, photo of a care-ending notice -> appeal card."""
-    s = Scene(browser, out, "s4_senior_es", PHONE, scale=2)
+SHOW = """([text, startsWith]) => {
+    const el = [...document.querySelectorAll('main *')].find(e => e.childElementCount < 3 &&
+        (startsWith ? e.textContent.trim().startsWith(text) : e.textContent.trim() === text));
+    if (el) window.scrollTo({top: window.scrollY + el.getBoundingClientRect().top - 170, behavior: 'smooth'});
+    return !!el;
+}"""
+
+
+def senior_letter(browser, out, base):
+    """Step 4 at desktop size, big-text mode: photo of a care-ending notice -> the appeal deadline, who to call, what to say."""
+    s = Scene(browser, out, "s4_senior", DESKTOP)
     p = s.page
     p.goto(base + "/app", wait_until="networkidle")
     p.evaluate("() => { try { localStorage.clear(); } catch (e) {} }")
     p.reload(wait_until="networkidle")
     s.start()
-    s.pause(1)
-    p.get_by_role("button", name="Español").click()
-    s.pause(1.5)
-    p.get_by_text("A mí", exact=True).first.click()
+    s.pause(1.2)
+    p.get_by_text("Myself", exact=True).first.click()
     s.pause(2)
     with p.expect_file_chooser() as fc:
-        p.get_by_text("¿Recibió una carta o una factura?").click()
+        p.get_by_text("Got a letter or a bill?").click()
     fc.value.set_files(str(NOTICE))
-    s.busy(lambda: answer_done(p), "leyendo el aviso")
-    p.evaluate("() => window.scrollTo(0, 0)")
-    s.pause(1)
-    for _ in range(6):
-        p.mouse.wheel(0, 420)
-        s.pause(1.6)
+    s.busy(lambda: answer_done(p), "reading the notice")
+    p.evaluate(SHOW, ["Appeal deadline", False])
+    s.pause(4.5)
+    p.evaluate(SHOW, ["Call Acentra Health now", True])
+    s.pause(5)
     s.close()
 
 
@@ -190,7 +209,7 @@ if __name__ == "__main__":
     only = set(sys.argv[3].split(",")) if len(sys.argv) > 3 else None
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
-        for name, fn in [("s0", opening), ("s1", family_flow), ("s4", senior_spanish), ("s5", closing)]:
+        for name, fn in [("s0", opening), ("s1", family_flow), ("s4", senior_letter), ("s5", closing)]:
             if only and name not in only:
                 continue
             fn(browser, out, base)

@@ -1,52 +1,25 @@
 {
- "voice": "Samantha",
- "rate": 172,
+ "tts": "kokoro",
+ "voice": "af_bella",
+ "speed": 1.0,
  "scenes": [
-  {
-   "id": "s0",
-   "clip": "s0_opening",
-   "title": "",
-   "text": "Every fall, people with Medicare are asked to pick from about thirty-two plans. Sixty-nine percent don't compare at all. Medicare Helper is a neutral Medicare counselor in your family's pocket. Here's how it works, in four steps."
-  },
-  {
-   "id": "s1",
-   "clip": "s1_to_s3_family",
-   "from": "start",
-   "to": "step2",
-   "title": "Step 1 · Tell it",
-   "text": "Step one: tell it who you're helping. Ana is helping her mom, Rosa. She just takes a photo of the pill bottle. It reads the label and works out how many Rosa takes a month."
-  },
-  {
-   "id": "s2",
-   "clip": "s1_to_s3_family",
-   "from": "step2",
-   "to": "step3",
-   "title": "Step 2 · See the real cost",
-   "text": "Step two: see the real cost. Ana adds where Rosa lives and her other medicine. It checks every plan in Miami-Dade against her exact prescriptions: the cost in a typical year, the most she could pay in a bad year, and which drug needs the plan's approval first. Every number comes from Medicare's own plan files, and in four hundred forty test cases it landed within ten percent or a hundred dollars of Medicare's Plan Finder ninety-eight percent of the time."
-  },
-  {
-   "id": "s3",
-   "clip": "s1_to_s3_family",
-   "from": "step3",
-   "to": "end",
-   "title": "Step 3 · Ask what families ask",
-   "text": "Step three: the questions families actually ask. Is her doctor in network? It searches each plan's directory, says plainly when it found nothing, and tells you to call and confirm. Then one tap writes a short summary for the family, in Spanish, with every number checked by code against the comparison."
-  },
-  {
-   "id": "s4",
-   "clip": "s4_senior_es",
-   "title": "Step 4 · When care is cut",
-   "text": "Step four: when care is cut. The nursing home says Medicare will stop paying. Rosa uses big-text mode, in Spanish, and takes a photo of the notice. It finds the appeal deadline, the number to call, and what to say. NVIDIA Nemotron on Nebius reads the notice, and every date is computed and checked by code before it's shown."
-  },
-  {
-   "id": "s5",
-   "clip": "s5_close",
-   "title": "",
-   "text": "Neutral. In English or Spanish. Her details stay on her phone. Medicare Helper."
-  }
- ],
- "end_card": [
-  "Rosa is fictional. The plan data is real.",
-  "Medicare's public plan files · 89-124-36-137.sslip.io"
+  {"id": "hook", "card": "hook", "stages": [1, 1.1, 1.6],
+   "text": "Every fall, people with Medicare get about thirty-two plans to choose from. Most of them, sixty-nine percent, don't compare at all. And when a plan denies care and someone appeals, four out of five denials are overturned. Yet only about one in nine is ever appealed."},
+  {"id": "intro", "clip": "s0_opening",
+   "text": "Medicare Helper is a neutral helper for people with Medicare, and the families who help them."},
+  {"id": "s1", "clip": "s1_to_s3_family", "from": "start", "to": "step2", "title": "Choose a plan",
+   "text": "Ana is helping her mom, Rosa. She just takes a photo of the pill bottle, and the app reads the label for her."},
+  {"id": "s2", "clip": "s1_to_s3_family", "from": "step2", "to": "step3", "title": "Choose a plan",
+   "text": "She adds where Rosa lives and her other medicine. In seconds, every plan in Miami-Dade is priced for Rosa's exact prescriptions: what a typical year costs, the most she could pay in a bad year, and which drug needs the plan's approval first."},
+  {"id": "s3", "clip": "s1_to_s3_family", "from": "step3", "to": "end", "title": "Ask what families ask",
+   "text": "Then the questions families actually ask. Is her doctor in network? It searches each plan's directory, and when it can't find her, it says so, instead of guessing. One more tap writes a summary for the family, in Spanish, with every number checked by code."},
+  {"id": "s4", "clip": "s4_senior", "title": "When care is cut",
+   "text": "And when care is being cut, Rosa can handle it herself, in big text. She takes a photo of the notice from the nursing home. It finds the appeal deadline, down to the hour, the number to call, and what to say."},
+  {"id": "arch", "card": "architecture", "stages": [1, 1.2],
+   "text": "Under the hood, NVIDIA Nemotron models on Nebius Token Factory read the photos and run the conversation. But the model never makes up a number. Prices come from a cost engine built on Medicare's own plan files, and every dollar amount in a reply is checked against the tools before anyone sees it."},
+  {"id": "evals", "card": "evals", "stages": [1.2, 1],
+   "text": "We test it like we don't trust it. Early on, our evals passed while a tool had crashed, and while an injectable pen was priced as a pill. So we made the tests stricter. Today it lands within ten percent, or a hundred dollars a year, of Medicare's Plan Finder in ninety-eight percent of four hundred forty cases, and passes all one hundred fifty agent test conversations."},
+  {"id": "close", "card": "closing", "tail": 2.5,
+   "text": "Medicare Helper. Neutral help, in English and Spanish, for the people who need it most."}
  ]
 }

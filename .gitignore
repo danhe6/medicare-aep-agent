@@ -42,3 +42,4 @@ evals/agent/results_*_partial.json
 video/out/
 video/demo.mp4
 video/demo.srt
+video/voice/
